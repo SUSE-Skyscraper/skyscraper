@@ -10,10 +10,10 @@ updates:
     schedule:
       interval: daily
     reviewers:
-      - "tmuntaner"
+      - "suse-skyscraper/Developers"
   - package-ecosystem: npm
     directory: /
     schedule:
       interval: daily
     reviewers:
-      - "tmuntaner"
+      - "suse-skyscraper/Developers"
