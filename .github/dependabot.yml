@@ -5,6 +5,12 @@
 
 version: 2
 updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: daily
+    reviewers:
+      - "tmuntaner"
   - package-ecosystem: npm
     directory: /
     schedule:
