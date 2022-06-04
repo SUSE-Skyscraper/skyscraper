@@ -1,0 +1,26 @@
+.example-spacer {
+  flex: 1 1 auto;
+}
+
+mat-toolbar#navbar mat-toolbar-row {
+  max-width: 72rem;
+  margin: 0 auto;
+}
+
+#mainContent {
+  max-width: 72rem;
+  width: 100%;
+  display: flex;
+  flex: 1;
+}
+
+#mainContentWrapper {
+  display: block;
+  width: 100%;
+  padding: 1em 0;
+}
+
+article {
+  padding: 2em 16px;
+  width: 100%;
+}

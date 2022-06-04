@@ -1,37 +1,32 @@
 # syntax=docker/dockerfile:1.2
 
-FROM registry.suse.com/bci/nodejs:14 as builder
-
-RUN mkdir /app
-WORKDIR /app
-
-COPY package*.json /app/
-RUN npm ci
-COPY . .
-
-RUN ./node_modules/.bin/ng build
-
-FROM registry.suse.com/bci/bci-base:latest
+FROM registry.suse.com/bci/nodejs:14
 
 RUN zypper --non-interactive dup && \
     zypper --non-interactive install nginx
 
-RUN mkdir /etc/nginx/nginxconfig.io
+RUN mkdir /app && \
+    mkdir /etc/nginx/nginxconfig.io && \
+    mkdir /srv/www/htdocs/skyscraper-web && \
+    ln -sf /dev/stdout /var/log/nginx/access.log && \
+    ln -sf /dev/stderr /var/log/nginx/error.log && \
+    chown nginx:nginx /app && \
+    chown nginx:nginx -R /srv/www/htdocs
+
+COPY package*.json /app/
+RUN cd /app && npm ci
 
 COPY docker/nginx.conf /etc/nginx/nginx.conf
 COPY docker/config/* /etc/nginx/nginxconfig.io/
 COPY docker/vhosts/* /etc/nginx/vhosts.d/
+COPY docker/entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
-RUN ln -sf /dev/stdout /var/log/nginx/access.log \
-    && ln -sf /dev/stderr /var/log/nginx/error.log \
-    && mkdir /srv/www/htdocs/skyscraper-web
-
-COPY --from=builder /app/dist/skyscraper-web /srv/www/htdocs/skyscraper-web
+COPY . /app/
 
 WORKDIR /srv/www/htdocs/skyscraper-web
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 
 EXPOSE 8080
-
 STOPSIGNAL SIGQUIT
-
-ENTRYPOINT ["nginx", "-g", "daemon off;"]
+USER nginx
+CMD ["nginx", "-g", "daemon off;"]
