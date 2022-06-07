@@ -6,6 +6,14 @@ import {
   BrowserDynamicTestingModule,
   platformBrowserDynamicTesting,
 } from '@angular/platform-browser-dynamic/testing';
+import { ngMocks } from 'ng-mocks';
+import { OktaAuthStateService } from '@okta/okta-angular';
+import { EMPTY } from 'rxjs';
+
+ngMocks.autoSpy('jasmine');
+ngMocks.defaultMock(OktaAuthStateService, () => ({
+  authState$: EMPTY,
+}));
 
 declare const require: {
   context(
