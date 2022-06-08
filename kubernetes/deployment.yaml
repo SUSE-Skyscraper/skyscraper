@@ -1,0 +1,82 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: skyscraper-web
+  labels:
+    app: skyscraper-web
+spec:
+  selector:
+    app: skyscraper-web
+  type: ClusterIP
+  ports:
+    - port: 8080
+      targetPort: 8080
+      protocol: TCP
+      name: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: skyscraper-web
+  labels:
+    app: skyscraper-web
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: skyscraper-web
+  template:
+    metadata:
+      labels:
+        app: skyscraper-web
+    spec:
+      containers:
+        - name: skyscraper-web
+          image: skyscraper-web
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 60
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 60
+          volumeMounts:
+            - mountPath: /app/src/environments/environment.prod.ts
+              name: skyscraper-web-environment
+              subPath: environment.prod.ts
+            - mountPath: /app/src/environments/environment.ts
+              name: skyscraper-web-environment
+              subPath: environment.prod.ts
+      volumes:
+        - name: skyscraper-web-environment
+          configMap:
+            name: skyscraper-web-config
+            items:
+              - key: environment
+                path: environment.prod.ts
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: skyscraper-web
+  labels:
+    app: skyscraper-web
+spec:
+  rules:
+    - host: skyscraper-web.test
+      http:
+        paths:
+          - path: /
+            backend:
+              service:
+                name: skyscraper-web
+                port:
+                  number: 8080
+            pathType: ImplementationSpecific
