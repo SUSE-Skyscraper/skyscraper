@@ -14,7 +14,7 @@ export class AuthInterceptor implements HttpInterceptor {
   private readonly accessToken: string | undefined;
 
   constructor(@Inject(OKTA_AUTH) private oktaAuth: OktaAuth) {
-    this.accessToken = oktaAuth.getAccessToken();
+    this.accessToken = this.oktaAuth.getAccessToken();
   }
 
   intercept(

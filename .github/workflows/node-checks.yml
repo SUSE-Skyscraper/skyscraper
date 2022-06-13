@@ -10,6 +10,9 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./web
     strategy:
       matrix:
         node-version: [14.x, 16.x]
@@ -19,7 +22,8 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node-version }}
-          cache: 'npm'
+          #cache: 'npm'
+          #cache-dependency-path: web/package-lock.json
       - run: npm ci
       - run: npm run build --if-present
       - run: npm test -- --no-watch --no-progress --browsers=ChromeHeadlessCustom

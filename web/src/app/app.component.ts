@@ -25,11 +25,9 @@ export class AppComponent implements OnInit {
       this.isAuthenticated = authState.isAuthenticated === true;
 
       if (this.isAuthenticated) {
-        const profile = this.backendService
-          .getProfile()
-          .subscribe((profile) => {
-            this.profile = profile;
-          });
+        this.backendService.getProfile().subscribe((profile) => {
+          this.profile = profile;
+        });
       }
     });
   }

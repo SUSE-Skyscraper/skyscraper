@@ -1,0 +1,20 @@
+{
+    "CN": "skyscraper-web.test",
+    "hosts": [
+        "skyscraper-web.test",
+        "www.skyscraper-web.test"
+    ],
+    "key": {
+        "algo": "ecdsa",
+        "size": 256
+    },
+    "names": [
+        {
+            "C": "DE",
+            "ST": "Bavaria",
+            "L": "Nuremberg",
+            "O": "SUSE",
+            "OU": "IT"
+        }
+    ]
+}

@@ -1,0 +1,37 @@
+skyscraper_web:
+  ingress:
+    enabled: true
+    className: ""
+    annotations: {}
+    hosts:
+      - host: skyscraper-web.test
+        paths:
+          - path: /
+            pathType: ImplementationSpecific
+    tls:
+      - secretName: skyscraper-web-tls
+        hosts:
+          - skyscraper-web.test
+  config:
+    enabled: true
+    configMapName: "skyscraper-web-config"
+    environmentPath: "environment"
+
+skyscraper_server:
+  ingress:
+    enabled: true
+    className: ""
+    annotations: {}
+    hosts:
+      - host: skyscraper-backend.test
+        paths:
+          - path: /
+            pathType: ImplementationSpecific
+    tls:
+      - secretName: skyscraper-backend-tls
+        hosts:
+          - skyscraper-backend.test
+  config:
+    enabled: true
+    configMapName: "skyscraper-server-config"
+    environmentPath: "config"

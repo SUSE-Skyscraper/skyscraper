@@ -12,7 +12,7 @@ updates:
     reviewers:
       - "suse-skyscraper/Developers"
   - package-ecosystem: npm
-    directory: /
+    directory: /web
     schedule:
       interval: daily
     reviewers:

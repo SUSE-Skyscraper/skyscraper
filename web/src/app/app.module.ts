@@ -9,7 +9,6 @@ import { OktaAuth } from '@okta/okta-auth-js';
 import { LoginComponent } from './login/login.component';
 import { DashboardComponent } from './dashboard/dashboard.component';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
-import { FlexLayoutModule } from '@angular/flex-layout';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatButtonModule } from '@angular/material/button';
 import { MatListModule } from '@angular/material/list';
@@ -27,7 +26,6 @@ import { AuthInterceptor } from './auth.interceptor';
     AppRoutingModule,
     OktaAuthModule,
     BrowserAnimationsModule,
-    FlexLayoutModule,
     MatToolbarModule,
     MatButtonModule,
     MatListModule,

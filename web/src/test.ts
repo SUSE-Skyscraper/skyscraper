@@ -7,7 +7,7 @@ import {
   platformBrowserDynamicTesting,
 } from '@angular/platform-browser-dynamic/testing';
 import { ngMocks } from 'ng-mocks';
-import { OktaAuthStateService } from '@okta/okta-angular';
+import { OKTA_AUTH, OktaAuthStateService } from '@okta/okta-angular';
 import { EMPTY } from 'rxjs';
 
 ngMocks.autoSpy('jasmine');
