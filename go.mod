@@ -3,7 +3,7 @@ module github.com/suse-skyscraper/skyscraper
 go 1.18
 
 require (
-	github.com/getkin/kin-openapi v0.96.0
+	github.com/getkin/kin-openapi v0.97.0
 	github.com/okta/okta-jwt-verifier-golang v1.3.1
 	github.com/spf13/viper v1.12.0
 	github.com/stretchr/testify v1.7.2
@@ -37,7 +37,6 @@ require (
 	github.com/spf13/cast v1.5.0 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
-	github.com/stretchr/objx v0.1.0 // indirect
 	github.com/subosito/gotenv v1.3.0 // indirect
 	golang.org/x/crypto v0.0.0-20220411220226-7b82a4e95df4 // indirect
 	golang.org/x/sys v0.0.0-20220520151302-bc2c85ada10a // indirect
