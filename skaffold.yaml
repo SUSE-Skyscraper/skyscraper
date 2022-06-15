@@ -17,16 +17,16 @@ build:
 deploy:
   kubectl:
     manifests:
-      - kubernetes/config-backend.yaml
-      - kubernetes/config-frontend.yaml
-      - kubernetes/skyscraper-backend-tls.yaml
-      - kubernetes/skyscraper-web-tls.yaml
+      - kubernetes/config/gen/skyscraper-server-tls.yaml
+      - kubernetes/config/gen/skyscraper-server-config.yaml
+      - kubernetes/config/gen/skyscraper-web-tls.yaml
+      - kubernetes/config/gen/skyscraper-web-config.yaml
   helm:
     releases:
       - name: skyscraper-web
         chartPath: ../skyscraper-helm-charts/charts/skyscraper
         valuesFiles:
-          - helm.yaml
+          - kubernetes/helm/skyscraper-values.yaml
         artifactOverrides:
           skyscraper_web.image.name: skyscraper-web
           skyscraper_server.image.name: skyscraper-server

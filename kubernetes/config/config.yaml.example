@@ -1,0 +1,5 @@
+okta:
+  issuer: ""
+  client_id: ""
+frontend:
+  url: "https://skyscraper-web.test"
