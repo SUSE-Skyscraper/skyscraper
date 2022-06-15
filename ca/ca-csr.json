@@ -1,0 +1,14 @@
+{
+  "CN": "skyscraper",
+  "key": {
+    "algo": "rsa",
+    "size": 2048
+  },
+  "names":[{
+    "C": "DE",
+    "ST": "Bavaria",
+    "L": "Nuremberg",
+    "O": "SUSE",
+    "OU": "IT"
+  }]
+}

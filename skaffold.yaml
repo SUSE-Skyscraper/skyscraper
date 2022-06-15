@@ -1,0 +1,32 @@
+apiVersion:  skaffold/v2beta28
+kind: Config
+metadata:
+  name: skyscraper-web
+build:
+  local:
+    push: false
+  artifacts:
+    - image: skyscraper-web
+      context: .
+      docker:
+        dockerfile: docker/skyscraper-web.Dockerfile
+    - image: skyscraper-server
+      context: .
+      docker:
+        dockerfile: docker/skyscraper-server.Dockerfile
+deploy:
+  kubectl:
+    manifests:
+      - kubernetes/config-backend.yaml
+      - kubernetes/config-frontend.yaml
+      - kubernetes/skyscraper-backend-tls.yaml
+      - kubernetes/skyscraper-web-tls.yaml
+  helm:
+    releases:
+      - name: skyscraper-web
+        chartPath: ../skyscraper-helm-charts/charts/skyscraper
+        valuesFiles:
+          - helm.yaml
+        artifactOverrides:
+          skyscraper_web.image.name: skyscraper-web
+          skyscraper_server.image.name: skyscraper-server

@@ -1,18 +1,21 @@
 # See http://help.github.com/ignore-files/ for more about ignoring files.
 
+config.yaml
+
 # Compiled output
-/dist
+web/dist
 /tmp
 /out-tsc
 /bazel-out
 
 # Node
-/node_modules
-npm-debug.log
-yarn-error.log
+web/node_modules
+web/npm-debug.log
+web/yarn-error.log
 
 # IDEs and editors
 .idea/
+*.iml
 .project
 .classpath
 .c9/
@@ -29,7 +32,7 @@ yarn-error.log
 .history/*
 
 # Miscellaneous
-/.angular/cache
+web/.angular/cache
 .sass-cache/
 /connect.lock
 /coverage
@@ -41,4 +44,5 @@ testem.log
 .DS_Store
 Thumbs.db
 
-src/environments/environment.local.ts
+web/src/environments/environment.local.ts
+main

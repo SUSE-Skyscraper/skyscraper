@@ -1,6 +1,5 @@
 .git
-node_modules
+web/node_modules
 .github
-.angular
-.vscode
-dist
+web/.angular
+web/dist

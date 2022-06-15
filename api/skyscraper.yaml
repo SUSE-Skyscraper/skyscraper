@@ -1,0 +1,41 @@
+openapi: 3.0.3
+info:
+  title: Skyscraper
+  description: Skyscraper
+  version: 1.0.0
+servers:
+  - url: http://localhost:8080
+paths:
+  /api/v1/profile:
+    get:
+      description: Returns the user profile
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: a response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+components:
+  responses:
+    UnauthorizedError:
+      description: Access token is missing or invalid
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Profile:
+      type: object
+      properties:
+        email:
+          type: string
+      required:
+        - email
+security:
+  - bearerAuth: []
