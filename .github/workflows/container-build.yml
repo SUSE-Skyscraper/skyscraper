@@ -16,7 +16,7 @@ on:
       - 'master'
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: suse-skyscraper/skyscraper
+  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
   build-and-push-image:

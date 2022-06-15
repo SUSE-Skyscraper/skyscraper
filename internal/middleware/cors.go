@@ -3,7 +3,7 @@ package middleware
 import (
 	"net/http"
 
-	"github.com/suse-skyscraper/skyscraper-web/internal/application"
+	"github.com/suse-skyscraper/skyscraper/internal/application"
 )
 
 func CorsHandler(conf application.Config) func(next http.Handler) http.Handler {
