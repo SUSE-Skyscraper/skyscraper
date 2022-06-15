@@ -3,3 +3,4 @@ web/node_modules
 .github
 web/.angular
 web/dist
+kubernetes
