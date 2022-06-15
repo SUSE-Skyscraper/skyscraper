@@ -17,3 +17,9 @@ updates:
       interval: daily
     reviewers:
       - "suse-skyscraper/Developers"
+  - package-ecosystem: gomod
+    directory: /
+    schedule:
+      interval: daily
+    reviewers:
+      - "suse-skyscraper/Developers"
