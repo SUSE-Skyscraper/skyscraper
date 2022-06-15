@@ -4,9 +4,9 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/suse-skyscraper/skyscraper-web/internal/application"
-	"github.com/suse-skyscraper/skyscraper-web/internal/middleware"
-	"github.com/suse-skyscraper/skyscraper-web/internal/server"
+	"github.com/suse-skyscraper/skyscraper/internal/application"
+	"github.com/suse-skyscraper/skyscraper/internal/middleware"
+	"github.com/suse-skyscraper/skyscraper/internal/server"
 )
 
 func main() {

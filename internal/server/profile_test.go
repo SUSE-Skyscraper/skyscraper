@@ -8,8 +8,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/suse-skyscraper/skyscraper-web/internal/helpers"
-	"github.com/suse-skyscraper/skyscraper-web/internal/middleware"
+	"github.com/suse-skyscraper/skyscraper/internal/helpers"
+	"github.com/suse-skyscraper/skyscraper/internal/middleware"
 )
 
 func TestHelloName(t *testing.T) {

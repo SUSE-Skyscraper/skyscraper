@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	jwtverifier "github.com/okta/okta-jwt-verifier-golang"
-	"github.com/suse-skyscraper/skyscraper-web/internal/application"
+	"github.com/suse-skyscraper/skyscraper/internal/application"
 )
 
 func AuthorizationHandler(conf application.Config) func(next http.Handler) http.Handler {

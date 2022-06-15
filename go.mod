@@ -1,4 +1,4 @@
-module github.com/suse-skyscraper/skyscraper-web
+module github.com/suse-skyscraper/skyscraper
 
 go 1.18
 
