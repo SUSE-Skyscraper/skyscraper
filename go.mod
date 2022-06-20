@@ -6,7 +6,7 @@ require (
 	github.com/getkin/kin-openapi v0.97.0
 	github.com/okta/okta-jwt-verifier-golang v1.3.1
 	github.com/spf13/viper v1.12.0
-	github.com/stretchr/testify v1.7.2
+	github.com/stretchr/testify v1.7.3
 )
 
 require (
