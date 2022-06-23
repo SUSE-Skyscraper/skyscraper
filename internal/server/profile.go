@@ -12,9 +12,16 @@ type userProfile struct {
 }
 
 func V1Profile(w http.ResponseWriter, r *http.Request) {
-	email := r.Context().Value(middleware.UserEmail).(string)
+	email := r.Context().Value(middleware.UserEmail)
+
+	// This should only happen if we didn't enable an authorizer such as Okta
+	if email == nil {
+		http.Error(w, "user not found", http.StatusInternalServerError)
+		return
+	}
+
 	profile := userProfile{
-		Email: email,
+		Email: email.(string),
 	}
 	profileJSON, err := json.Marshal(&profile)
 	if err != nil {

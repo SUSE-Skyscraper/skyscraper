@@ -13,17 +13,21 @@ paths:
         - bearerAuth: []
       responses:
         '200':
-          description: a response
+          description: The current user's profile
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Profile'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          description: '#/components/responses/InternalError'
 components:
   responses:
     UnauthorizedError:
       description: Access token is missing or invalid
+    InternalError:
+      description: An unexpected internal error occurred
   securitySchemes:
     bearerAuth:
       type: http

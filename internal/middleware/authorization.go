@@ -10,16 +10,10 @@ import (
 	"github.com/suse-skyscraper/skyscraper/internal/application"
 )
 
-func AuthorizationHandler(conf application.Config) func(next http.Handler) http.Handler {
+func OktaAuthorizationHandler(conf application.Config) func(next http.Handler) http.Handler {
 	jwtVerifier := NewJwtVerifier(conf.Okta.Issuer, conf.Okta.ClientID)
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			/*
-				if r.Method == "OPTION" {
-					next.ServeHTTP(w, r)
-					return
-				}*/
-
 			authHeader := strings.Split(r.Header.Get("Authorization"), "Bearer ")
 			if len(authHeader) != 2 {
 				w.WriteHeader(http.StatusUnauthorized)
