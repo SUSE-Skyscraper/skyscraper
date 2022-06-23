@@ -12,7 +12,7 @@ import (
 	"github.com/suse-skyscraper/skyscraper/internal/middleware"
 )
 
-func TestHelloName(t *testing.T) {
+func TestV1Profile(t *testing.T) {
 	expectedEmail := "foo@bar.com"
 	req, _ := http.NewRequest("GET", "/api/v1/profile", nil)
 	req.Header.Set("Content-Type", "application/json")
@@ -28,4 +28,14 @@ func TestHelloName(t *testing.T) {
 	err := json.Unmarshal(body, &userProfile)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedEmail, userProfile.Email)
+}
+
+func TestV1ProfileNoContext(t *testing.T) {
+	req, _ := http.NewRequest("GET", "/api/v1/profile", nil)
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	V1Profile(w, req)
+	_ = helpers.AssertOpenAPI(t, w, req)
+	assert.Equal(t, http.StatusInternalServerError, w.Result().StatusCode)
 }

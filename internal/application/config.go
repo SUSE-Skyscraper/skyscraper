@@ -5,6 +5,7 @@ import (
 )
 
 type OktaConfig struct {
+	Enabled  bool   `mapstructure:"enabled"`
 	Issuer   string `mapstructure:"issuer"`
 	ClientID string `mapstructure:"client_id"`
 }
@@ -38,7 +39,13 @@ func Configuration() (Config, error) {
 		return Config{}, err
 	}
 
-	var conf Config
+	// set defaults
+	conf := Config{
+		Okta: OktaConfig{
+			Enabled: false,
+		},
+	}
+
 	err = v.Unmarshal(&conf)
 	if err != nil {
 		return Config{}, err
