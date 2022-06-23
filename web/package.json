@@ -21,7 +21,7 @@
     "@angular/material": "^14.0.0",
     "@angular/platform-browser": "^14.0.0",
     "@angular/platform-browser-dynamic": "^14.0.0",
-    "@angular/router": "^14.0.0",
+    "@angular/router": "^14.0.3",
     "@okta/okta-angular": "~5.2.0",
     "@okta/okta-auth-js": "^6.7.0",
     "rxjs": "~7.5.0",
