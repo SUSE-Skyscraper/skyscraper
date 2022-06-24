@@ -6,6 +6,16 @@ info:
 servers:
   - url: http://localhost:8080
 paths:
+  /healthz:
+    get:
+      description: Health check
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
   /api/v1/profile:
     get:
       description: Returns the user profile
