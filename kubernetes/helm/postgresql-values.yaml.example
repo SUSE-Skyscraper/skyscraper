@@ -1,0 +1,7 @@
+auth:
+  username: admin
+  password: secret
+  database: skyscraper
+primary:
+  persistence:
+    size: 1Gi

@@ -46,3 +46,4 @@ Thumbs.db
 
 web/src/environments/environment.local.ts
 main
+kubernetes/helm/*.yaml
