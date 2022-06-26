@@ -10,16 +10,16 @@ updates:
     schedule:
       interval: daily
     reviewers:
-      - "suse-skyscraper/Developers"
+      - "SUSE-Skyscraper/developers"
   - package-ecosystem: npm
     directory: /web
     schedule:
       interval: daily
     reviewers:
-      - "suse-skyscraper/Developers"
+      - "SUSE-Skyscraper/developers"
   - package-ecosystem: gomod
     directory: /
     schedule:
       interval: daily
     reviewers:
-      - "suse-skyscraper/Developers"
+      - "SUSE-Skyscraper/developers"
