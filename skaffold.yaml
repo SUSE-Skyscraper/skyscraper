@@ -23,8 +23,20 @@ deploy:
       - kubernetes/config/gen/skyscraper-web-config.yaml
   helm:
     releases:
+      - name: nats
+        remoteChart: nats/nats
+        version: 0.17.1
+        valuesFiles:
+          - kubernetes/helm/nats-values.yaml
+      - name: postgres
+        remoteChart: bitnami/postgresql
+        version: 11.6.10
+        valuesFiles:
+          - kubernetes/helm/postgresql-values.yaml
       - name: skyscraper-web
-        chartPath: ../skyscraper-helm-charts/charts/skyscraper
+        #chartPath: ../skyscraper-helm-charts/charts/skyscraper
+        remoteChart: skyscraper/skyscraper
+        version: 0.1.4
         valuesFiles:
           - kubernetes/helm/skyscraper-values.yaml
         artifactOverrides:
