@@ -51,7 +51,7 @@ func NewCmd(app *application.App) *cobra.Command {
 						return err
 					}
 
-					var tags = make(map[string]interface{})
+					var tags = make(map[string]string)
 					for _, tag := range accountTags.Tags {
 						tags[aws.ToString(tag.Key)] = aws.ToString(tag.Value)
 					}

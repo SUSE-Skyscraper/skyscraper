@@ -1,0 +1,18 @@
+dl {
+  width: 500px;
+}
+
+dl  div {
+  display: flex;
+  padding: 1em 0;
+}
+
+dl dd {
+  flex:0 1 50%;
+  font-weight: 700;
+}
+
+dl dt {
+  flex: 0 1 50%;
+  order: 2;
+}

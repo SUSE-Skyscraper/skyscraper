@@ -40,6 +40,9 @@ func NewCmd(app *application.App) *cobra.Command {
 				}
 
 				r.Get("/api/v1/profile", server.V1Profile)
+				r.Get("/api/v1/cloud_tenants", server.V1CloudTenants(app))
+				r.Get("/api/v1/cloud_tenants/cloud/{cloud}/tenant/{tenant_id}/accounts", server.V1CloudTenantAccounts(app))
+				r.Get("/api/v1/cloud_tenants/cloud/{cloud}/tenant/{tenant_id}/accounts/{id}", server.V1CloudTenantAccount(app))
 			})
 
 			err := http.ListenAndServe(":8080", r)

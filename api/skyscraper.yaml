@@ -31,7 +31,91 @@ paths:
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '500':
-          description: '#/components/responses/InternalError'
+          $ref: '#/components/responses/InternalError'
+  /api/v1/cloud_tenants:
+    get:
+      description: Returns the cloud tenants
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: The cloud tenants
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CloudTenant'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/v1/cloud_tenants/cloud/{cloud}/tenant/{tenant_id}/accounts:
+    get:
+      description: Returns the accounts for a cloud tenant
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: cloud
+          in: path
+          description: The cloud provider name
+          required: true
+          schema:
+            type: string
+        - name: tenant_id
+          in: path
+          description: The tenant ID
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The accounts for a cloud tenant
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Account'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/v1/cloud_tenants/cloud/{cloud}/tenant/{tenant_id}/accounts/{id}:
+    get:
+      description: Returns the account for a cloud tenant
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: cloud
+          in: path
+          description: The cloud provider name
+          required: true
+          schema:
+            type: string
+        - name: tenant_id
+          in: path
+          description: The tenant ID
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          description: The account ID
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The account for a cloud tenant
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Account'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalError'
 components:
   responses:
     UnauthorizedError:
@@ -51,5 +135,47 @@ components:
           type: string
       required:
         - email
+    CloudTenant:
+      type: object
+      properties:
+        cloud_provider:
+          type: string
+        tenant_id:
+          type: string
+        name:
+          type: string
+        active:
+          type: boolean
+        created_at:
+          type: string
+        updated_at:
+          type: string
+    Account:
+      type: object
+      properties:
+        cloud_provider:
+          type: string
+        tenant_id:
+          type: string
+        account_id:
+          type: string
+        name:
+          type: string
+        tags_current:
+          type: object
+          additionalProperties:
+            type: string
+        tags_desired:
+          type: object
+          additionalProperties:
+            type: string
+        tags_drift_detected:
+          type: boolean
+        active:
+          type: boolean
+        created_at:
+          type: string
+        updated_at:
+          type: string
 security:
   - bearerAuth: []
