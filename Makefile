@@ -9,7 +9,7 @@ fmt:
 	go fmt ./cmd/... ./internal/...
 
 build:
-	go build -v ./cmd/server/main.go
+	go build -v ./cmd/main.go
 
 test:
 	go test -v ./cmd/... ./internal/...

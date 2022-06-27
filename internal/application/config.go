@@ -1,8 +1,27 @@
 package application
 
 import (
+	"fmt"
+
 	"github.com/spf13/viper"
 )
+
+type Clouds struct {
+	AWSTenants   []AWSTenant   `mapstructure:"aws"`
+	AzureTenants []AzureTenant `mapstructure:"azure"`
+	GCPTenants   []GCPTenant   `mapstructure:"gcp"`
+}
+
+type AWSTenant struct {
+	Name            string `mapstructure:"name"`
+	MasterAccountID string `mapstructure:"master_account_id"`
+	AccessKeyID     string `mapstructure:"access_key_id"`
+	SecretAccessKey string `mapstructure:"secret_access_key"`
+}
+
+type AzureTenant struct{}
+
+type GCPTenant struct{}
 
 type OktaConfig struct {
 	Enabled  bool   `mapstructure:"enabled"`
@@ -22,10 +41,16 @@ type DBConfig struct {
 	Host     string `mapstructure:"host"`
 }
 
+func (db *DBConfig) GetDSN() string {
+	dsn := fmt.Sprintf("postgresql://%s:%s@%s:%d/%s", db.User, db.Password, db.Host, db.Port, db.Database)
+	return dsn
+}
+
 type Config struct {
 	Okta     OktaConfig     `mapstructure:"okta"`
 	DB       DBConfig       `mapstructure:"db"`
 	Frontend FrontendConfig `mapstructure:"frontend"`
+	Clouds   Clouds         `mapstructure:"clouds"`
 }
 
 func Configuration() (Config, error) {
@@ -41,6 +66,11 @@ func Configuration() (Config, error) {
 
 	// set defaults
 	conf := Config{
+		Clouds: Clouds{
+			AWSTenants:   []AWSTenant{},
+			GCPTenants:   []GCPTenant{},
+			AzureTenants: []AzureTenant{},
+		},
 		Okta: OktaConfig{
 			Enabled: false,
 		},

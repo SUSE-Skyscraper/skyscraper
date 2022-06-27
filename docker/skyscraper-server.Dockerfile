@@ -14,7 +14,7 @@ RUN go mod download
 
 COPY . .
 
-RUN go build -o skyscraper-server ./cmd/server/main.go
+RUN go build -o skyscraper-server ./cmd/main.go
 
 FROM registry.suse.com/bci/bci-base:latest
 
@@ -27,4 +27,4 @@ WORKDIR /app
 
 EXPOSE 8080
 
-ENTRYPOINT ["/usr/local/bin/skyscraper-server"]
+CMD ["/usr/local/bin/skyscraper-server", "server"]

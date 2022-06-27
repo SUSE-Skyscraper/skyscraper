@@ -12,6 +12,8 @@
 * helm
 * nodejs 14+
 * golang 1.18+
+* sqlc
+  * `go install github.com/kyleconroy/sqlc/cmd/sqlc@latest`
 
 **openSUSE Tumbleweed:**
 
