@@ -66,8 +66,8 @@ export interface CloudAccount {
   account_id: string;
   name: string;
   active: boolean;
-  tags_desired: Map<string, string>;
-  tags_current: Map<string, string>;
+  tags_desired: { [key: string]: string };
+  tags_current: { [key: string]: string };
   tags_drift_detected: boolean;
   created_at: string;
   updated_at: string;

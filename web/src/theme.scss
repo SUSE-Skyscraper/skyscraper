@@ -1,0 +1,104 @@
+@use '@angular/material' as mat;
+
+$red-palette: (
+  100: #F5C2C7,
+  500: #DC3545,
+  900: #C5161F,
+  contrast: (
+    100: #141823,
+    500: #F2F2F2,
+    900: #F2F2F2
+  )
+);
+
+$general-palette: (
+  50 : #e6f7ef,
+  100 : #c1ead7,
+  200 : #98ddbc,
+  300 : #6ecfa1,
+  400 : #4fc48c,
+  500 : #30ba78,
+  600 : #2bb370,
+  700 : #24ab65,
+  800 : #1ea35b,
+  900 : #139448,
+  A100 : #c7ffdc,
+  A200 : #94ffbc,
+  A400 : #61ff9c,
+  A700 : #47ff8c,
+  contrast: (
+    50 : #141823,
+    100 : #141823,
+    200 : #141823,
+    300 : #141823,
+    400 : #141823,
+    500 : #141823,
+    600 : #141823,
+    700 : #F2F2F2,
+    800 : #F2F2F2,
+    900 : #F2F2F2,
+    A100 : #141823,
+    A200 : #141823,
+    A400 : #141823,
+    A700 : #141823,
+  )
+);
+
+$toolbar-palette: (
+  50 : #e2e6e6,
+  100 : #b6c2c0,
+  200 : #869996,
+  300 : #55706b,
+  400 : #30514c,
+  500 : #0c322c,
+  600 : #0a2d27,
+  700 : #082621,
+  800 : #061f1b,
+  900 : #031310,
+  A100 : #E4F6EE,
+  A500: #30BA78,
+  A900 : #0e7e3c,
+  contrast: (
+    50 : #141823,
+    100 : #141823,
+    200 : #141823,
+    300 : #F2F2F2,
+    400 : #F2F2F2,
+    500 : #F2F2F2,
+    600 : #F2F2F2,
+    700 : #F2F2F2,
+    800 : #F2F2F2,
+    900 : #F2F2F2,
+    A100 : #141823,
+    A500 : #F2F2F2,
+    A900 : #F2F2F2,
+  )
+);
+
+$general-primary: mat.define-palette($general-palette, 500, 100, 900);
+$general-accent: mat.define-palette($general-palette, A400, A100, A700);
+$general-warn: mat.define-palette($red-palette, 100, 500, 900);
+
+$general-theme: mat.define-light-theme((
+  color: (
+    primary: $general-primary,
+    accent: $general-accent,
+    warn: $general-warn,
+  )
+));
+
+$toolbar-primary: mat.define-palette($toolbar-palette, 500, 100, 900);
+$toolbar-accent: mat.define-palette($toolbar-palette, A500, A100, A900);
+
+$toolbar-theme: mat.define-light-theme((
+  color: (
+    primary: $toolbar-primary,
+    accent: $toolbar-accent,
+    warn: $general-warn,
+  )
+));
+
+@include mat.core-theme($general-theme);
+@include mat.button-theme($general-theme);
+@include mat.form-field-theme($general-theme);
+@include mat.toolbar-theme($toolbar-theme);
