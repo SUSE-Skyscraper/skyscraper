@@ -17,6 +17,7 @@ type AWSTenant struct {
 	MasterAccountID string `mapstructure:"master_account_id"`
 	AccessKeyID     string `mapstructure:"access_key_id"`
 	SecretAccessKey string `mapstructure:"secret_access_key"`
+	Region          string `mapstructure:"region"`
 }
 
 type AzureTenant struct{}

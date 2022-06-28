@@ -1,6 +1,18 @@
 apiVersion:  skaffold/v2beta28
 kind: Config
 metadata:
+  name: skyscraper-config
+deploy:
+  kubectl:
+    manifests:
+      - kubernetes/config/gen/skyscraper-server-tls.yaml
+      - kubernetes/config/gen/skyscraper-server-config.yaml
+      - kubernetes/config/gen/skyscraper-web-tls.yaml
+      - kubernetes/config/gen/skyscraper-web-config.yaml
+---
+apiVersion:  skaffold/v2beta28
+kind: Config
+metadata:
   name: skyscraper-web
 build:
   local:
@@ -15,12 +27,6 @@ build:
       docker:
         dockerfile: docker/skyscraper-server.Dockerfile
 deploy:
-  kubectl:
-    manifests:
-      - kubernetes/config/gen/skyscraper-server-tls.yaml
-      - kubernetes/config/gen/skyscraper-server-config.yaml
-      - kubernetes/config/gen/skyscraper-web-tls.yaml
-      - kubernetes/config/gen/skyscraper-web-config.yaml
   helm:
     releases:
       - name: nats
@@ -36,7 +42,7 @@ deploy:
       - name: skyscraper-web
         #chartPath: ../skyscraper-helm-charts/charts/skyscraper
         remoteChart: skyscraper/skyscraper
-        version: 0.1.4
+        version: 0.1.5
         valuesFiles:
           - kubernetes/helm/skyscraper-values.yaml
         artifactOverrides:

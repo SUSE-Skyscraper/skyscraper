@@ -3,3 +3,16 @@ okta:
   client_id: ""
 frontend:
   url: ""
+clouds:
+  aws:
+    - name: ""
+      master_account_id: ""
+      access_key_id: ""
+      secret_access_key: ""
+      region: "eu-central-1"
+db:
+  database: ""
+  user: ""
+  password: ""
+  host: "127.0.0.1"
+  port: 5432

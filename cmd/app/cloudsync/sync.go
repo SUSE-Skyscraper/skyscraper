@@ -22,7 +22,9 @@ func NewCmd(app *application.App) *cobra.Command {
 				creds := credentials.NewStaticCredentialsProvider(tenant.AccessKeyID, tenant.SecretAccessKey, "")
 				cfg, err := config.LoadDefaultConfig(context.TODO(),
 					config.WithCredentialsProvider(creds),
+					config.WithRegion(tenant.Region),
 				)
+
 				if err != nil {
 					return err
 				}
