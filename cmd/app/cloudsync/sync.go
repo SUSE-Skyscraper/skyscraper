@@ -18,63 +18,9 @@ func NewCmd(app *application.App) *cobra.Command {
 		Use:   "cloud-sync",
 		Short: "Syncs cloud tags to the database",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			for _, tenant := range app.Config.Clouds.AWSTenants {
-				creds := credentials.NewStaticCredentialsProvider(tenant.AccessKeyID, tenant.SecretAccessKey, "")
-				cfg, err := config.LoadDefaultConfig(context.TODO(),
-					config.WithCredentialsProvider(creds),
-					config.WithRegion(tenant.Region),
-				)
-
-				if err != nil {
-					return err
-				}
-				ctx := context.TODO()
-
-				err = app.DB.CreateCloudTenant(ctx, db.CreateCloudTenantParams{
-					Cloud:    "AWS",
-					TenantID: tenant.MasterAccountID,
-					Name:     tenant.Name,
-				})
-				if err != nil {
-					return err
-				}
-
-				organizationsAPI := organizations.NewFromConfig(cfg)
-				accounts, err := organizationsAPI.ListAccounts(context.TODO(), &organizations.ListAccountsInput{})
-				if err != nil {
-					return err
-				}
-
-				for _, account := range accounts.Accounts {
-					accountTags, err := organizationsAPI.ListTagsForResource(context.TODO(), &organizations.ListTagsForResourceInput{
-						ResourceId: account.Id,
-					})
-					if err != nil {
-						return err
-					}
-
-					var tags = make(map[string]string)
-					for _, tag := range accountTags.Tags {
-						tags[aws.ToString(tag.Key)] = aws.ToString(tag.Value)
-					}
-					json := pgtype.JSONB{}
-					err = json.Set(tags)
-					if err != nil {
-						return err
-					}
-
-					err = app.DB.CreateCloudAccount(ctx, db.CreateCloudAccountParams{
-						Cloud:       "AWS",
-						TenantID:    tenant.MasterAccountID,
-						AccountID:   aws.ToString(account.Id),
-						Name:        aws.ToString(account.Name),
-						TagsCurrent: json,
-						TagsDesired: json,
-					})
-					if err != nil {
-						return err
-					}
-				}
+			err := syncAWSAccounts(app)
+			if err != nil {
+				return err
 			}
 
 			return nil
@@ -82,4 +28,67 @@ func NewCmd(app *application.App) *cobra.Command {
 	}
 
 	return cmd
+}
+
+func syncAWSAccounts(app *application.App) error {
+	for _, tenant := range app.Config.Clouds.AWSTenants {
+		creds := credentials.NewStaticCredentialsProvider(tenant.AccessKeyID, tenant.SecretAccessKey, "")
+		cfg, err := config.LoadDefaultConfig(context.TODO(),
+			config.WithCredentialsProvider(creds),
+			config.WithRegion(tenant.Region),
+		)
+
+		if err != nil {
+			return err
+		}
+		ctx := context.TODO()
+
+		err = app.DB.CreateCloudTenant(ctx, db.CreateCloudTenantParams{
+			Cloud:    "AWS",
+			TenantID: tenant.MasterAccountID,
+			Name:     tenant.Name,
+		})
+		if err != nil {
+			return err
+		}
+
+		organizationsAPI := organizations.NewFromConfig(cfg)
+		accounts, err := organizationsAPI.ListAccounts(context.TODO(), &organizations.ListAccountsInput{})
+		if err != nil {
+			return err
+		}
+
+		for _, account := range accounts.Accounts {
+			accountTags, err := organizationsAPI.ListTagsForResource(context.TODO(), &organizations.ListTagsForResourceInput{
+				ResourceId: account.Id,
+			})
+			if err != nil {
+				return err
+			}
+
+			var tags = make(map[string]string)
+			for _, tag := range accountTags.Tags {
+				tags[aws.ToString(tag.Key)] = aws.ToString(tag.Value)
+			}
+			json := pgtype.JSONB{}
+			err = json.Set(tags)
+			if err != nil {
+				return err
+			}
+
+			err = app.DB.CreateCloudAccount(ctx, db.CreateCloudAccountParams{
+				Cloud:       "AWS",
+				TenantID:    tenant.MasterAccountID,
+				AccountID:   aws.ToString(account.Id),
+				Name:        aws.ToString(account.Name),
+				TagsCurrent: json,
+				TagsDesired: json,
+			})
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
