@@ -8,8 +8,8 @@ import (
 	"github.com/go-chi/cors"
 	"github.com/spf13/cobra"
 	"github.com/suse-skyscraper/skyscraper/internal/application"
-	"github.com/suse-skyscraper/skyscraper/internal/middleware"
 	"github.com/suse-skyscraper/skyscraper/internal/server"
+	middleware2 "github.com/suse-skyscraper/skyscraper/internal/server/middleware"
 )
 
 func NewCmd(app *application.App) *cobra.Command {
@@ -19,7 +19,8 @@ func NewCmd(app *application.App) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			r := chi.NewRouter()
 
-			oktaAuthorizer := middleware.OktaAuthorizationHandler(app.Config)
+			oktaAuthorizer := middleware2.OktaAuthorizationHandler(app.Config)
+			cloudAccountCtx := middleware2.CloudAccountCtx(app)
 
 			// common middleware
 			r.Use(chimiddleware.Logger)
@@ -38,11 +39,22 @@ func NewCmd(app *application.App) *cobra.Command {
 				if app.Config.Okta.Enabled {
 					r.Use(oktaAuthorizer)
 				}
+				r.Route("/api/v1", func(r chi.Router) {
+					r.Get("/profile", server.V1Profile)
 
-				r.Get("/api/v1/profile", server.V1Profile)
-				r.Get("/api/v1/cloud_tenants", server.V1CloudTenants(app))
-				r.Get("/api/v1/cloud_tenants/cloud/{cloud}/tenant/{tenant_id}/accounts", server.V1CloudTenantAccounts(app))
-				r.Get("/api/v1/cloud_tenants/cloud/{cloud}/tenant/{tenant_id}/accounts/{id}", server.V1CloudTenantAccount(app))
+					r.Route("/cloud_tenants", func(r chi.Router) {
+						r.Get("/", server.V1CloudTenants(app))
+						r.Route("/cloud/{cloud}/tenant/{tenant_id}/accounts", func(r chi.Router) {
+							r.Get("/", server.V1ListCloudAccounts(app))
+
+							r.Route("/{id}", func(r chi.Router) {
+								r.Use(cloudAccountCtx)
+								r.Get("/", server.V1GetCloudAccount(app))
+								r.Put("/", server.V1UpdateCloudTenantAccount(app))
+							})
+						})
+					})
+				})
 			})
 
 			err := http.ListenAndServe(":8080", r)

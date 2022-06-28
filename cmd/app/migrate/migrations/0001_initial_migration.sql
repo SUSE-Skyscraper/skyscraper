@@ -9,7 +9,7 @@ create table cloud_tenants (
     primary key (cloud, tenant_id)
 );
 
-create table cloud_account_metadata (
+create table cloud_accounts (
     cloud varchar(255) not null,
     tenant_id varchar(255) not null,
     account_id varchar(255) not null,
@@ -25,6 +25,5 @@ create table cloud_account_metadata (
 );
 
 -- +goose Down
-
-delete table cloud_account_metadata;
-delete table cloud_tenants;
+drop table cloud_accounts;
+drop table cloud_tenants;

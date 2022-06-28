@@ -5,6 +5,7 @@ import { MockProvider } from 'ng-mocks';
 import { BackendService } from '../backend.service';
 import { EMPTY } from 'rxjs';
 import { ActivatedRoute, convertToParamMap } from '@angular/router';
+import { FormBuilder } from '@angular/forms';
 
 describe('CloudAccountComponent', () => {
   let component: CloudAccountComponent;
@@ -17,6 +18,7 @@ describe('CloudAccountComponent', () => {
         MockProvider(BackendService, {
           getCloudAccount: () => EMPTY,
         }),
+        FormBuilder,
         {
           provide: ActivatedRoute,
           useValue: {

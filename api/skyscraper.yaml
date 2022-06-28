@@ -82,6 +82,45 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
   /api/v1/cloud_tenants/cloud/{cloud}/tenant/{tenant_id}/accounts/{id}:
+    put:
+      description: Updates an account for a cloud tenant
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: cloud
+          in: path
+          description: The cloud provider name
+          required: true
+          schema:
+            type: string
+        - name: tenant_id
+          in: path
+          description: The tenant ID
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          description: The account ID
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccountUpdate'
+      responses:
+        '200':
+          description: The updated account
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Account'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalError'
     get:
       description: Returns the account for a cloud tenant
       security:
@@ -150,6 +189,13 @@ components:
           type: string
         updated_at:
           type: string
+    AccountUpdate:
+      type: object
+      properties:
+        tags_desired:
+          type: object
+          additionalProperties:
+            type: string
     Account:
       type: object
       properties:

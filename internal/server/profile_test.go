@@ -9,7 +9,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/suse-skyscraper/skyscraper/internal/helpers"
-	"github.com/suse-skyscraper/skyscraper/internal/middleware"
+	"github.com/suse-skyscraper/skyscraper/internal/server/middleware"
 )
 
 func TestV1Profile(t *testing.T) {

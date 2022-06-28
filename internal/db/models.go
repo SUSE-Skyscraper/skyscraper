@@ -10,7 +10,7 @@ import (
 	"github.com/jackc/pgtype"
 )
 
-type CloudAccountMetadatum struct {
+type CloudAccount struct {
 	Cloud             string
 	TenantID          string
 	AccountID         string

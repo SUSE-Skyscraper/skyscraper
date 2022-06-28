@@ -1,5 +1,9 @@
 import { Component, OnInit } from '@angular/core';
-import { BackendService, CloudAccount } from '../backend.service';
+import {
+  BackendService,
+  CloudAccount,
+  UpdateCloudAccount,
+} from '../backend.service';
 import { ActivatedRoute } from '@angular/router';
 import { FormArray, FormBuilder, FormGroup } from '@angular/forms';
 
@@ -10,6 +14,10 @@ import { FormArray, FormBuilder, FormGroup } from '@angular/forms';
 })
 export class CloudAccountComponent implements OnInit {
   cloudAccount: CloudAccount | undefined;
+  cloud: string = '';
+  tenant_id: string = '';
+  id: string = '';
+
   form = this.fb.group({
     tags: this.fb.array([]),
   });
@@ -26,26 +34,49 @@ export class CloudAccountComponent implements OnInit {
 
   newTag(key: string, value: string): FormGroup {
     return this.fb.group({
-      key: [{ value: key, disabled: true }],
+      key: [{ value: key, disabled: false }],
       value: [{ value: value, disabled: false }],
     });
   }
 
   onSubmit() {
-    console.log(JSON.stringify(this.form.value));
+    let update: UpdateCloudAccount = {
+      tags_desired: {},
+    };
+    this.tags.controls.forEach((tag) => {
+      const key = tag.value['key'];
+      update.tags_desired[key] = tag.value['value'];
+    });
+
+    this.backendService
+      .updateCloudAccount(this.cloud, this.tenant_id, this.id, update)
+      .subscribe((cloudAccount: CloudAccount) => {
+        this.cloudAccount = cloudAccount;
+        this.refreshForm();
+      });
   }
 
   ngOnInit(): void {
-    const cloud = String(this.router.snapshot.paramMap.get('cloud'));
-    const tenant_id = String(this.router.snapshot.paramMap.get('tenant_id'));
-    const id = String(this.router.snapshot.paramMap.get('id'));
+    this.cloud = String(this.router.snapshot.paramMap.get('cloud'));
+    this.tenant_id = String(this.router.snapshot.paramMap.get('tenant_id'));
+    this.id = String(this.router.snapshot.paramMap.get('id'));
+
     this.backendService
-      .getCloudAccount(cloud, tenant_id, id)
+      .getCloudAccount(this.cloud, this.tenant_id, this.id)
       .subscribe((cloudAccount: CloudAccount) => {
         this.cloudAccount = cloudAccount;
-        Object.keys(cloudAccount.tags_current).forEach((key) => {
-          this.tags.push(this.newTag(key, cloudAccount.tags_current[key]));
-        });
+        this.refreshForm();
       });
+  }
+
+  private refreshForm() {
+    if (this.cloudAccount === undefined) {
+      return;
+    }
+    this.tags.clear();
+
+    Object.entries(this.cloudAccount.tags_desired).forEach(([key, value]) => {
+      this.tags.push(this.newTag(key, value));
+    });
   }
 }

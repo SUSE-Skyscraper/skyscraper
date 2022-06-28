@@ -61,7 +61,7 @@ func NewCmd(app *application.App) *cobra.Command {
 						return err
 					}
 
-					err = app.DB.CreateCloudAccountMetadata(ctx, db.CreateCloudAccountMetadataParams{
+					err = app.DB.CreateCloudAccount(ctx, db.CreateCloudAccountParams{
 						Cloud:       "AWS",
 						TenantID:    tenant.MasterAccountID,
 						AccountID:   aws.ToString(account.Id),

@@ -11,18 +11,17 @@ import (
 	"github.com/jackc/pgtype"
 )
 
-const createCloudAccountMetadata = `-- name: CreateCloudAccountMetadata :exec
+const createCloudAccount = `-- name: CreateCloudAccount :exec
 
-insert into cloud_account_metadata (cloud, tenant_id, account_id, name, tags_current, tags_desired)
-    VALUES ($1, $2, $3, $4, $5, $6)
-    ON CONFLICT (cloud, tenant_id, account_id) DO UPDATE SET
-        tags_current = $5,
-        tags_desired = $6,
-        name = $4,
-        updated_at = now()
+insert into cloud_accounts (cloud, tenant_id, account_id, name, tags_current, tags_desired)
+VALUES ($1, $2, $3, $4, $5, $6)
+ON CONFLICT (cloud, tenant_id, account_id)
+    DO UPDATE SET name         = $4,
+                  tags_current = $5,
+                  updated_at   = now()
 `
 
-type CreateCloudAccountMetadataParams struct {
+type CreateCloudAccountParams struct {
 	Cloud       string
 	TenantID    string
 	AccountID   string
@@ -34,8 +33,8 @@ type CreateCloudAccountMetadataParams struct {
 //------------------------------------------------------------------------------------------------------------------
 // Cloud Account Metadata
 //------------------------------------------------------------------------------------------------------------------
-func (q *Queries) CreateCloudAccountMetadata(ctx context.Context, arg CreateCloudAccountMetadataParams) error {
-	_, err := q.db.Exec(ctx, createCloudAccountMetadata,
+func (q *Queries) CreateCloudAccount(ctx context.Context, arg CreateCloudAccountParams) error {
+	_, err := q.db.Exec(ctx, createCloudAccount,
 		arg.Cloud,
 		arg.TenantID,
 		arg.AccountID,
@@ -50,7 +49,8 @@ const createCloudTenant = `-- name: CreateCloudTenant :exec
 
 insert into cloud_tenants (cloud, tenant_id, name)
 values ($1, $2, $3)
-on conflict (cloud, tenant_id) do update set name = $3, updated_at = now()
+on conflict (cloud, tenant_id) do update set name       = $3,
+                                             updated_at = now()
 `
 
 type CreateCloudTenantParams struct {
@@ -67,20 +67,23 @@ func (q *Queries) CreateCloudTenant(ctx context.Context, arg CreateCloudTenantPa
 	return err
 }
 
-const getCloudAccountMetadata = `-- name: GetCloudAccountMetadata :one
-select cloud, tenant_id, account_id, name, active, tags_current, tags_desired, tags_drift_detected, created_at, updated_at from cloud_account_metadata
-    where cloud = $1 and tenant_id = $2 and account_id = $3
+const getCloudAccount = `-- name: GetCloudAccount :one
+select cloud, tenant_id, account_id, name, active, tags_current, tags_desired, tags_drift_detected, created_at, updated_at
+from cloud_accounts
+where cloud = $1
+  and tenant_id = $2
+  and account_id = $3
 `
 
-type GetCloudAccountMetadataParams struct {
+type GetCloudAccountParams struct {
 	Cloud     string
 	TenantID  string
 	AccountID string
 }
 
-func (q *Queries) GetCloudAccountMetadata(ctx context.Context, arg GetCloudAccountMetadataParams) (CloudAccountMetadatum, error) {
-	row := q.db.QueryRow(ctx, getCloudAccountMetadata, arg.Cloud, arg.TenantID, arg.AccountID)
-	var i CloudAccountMetadatum
+func (q *Queries) GetCloudAccount(ctx context.Context, arg GetCloudAccountParams) (CloudAccount, error) {
+	row := q.db.QueryRow(ctx, getCloudAccount, arg.Cloud, arg.TenantID, arg.AccountID)
+	var i CloudAccount
 	err := row.Scan(
 		&i.Cloud,
 		&i.TenantID,
@@ -96,20 +99,21 @@ func (q *Queries) GetCloudAccountMetadata(ctx context.Context, arg GetCloudAccou
 	return i, err
 }
 
-const getCloudAllAccountMetadata = `-- name: GetCloudAllAccountMetadata :many
-select cloud, tenant_id, account_id, name, active, tags_current, tags_desired, tags_drift_detected, created_at, updated_at from cloud_account_metadata
-    order by cloud, tenant_id, account_id
+const getCloudAllAccounts = `-- name: GetCloudAllAccounts :many
+select cloud, tenant_id, account_id, name, active, tags_current, tags_desired, tags_drift_detected, created_at, updated_at
+from cloud_accounts
+order by cloud, tenant_id, account_id
 `
 
-func (q *Queries) GetCloudAllAccountMetadata(ctx context.Context) ([]CloudAccountMetadatum, error) {
-	rows, err := q.db.Query(ctx, getCloudAllAccountMetadata)
+func (q *Queries) GetCloudAllAccounts(ctx context.Context) ([]CloudAccount, error) {
+	rows, err := q.db.Query(ctx, getCloudAllAccounts)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []CloudAccountMetadatum
+	var items []CloudAccount
 	for rows.Next() {
-		var i CloudAccountMetadatum
+		var i CloudAccount
 		if err := rows.Scan(
 			&i.Cloud,
 			&i.TenantID,
@@ -132,21 +136,22 @@ func (q *Queries) GetCloudAllAccountMetadata(ctx context.Context) ([]CloudAccoun
 	return items, nil
 }
 
-const getCloudAllAccountMetadataForCloud = `-- name: GetCloudAllAccountMetadataForCloud :many
-select cloud, tenant_id, account_id, name, active, tags_current, tags_desired, tags_drift_detected, created_at, updated_at from cloud_account_metadata
-    where cloud = $1
-    order by tenant_id, account_id
+const getCloudAllAccountsForCloud = `-- name: GetCloudAllAccountsForCloud :many
+select cloud, tenant_id, account_id, name, active, tags_current, tags_desired, tags_drift_detected, created_at, updated_at
+from cloud_accounts
+where cloud = $1
+order by tenant_id, account_id
 `
 
-func (q *Queries) GetCloudAllAccountMetadataForCloud(ctx context.Context, cloud string) ([]CloudAccountMetadatum, error) {
-	rows, err := q.db.Query(ctx, getCloudAllAccountMetadataForCloud, cloud)
+func (q *Queries) GetCloudAllAccountsForCloud(ctx context.Context, cloud string) ([]CloudAccount, error) {
+	rows, err := q.db.Query(ctx, getCloudAllAccountsForCloud, cloud)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []CloudAccountMetadatum
+	var items []CloudAccount
 	for rows.Next() {
-		var i CloudAccountMetadatum
+		var i CloudAccount
 		if err := rows.Scan(
 			&i.Cloud,
 			&i.TenantID,
@@ -169,26 +174,28 @@ func (q *Queries) GetCloudAllAccountMetadataForCloud(ctx context.Context, cloud 
 	return items, nil
 }
 
-const getCloudAllAccountMetadataForCloudAndTenant = `-- name: GetCloudAllAccountMetadataForCloudAndTenant :many
-select cloud, tenant_id, account_id, name, active, tags_current, tags_desired, tags_drift_detected, created_at, updated_at from cloud_account_metadata
-    where cloud = $1 and tenant_id = $2
-    order by account_id
+const getCloudAllAccountsForCloudAndTenant = `-- name: GetCloudAllAccountsForCloudAndTenant :many
+select cloud, tenant_id, account_id, name, active, tags_current, tags_desired, tags_drift_detected, created_at, updated_at
+from cloud_accounts
+where cloud = $1
+  and tenant_id = $2
+order by account_id
 `
 
-type GetCloudAllAccountMetadataForCloudAndTenantParams struct {
+type GetCloudAllAccountsForCloudAndTenantParams struct {
 	Cloud    string
 	TenantID string
 }
 
-func (q *Queries) GetCloudAllAccountMetadataForCloudAndTenant(ctx context.Context, arg GetCloudAllAccountMetadataForCloudAndTenantParams) ([]CloudAccountMetadatum, error) {
-	rows, err := q.db.Query(ctx, getCloudAllAccountMetadataForCloudAndTenant, arg.Cloud, arg.TenantID)
+func (q *Queries) GetCloudAllAccountsForCloudAndTenant(ctx context.Context, arg GetCloudAllAccountsForCloudAndTenantParams) ([]CloudAccount, error) {
+	rows, err := q.db.Query(ctx, getCloudAllAccountsForCloudAndTenant, arg.Cloud, arg.TenantID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []CloudAccountMetadatum
+	var items []CloudAccount
 	for rows.Next() {
-		var i CloudAccountMetadatum
+		var i CloudAccount
 		if err := rows.Scan(
 			&i.Cloud,
 			&i.TenantID,
@@ -212,8 +219,10 @@ func (q *Queries) GetCloudAllAccountMetadataForCloudAndTenant(ctx context.Contex
 }
 
 const getCloudTenant = `-- name: GetCloudTenant :one
-select cloud, tenant_id, name, active, created_at, updated_at from cloud_tenants
-    where cloud = $1 and tenant_id = $2
+select cloud, tenant_id, name, active, created_at, updated_at
+from cloud_tenants
+where cloud = $1
+  and tenant_id = $2
 `
 
 type GetCloudTenantParams struct {
@@ -236,8 +245,9 @@ func (q *Queries) GetCloudTenant(ctx context.Context, arg GetCloudTenantParams) 
 }
 
 const getCloudTenants = `-- name: GetCloudTenants :many
-select cloud, tenant_id, name, active, created_at, updated_at from cloud_tenants
-    order by cloud, tenant_id
+select cloud, tenant_id, name, active, created_at, updated_at
+from cloud_tenants
+order by cloud, tenant_id
 `
 
 func (q *Queries) GetCloudTenants(ctx context.Context) ([]CloudTenant, error) {
@@ -265,4 +275,30 @@ func (q *Queries) GetCloudTenants(ctx context.Context) ([]CloudTenant, error) {
 		return nil, err
 	}
 	return items, nil
+}
+
+const updateCloudAccount = `-- name: UpdateCloudAccount :exec
+update cloud_accounts
+set tags_desired = $4,
+    updated_at   = now()
+where cloud = $1
+  and tenant_id = $2
+  and account_id = $3
+`
+
+type UpdateCloudAccountParams struct {
+	Cloud       string
+	TenantID    string
+	AccountID   string
+	TagsDesired pgtype.JSONB
+}
+
+func (q *Queries) UpdateCloudAccount(ctx context.Context, arg UpdateCloudAccountParams) error {
+	_, err := q.db.Exec(ctx, updateCloudAccount,
+		arg.Cloud,
+		arg.TenantID,
+		arg.AccountID,
+		arg.TagsDesired,
+	)
+	return err
 }
