@@ -3,13 +3,17 @@
 
 lint:
 	golangci-lint run
+	cd web
+	ng lint
 
 fmt:
 	go mod tidy
 	go fmt ./cmd/... ./internal/...
+	cd web
+	ng lint --fix
 
 build:
-	go build -v ./cmd/server/main.go
+	go build -v ./cmd/main.go
 
 test:
 	go test -v ./cmd/... ./internal/...

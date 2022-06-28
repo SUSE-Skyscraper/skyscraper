@@ -1,0 +1,35 @@
+@use 'sass:map';
+@use '@angular/material' as mat;
+
+dl {
+  @apply w-full;
+  @apply pt-4;
+}
+
+dl  div {
+  display: flex;
+  @apply py-2;
+}
+
+dl dd {
+  flex:0 1 25%;
+  @apply font-bold;
+}
+
+dl dt {
+  flex: 0 1 75%;
+  order: 2;
+}
+
+.account-display {
+  @apply flex-wrap flex;
+}
+
+.account-display .main {
+  flex: 2;
+}
+
+.account-display .aside {
+  flex: 1;
+  @apply p-4 bg-gray-100;
+}

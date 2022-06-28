@@ -8,6 +8,9 @@ import {
 import { LoginComponent } from './login/login.component';
 import { OktaAuth } from '@okta/okta-auth-js';
 import { DashboardComponent } from './dashboard/dashboard.component';
+import { CloudTenantsComponent } from './cloud-tenants/cloud-tenants.component';
+import { CloudAccountsComponent } from './cloud-accounts/cloud-accounts.component';
+import { CloudAccountComponent } from './cloud-account/cloud-account.component';
 
 @Injectable()
 export class IsLoggedIn {
@@ -44,6 +47,21 @@ const routes: Routes = [
   {
     path: 'dashboard',
     component: DashboardComponent,
+    canActivate: [OktaAuthGuard],
+  },
+  {
+    path: 'cloud_tenants',
+    component: CloudTenantsComponent,
+    canActivate: [OktaAuthGuard],
+  },
+  {
+    path: 'cloud_tenants/cloud/:cloud/tenant/:tenant_id/accounts',
+    component: CloudAccountsComponent,
+    canActivate: [OktaAuthGuard],
+  },
+  {
+    path: 'cloud_tenants/cloud/:cloud/tenant/:tenant_id/accounts/:id',
+    component: CloudAccountComponent,
     canActivate: [OktaAuthGuard],
   },
 ];

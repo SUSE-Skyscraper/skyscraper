@@ -17,9 +17,24 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatCardModule } from '@angular/material/card';
 import { HTTP_INTERCEPTORS, HttpClientModule } from '@angular/common/http';
 import { AuthInterceptor } from './auth.interceptor';
+import { CloudTenantsComponent } from './cloud-tenants/cloud-tenants.component';
+import { MatTableModule } from '@angular/material/table';
+import { CloudAccountsComponent } from './cloud-accounts/cloud-accounts.component';
+import { MatDialogModule } from '@angular/material/dialog';
+import { CloudAccountComponent } from './cloud-account/cloud-account.component';
+import { ReactiveFormsModule } from '@angular/forms';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
 
 @NgModule({
-  declarations: [AppComponent, LoginComponent, DashboardComponent],
+  declarations: [
+    AppComponent,
+    LoginComponent,
+    DashboardComponent,
+    CloudTenantsComponent,
+    CloudAccountsComponent,
+    CloudAccountComponent,
+  ],
   imports: [
     BrowserModule,
     HttpClientModule,
@@ -32,6 +47,11 @@ import { AuthInterceptor } from './auth.interceptor';
     MatIconModule,
     MatMenuModule,
     MatCardModule,
+    MatTableModule,
+    MatDialogModule,
+    ReactiveFormsModule,
+    MatFormFieldModule,
+    MatInputModule,
   ],
   providers: [
     {

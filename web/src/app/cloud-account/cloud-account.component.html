@@ -1,0 +1,80 @@
+<div *ngIf="cloudAccount !== undefined" class="account-display">
+  <div class="main">
+    <h1>Account: {{ cloudAccount.name }}</h1>
+
+    <div class="account-toolbar">
+      <div
+        class="inline-block bg-red-500 rounded p-2 text-white"
+        *ngIf="cloudAccount.tags_drift_detected">
+        Drift Detected
+      </div>
+      <div
+        class="inline-block bg-gray-500 rounded p-2 text-white"
+        *ngIf="cloudAccount.active">
+        Inactive Account
+      </div>
+    </div>
+
+    <dl>
+      <div>
+        <dd>Cloud</dd>
+        <dt>{{ cloudAccount.cloud_provider }}</dt>
+      </div>
+
+      <div>
+        <dd>Tenant</dd>
+        <dt>{{ cloudAccount.tenant_id }}</dt>
+      </div>
+
+      <div>
+        <dd>Account ID</dd>
+        <dt>{{ cloudAccount.account_id }}</dt>
+      </div>
+
+      <div>
+        <dd>Current Tags</dd>
+        <dt>
+          <ul>
+            <li *ngFor="let tag of cloudAccount.tags_current | keyvalue">
+              {{ tag.key }}: {{ tag.value }}
+            </li>
+          </ul>
+        </dt>
+      </div>
+
+      <div>
+        <dd>Desired Tags</dd>
+        <dt>
+          <ul>
+            <li *ngFor="let tag of cloudAccount.tags_desired | keyvalue">
+              {{ tag.key }}: {{ tag.value }}
+            </li>
+          </ul>
+        </dt>
+      </div>
+    </dl>
+  </div>
+
+  <div class="aside">
+    <h2>Edit Account:</h2>
+    <form [formGroup]="form" (ngSubmit)="onSubmit()">
+      <ng-container formArrayName="tags">
+        <h3>Tags</h3>
+        <ng-container *ngFor="let tagForm of tags.controls; let i = index">
+          <div [formGroupName]="i">
+            <mat-form-field>
+              <input matInput formControlName="key" placeholder="Tag Key" />
+            </mat-form-field>
+            <mat-form-field>
+              <input matInput formControlName="value" placeholder="Tag Value" />
+            </mat-form-field>
+          </div>
+        </ng-container>
+      </ng-container>
+
+      <p>
+        <button type="submit" mat-raised-button color="primary">Submit</button>
+      </p>
+    </form>
+  </div>
+</div>

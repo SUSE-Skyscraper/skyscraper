@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/suse-skyscraper/skyscraper/internal/middleware"
+	"github.com/suse-skyscraper/skyscraper/internal/server/middleware"
 )
 
 type userProfile struct {
