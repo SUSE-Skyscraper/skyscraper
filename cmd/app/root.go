@@ -8,6 +8,7 @@ import (
 	"github.com/suse-skyscraper/skyscraper/cmd/app/cloudsync"
 	"github.com/suse-skyscraper/skyscraper/cmd/app/migrate"
 	"github.com/suse-skyscraper/skyscraper/cmd/app/server"
+	"github.com/suse-skyscraper/skyscraper/cmd/app/worker"
 	"github.com/suse-skyscraper/skyscraper/internal/application"
 )
 
@@ -32,6 +33,7 @@ func init() {
 	rootCmd.AddCommand(server.NewCmd(app))
 	rootCmd.AddCommand(cloudsync.NewCmd(app))
 	rootCmd.AddCommand(migrate.NewCmd(app))
+	rootCmd.AddCommand(worker.NewCmd(app))
 }
 
 func Execute() {

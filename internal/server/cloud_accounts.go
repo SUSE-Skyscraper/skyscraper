@@ -1,7 +1,7 @@
 package server
 
 import (
-	"context"
+	"encoding/json"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -12,6 +12,7 @@ import (
 	"github.com/suse-skyscraper/skyscraper/internal/server/middleware"
 	"github.com/suse-skyscraper/skyscraper/internal/server/payloads"
 	"github.com/suse-skyscraper/skyscraper/internal/server/responses"
+	"github.com/suse-skyscraper/skyscraper/workers"
 )
 
 func V1ListCloudAccounts(app *application.App) func(w http.ResponseWriter, r *http.Request) {
@@ -68,11 +69,29 @@ func V1UpdateCloudTenantAccount(app *application.App) func(w http.ResponseWriter
 			return
 		}
 
-		account, err := app.DB.GetCloudAccount(context.TODO(), db.GetCloudAccountParams{
+		account, err := app.DB.GetCloudAccount(r.Context(), db.GetCloudAccountParams{
 			Cloud:     cloudProvider,
 			TenantID:  tenantID,
 			AccountID: id,
 		})
+		if err != nil {
+			_ = render.Render(w, r, responses.ErrInternalServerError)
+			return
+		}
+
+		changeCloudPayload := workers.ChangeTagsPayload{
+			Cloud:     cloudProvider,
+			TenantID:  tenantID,
+			AccountID: id,
+		}
+
+		workerPayload, err := json.Marshal(changeCloudPayload)
+		if err != nil {
+			_ = render.Render(w, r, responses.ErrInternalServerError)
+			return
+		}
+
+		_, err = app.JS.PublishAsync("TAGS.change", workerPayload)
 		if err != nil {
 			_ = render.Render(w, r, responses.ErrInternalServerError)
 			return

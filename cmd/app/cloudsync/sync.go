@@ -4,12 +4,10 @@ import (
 	"context"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/credentials"
-	"github.com/aws/aws-sdk-go-v2/service/organizations"
 	"github.com/jackc/pgtype"
 	"github.com/spf13/cobra"
 	"github.com/suse-skyscraper/skyscraper/internal/application"
+	"github.com/suse-skyscraper/skyscraper/internal/clouds/awsclient"
 	"github.com/suse-skyscraper/skyscraper/internal/db"
 )
 
@@ -31,17 +29,14 @@ func NewCmd(app *application.App) *cobra.Command {
 }
 
 func syncAWSAccounts(app *application.App) error {
-	for _, tenant := range app.Config.Clouds.AWSTenants {
-		creds := credentials.NewStaticCredentialsProvider(tenant.AccessKeyID, tenant.SecretAccessKey, "")
-		cfg, err := config.LoadDefaultConfig(context.TODO(),
-			config.WithCredentialsProvider(creds),
-			config.WithRegion(tenant.Region),
-		)
+	ctx := context.Background()
 
+	for _, tenant := range app.Config.Clouds.AWSTenants {
+		cfg, err := awsclient.NewConfig(ctx, tenant.AccessKeyID, tenant.SecretAccessKey, tenant.Region)
 		if err != nil {
 			return err
 		}
-		ctx := context.TODO()
+		organizationsClient := awsclient.NewOrganizationsClient(cfg)
 
 		err = app.DB.CreateCloudTenant(ctx, db.CreateCloudTenantParams{
 			Cloud:    "AWS",
@@ -52,22 +47,19 @@ func syncAWSAccounts(app *application.App) error {
 			return err
 		}
 
-		organizationsAPI := organizations.NewFromConfig(cfg)
-		accounts, err := organizationsAPI.ListAccounts(context.TODO(), &organizations.ListAccountsInput{})
+		accounts, err := organizationsClient.ListAccounts(ctx)
 		if err != nil {
 			return err
 		}
 
-		for _, account := range accounts.Accounts {
-			accountTags, err := organizationsAPI.ListTagsForResource(context.TODO(), &organizations.ListTagsForResourceInput{
-				ResourceId: account.Id,
-			})
+		for _, account := range accounts {
+			accountTags, err := organizationsClient.ListTagsForAccount(ctx, aws.ToString(account.Id))
 			if err != nil {
 				return err
 			}
 
 			var tags = make(map[string]string)
-			for _, tag := range accountTags.Tags {
+			for _, tag := range accountTags {
 				tags[aws.ToString(tag.Key)] = aws.ToString(tag.Value)
 			}
 			json := pgtype.JSONB{}

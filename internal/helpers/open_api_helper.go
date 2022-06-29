@@ -40,6 +40,7 @@ func init() {
 
 func AssertOpenAPI(t *testing.T, rr *httptest.ResponseRecorder, req *http.Request) []byte {
 	t.Helper()
+	ctx := context.Background()
 
 	// The request body exists and was already read once when the request
 	// was sent. Replay it to allow ValidateRequest() to read it again.
@@ -65,7 +66,7 @@ func AssertOpenAPI(t *testing.T, rr *httptest.ResponseRecorder, req *http.Reques
 		requestValidationInput.Options.ExcludeRequestBody = true
 	}
 
-	err = openapi3filter.ValidateRequest(context.Background(), requestValidationInput)
+	err = openapi3filter.ValidateRequest(ctx, requestValidationInput)
 	assert.NoError(t, err, "http request is not valid")
 
 	// Validate response.
@@ -80,7 +81,7 @@ func AssertOpenAPI(t *testing.T, rr *httptest.ResponseRecorder, req *http.Reques
 	}
 	bodyBytes := rr.Body.Bytes()
 	responseValidationInput.SetBodyBytes(bodyBytes)
-	err = openapi3filter.ValidateResponse(context.Background(), responseValidationInput)
+	err = openapi3filter.ValidateResponse(ctx, responseValidationInput)
 	assert.NoError(t, err, "http response is not valid")
 
 	return bodyBytes
