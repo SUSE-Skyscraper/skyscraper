@@ -69,6 +69,7 @@ func startChangeTagsWorker(ctx context.Context, app *application.App) error {
 
 			err = changeTags(ctx, app, msg)
 			if err != nil {
+				log.Println("ChangeTags", err)
 				err = msg.Nak()
 				if err != nil {
 					log.Println("Nak", err)
@@ -113,6 +114,12 @@ func changeTags(ctx context.Context, app *application.App, msg *nats.Msg) error 
 		return err
 	}
 
+	var currentTags map[string]string
+	err = json.Unmarshal(account.TagsCurrent.Bytes, &currentTags)
+	if err != nil {
+		return err
+	}
+
 	var desiredTags map[string]string
 	err = json.Unmarshal(account.TagsDesired.Bytes, &desiredTags)
 	if err != nil {
@@ -124,6 +131,8 @@ func changeTags(ctx context.Context, app *application.App, msg *nats.Msg) error 
 			tenantID:    payload.TenantID,
 			accountID:   payload.AccountID,
 			desiredTags: desiredTags,
+			currentTags: currentTags,
+			accountName: payload.AccountName,
 		})
 		if err != nil {
 			return err
@@ -136,7 +145,9 @@ func changeTags(ctx context.Context, app *application.App, msg *nats.Msg) error 
 type changeAWSTagsInput struct {
 	tenantID    string
 	accountID   string
+	accountName string
 	desiredTags map[string]string
+	currentTags map[string]string
 }
 
 func changeAwsTags(ctx context.Context, app *application.App, input changeAWSTagsInput) error {
@@ -167,5 +178,32 @@ func changeAwsTags(ctx context.Context, app *application.App, input changeAWSTag
 		return err
 	}
 
+	tagsToRemove := tagsToRemove(input.currentTags, input.desiredTags)
+	if tagsToRemove != nil {
+		err = organizations.UntagAccount(ctx, input.accountID, tagsToRemove)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = organizations.SyncTags(ctx, app, awsclient.SyncTagsInput{
+		TenantID:    input.tenantID,
+		AccountID:   input.accountID,
+		AccountName: input.accountName,
+	})
+	if err != nil {
+		return err
+	}
+
 	return nil
+}
+
+func tagsToRemove(tagsCurrent, tagsDesired map[string]string) []string {
+	var tagsToRemove []string
+	for key := range tagsCurrent {
+		if _, ok := tagsDesired[key]; !ok {
+			tagsToRemove = append(tagsToRemove, key)
+		}
+	}
+	return tagsToRemove
 }

@@ -6,6 +6,9 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/organizations"
 	"github.com/aws/aws-sdk-go-v2/service/organizations/types"
+	"github.com/jackc/pgtype"
+	"github.com/suse-skyscraper/skyscraper/internal/application"
+	"github.com/suse-skyscraper/skyscraper/internal/db"
 )
 
 type OrganizationsClient struct {
@@ -41,4 +44,50 @@ func (o *OrganizationsClient) TagAccount(ctx context.Context, accountID string, 
 	})
 
 	return err
+}
+
+func (o *OrganizationsClient) UntagAccount(ctx context.Context, accountID string, tagKeys []string) error {
+	_, err := o.client.UntagResource(ctx, &organizations.UntagResourceInput{
+		ResourceId: aws.String(accountID),
+		TagKeys:    tagKeys,
+	})
+
+	return err
+}
+
+type SyncTagsInput struct {
+	AccountID   string
+	TenantID    string
+	AccountName string
+}
+
+func (o *OrganizationsClient) SyncTags(ctx context.Context, app *application.App, input SyncTagsInput) error {
+	accountTags, err := o.ListTagsForAccount(ctx, input.AccountID)
+	if err != nil {
+		return err
+	}
+
+	var tags = make(map[string]string)
+	for _, tag := range accountTags {
+		tags[aws.ToString(tag.Key)] = aws.ToString(tag.Value)
+	}
+	json := pgtype.JSONB{}
+	err = json.Set(tags)
+	if err != nil {
+		return err
+	}
+
+	err = app.DB.CreateCloudAccount(ctx, db.CreateCloudAccountParams{
+		Cloud:       "AWS",
+		TenantID:    input.TenantID,
+		AccountID:   input.AccountID,
+		Name:        input.AccountName,
+		TagsCurrent: json,
+		TagsDesired: json,
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

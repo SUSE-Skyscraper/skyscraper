@@ -80,9 +80,10 @@ func V1UpdateCloudTenantAccount(app *application.App) func(w http.ResponseWriter
 		}
 
 		changeCloudPayload := workers.ChangeTagsPayload{
-			Cloud:     cloudProvider,
-			TenantID:  tenantID,
-			AccountID: id,
+			Cloud:       cloudProvider,
+			TenantID:    tenantID,
+			AccountID:   id,
+			AccountName: account.Name,
 		}
 
 		workerPayload, err := json.Marshal(changeCloudPayload)

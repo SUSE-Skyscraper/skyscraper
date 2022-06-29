@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/jackc/pgtype"
 	"github.com/spf13/cobra"
 	"github.com/suse-skyscraper/skyscraper/internal/application"
 	"github.com/suse-skyscraper/skyscraper/internal/clouds/awsclient"
@@ -53,28 +52,10 @@ func syncAWSAccounts(app *application.App) error {
 		}
 
 		for _, account := range accounts {
-			accountTags, err := organizationsClient.ListTagsForAccount(ctx, aws.ToString(account.Id))
-			if err != nil {
-				return err
-			}
-
-			var tags = make(map[string]string)
-			for _, tag := range accountTags {
-				tags[aws.ToString(tag.Key)] = aws.ToString(tag.Value)
-			}
-			json := pgtype.JSONB{}
-			err = json.Set(tags)
-			if err != nil {
-				return err
-			}
-
-			err = app.DB.CreateCloudAccount(ctx, db.CreateCloudAccountParams{
-				Cloud:       "AWS",
-				TenantID:    tenant.MasterAccountID,
+			err = organizationsClient.SyncTags(ctx, app, awsclient.SyncTagsInput{
 				AccountID:   aws.ToString(account.Id),
-				Name:        aws.ToString(account.Name),
-				TagsCurrent: json,
-				TagsDesired: json,
+				TenantID:    tenant.MasterAccountID,
+				AccountName: aws.ToString(account.Name),
 			})
 			if err != nil {
 				return err
