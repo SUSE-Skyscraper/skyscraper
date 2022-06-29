@@ -23,7 +23,7 @@ export class IsLoggedIn {
     const isAuthenticatedClaim = this.authService.isAuthenticated();
     isAuthenticatedClaim.then((resp) => {
       if (resp.valueOf()) {
-        this.router.navigate(['/dashboard']);
+        this.router.navigate(['/cloud_tenants']);
       }
     });
   }

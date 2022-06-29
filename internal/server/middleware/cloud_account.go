@@ -19,7 +19,7 @@ func CloudAccountCtx(app *application.App) func(next http.Handler) http.Handler 
 			cloudProvider := chi.URLParam(r, "cloud")
 			id := chi.URLParam(r, "id")
 
-			account, err := app.DB.GetCloudAccount(context.TODO(), db.GetCloudAccountParams{
+			account, err := app.DB.GetCloudAccount(r.Context(), db.GetCloudAccountParams{
 				Cloud:     cloudProvider,
 				TenantID:  tenantID,
 				AccountID: id,

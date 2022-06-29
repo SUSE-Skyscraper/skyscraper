@@ -6,6 +6,7 @@ import { BackendService } from '../backend.service';
 import { EMPTY } from 'rxjs';
 import { ActivatedRoute, convertToParamMap } from '@angular/router';
 import { FormBuilder } from '@angular/forms';
+import { MatSnackBarModule } from '@angular/material/snack-bar';
 
 describe('CloudAccountComponent', () => {
   let component: CloudAccountComponent;
@@ -13,6 +14,7 @@ describe('CloudAccountComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
+      imports: [MatSnackBarModule],
       declarations: [CloudAccountComponent],
       providers: [
         MockProvider(BackendService, {

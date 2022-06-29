@@ -6,6 +6,7 @@ import {
 } from '../backend.service';
 import { ActivatedRoute } from '@angular/router';
 import { FormArray, FormBuilder, FormGroup } from '@angular/forms';
+import { MatSnackBar } from '@angular/material/snack-bar';
 
 @Component({
   selector: 'app-cloud-account',
@@ -26,6 +27,7 @@ export class CloudAccountComponent implements OnInit {
     private fb: FormBuilder,
     private backendService: BackendService,
     private router: ActivatedRoute,
+    private snackBar: MatSnackBar,
   ) {}
 
   get tags() {
@@ -53,6 +55,11 @@ export class CloudAccountComponent implements OnInit {
       .subscribe((cloudAccount: CloudAccount) => {
         this.cloudAccount = cloudAccount;
         this.refreshForm();
+        this.snackBar.open('Tags Updated', 'close', {
+          horizontalPosition: 'center',
+          verticalPosition: 'top',
+          duration: 10000,
+        });
       });
   }
 
@@ -78,5 +85,13 @@ export class CloudAccountComponent implements OnInit {
     Object.entries(this.cloudAccount.tags_desired).forEach(([key, value]) => {
       this.tags.push(this.newTag(key, value));
     });
+  }
+
+  addTag() {
+    this.tags.push(this.newTag('', ''));
+  }
+
+  removeTag(i: number) {
+    this.tags.removeAt(i);
   }
 }

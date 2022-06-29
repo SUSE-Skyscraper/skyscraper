@@ -22,10 +22,9 @@ $general-palette: (
   700 : #24ab65,
   800 : #1ea35b,
   900 : #139448,
-  A100 : #c7ffdc,
-  A200 : #94ffbc,
-  A400 : #61ff9c,
-  A700 : #47ff8c,
+  A100 : #B3E8F6,
+  A500 : #00B2E2,
+  A900 : #008ACF,
   contrast: (
     50 : #141823,
     100 : #141823,
@@ -38,9 +37,8 @@ $general-palette: (
     800 : #F2F2F2,
     900 : #F2F2F2,
     A100 : #141823,
-    A200 : #141823,
-    A400 : #141823,
-    A700 : #141823,
+    A500 : #141823,
+    A900 : #F2F2F2,
   )
 );
 
@@ -76,7 +74,7 @@ $toolbar-palette: (
 );
 
 $general-primary: mat.define-palette($general-palette, 500, 100, 900);
-$general-accent: mat.define-palette($general-palette, A400, A100, A700);
+$general-accent: mat.define-palette($general-palette, A500, A100, A900);
 $general-warn: mat.define-palette($red-palette, 100, 500, 900);
 
 $general-theme: mat.define-light-theme((
