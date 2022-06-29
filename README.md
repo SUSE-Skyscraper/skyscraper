@@ -32,6 +32,7 @@ sudo zypper in skaffold minikube kubernetes-client helm nodejs16 npm16 go1.18 ma
 ### API Specification
 
 The api specification is located at [api/skyscraper.yaml](api/skyscraper.yaml)
+
 ### Database Migrations
 
 The database migration files are at [cmd/app/migrate/migrations](cmd/app/migrate/migrations). They're embedded into the binary, and we read them in the `migrate` command.
@@ -63,30 +64,34 @@ sqlc generate
 ### Deploy Locally
 
 1. Ensure that you have a PostgresSQL server that you can connect to locally.
-2. Copy `config.yaml.example` to `config.yaml` and fill in the values.
-3. Copy `web/src/environments/environment.ts` to `web/src/environments/environment.local.ts` and fill in its values.
-4. Build the golang backend:
+2. Ensure that you have a NATS server that you can connect to locally:
+   ```bash
+   docker run -p 4222:4222 --name nats nats:latest -js
+   ```
+4. Copy `config.yaml.example` to `config.yaml` and fill in the values.
+5. Copy `web/src/environments/environment.ts` to `web/src/environments/environment.local.ts` and fill in its values.
+6. Build the golang backend:
    ```bash
    go build ./cmd/main.go
    ```
-5. Run database migrations:
+7. Run database migrations:
    ```bash
    go run ./cmd/main.go migrate up
    ```
-6. Run the sync job:
+8. Run the sync job:
    ```bash
    go run ./cmd/main.go cloud-sync
    ```
-7. Run the server:
+9. Run the server:
    ```bash
    go run ./cmd/main.go server
    ```
-8. While the server is running, start the web frontend:
-   ```bash
-   cd web
-   npm start
-   ```
-9. The frontend should be live at [http://localhost:4200](http://localhost:4200).
+10. While the server is running, start the web frontend:
+    ```bash
+    cd web
+    npm start
+    ```
+11. The frontend should be live at [http://localhost:4200](http://localhost:4200).
 
 ### Deployment on Minikube
 

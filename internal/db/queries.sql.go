@@ -11,40 +11,6 @@ import (
 	"github.com/jackc/pgtype"
 )
 
-const createCloudAccount = `-- name: CreateCloudAccount :exec
-
-insert into cloud_accounts (cloud, tenant_id, account_id, name, tags_current, tags_desired)
-VALUES ($1, $2, $3, $4, $5, $6)
-ON CONFLICT (cloud, tenant_id, account_id)
-    DO UPDATE SET name         = $4,
-                  tags_current = $5,
-                  updated_at   = now()
-`
-
-type CreateCloudAccountParams struct {
-	Cloud       string
-	TenantID    string
-	AccountID   string
-	Name        string
-	TagsCurrent pgtype.JSONB
-	TagsDesired pgtype.JSONB
-}
-
-//------------------------------------------------------------------------------------------------------------------
-// Cloud Account Metadata
-//------------------------------------------------------------------------------------------------------------------
-func (q *Queries) CreateCloudAccount(ctx context.Context, arg CreateCloudAccountParams) error {
-	_, err := q.db.Exec(ctx, createCloudAccount,
-		arg.Cloud,
-		arg.TenantID,
-		arg.AccountID,
-		arg.Name,
-		arg.TagsCurrent,
-		arg.TagsDesired,
-	)
-	return err
-}
-
 const createCloudTenant = `-- name: CreateCloudTenant :exec
 
 insert into cloud_tenants (cloud, tenant_id, name)
@@ -65,6 +31,54 @@ type CreateCloudTenantParams struct {
 func (q *Queries) CreateCloudTenant(ctx context.Context, arg CreateCloudTenantParams) error {
 	_, err := q.db.Exec(ctx, createCloudTenant, arg.Cloud, arg.TenantID, arg.Name)
 	return err
+}
+
+const createOrInsertCloudAccount = `-- name: CreateOrInsertCloudAccount :one
+
+insert into cloud_accounts (cloud, tenant_id, account_id, name, tags_current, tags_desired)
+VALUES ($1, $2, $3, $4, $5, $6)
+ON CONFLICT (cloud, tenant_id, account_id)
+    DO UPDATE SET name         = $4,
+                  tags_current = $5,
+                  updated_at   = now()
+returning cloud, tenant_id, account_id, name, active, tags_current, tags_desired, tags_drift_detected, created_at, updated_at
+`
+
+type CreateOrInsertCloudAccountParams struct {
+	Cloud       string
+	TenantID    string
+	AccountID   string
+	Name        string
+	TagsCurrent pgtype.JSONB
+	TagsDesired pgtype.JSONB
+}
+
+//------------------------------------------------------------------------------------------------------------------
+// Cloud Account Metadata
+//------------------------------------------------------------------------------------------------------------------
+func (q *Queries) CreateOrInsertCloudAccount(ctx context.Context, arg CreateOrInsertCloudAccountParams) (CloudAccount, error) {
+	row := q.db.QueryRow(ctx, createOrInsertCloudAccount,
+		arg.Cloud,
+		arg.TenantID,
+		arg.AccountID,
+		arg.Name,
+		arg.TagsCurrent,
+		arg.TagsDesired,
+	)
+	var i CloudAccount
+	err := row.Scan(
+		&i.Cloud,
+		&i.TenantID,
+		&i.AccountID,
+		&i.Name,
+		&i.Active,
+		&i.TagsCurrent,
+		&i.TagsDesired,
+		&i.TagsDriftDetected,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }
 
 const getCloudAccount = `-- name: GetCloudAccount :one
@@ -299,6 +313,32 @@ func (q *Queries) UpdateCloudAccount(ctx context.Context, arg UpdateCloudAccount
 		arg.TenantID,
 		arg.AccountID,
 		arg.TagsDesired,
+	)
+	return err
+}
+
+const updateCloudAccountTagsDriftDetected = `-- name: UpdateCloudAccountTagsDriftDetected :exec
+update cloud_accounts
+set tags_drift_detected = $1,
+    updated_at          = now()
+where cloud = $2
+  and tenant_id = $3
+  and account_id = $4
+`
+
+type UpdateCloudAccountTagsDriftDetectedParams struct {
+	TagsDriftDetected bool
+	Cloud             string
+	TenantID          string
+	AccountID         string
+}
+
+func (q *Queries) UpdateCloudAccountTagsDriftDetected(ctx context.Context, arg UpdateCloudAccountTagsDriftDetectedParams) error {
+	_, err := q.db.Exec(ctx, updateCloudAccountTagsDriftDetected,
+		arg.TagsDriftDetected,
+		arg.Cloud,
+		arg.TenantID,
+		arg.AccountID,
 	)
 	return err
 }

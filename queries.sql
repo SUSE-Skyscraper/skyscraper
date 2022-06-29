@@ -23,13 +23,22 @@ where cloud = $1
 -- Cloud Account Metadata
 --------------------------------------------------------------------------------------------------------------------
 
--- name: CreateCloudAccount :exec
+-- name: CreateOrInsertCloudAccount :one
 insert into cloud_accounts (cloud, tenant_id, account_id, name, tags_current, tags_desired)
 VALUES ($1, $2, $3, $4, $5, $6)
 ON CONFLICT (cloud, tenant_id, account_id)
     DO UPDATE SET name         = $4,
                   tags_current = $5,
-                  updated_at   = now();
+                  updated_at   = now()
+returning *;
+
+-- name: UpdateCloudAccountTagsDriftDetected :exec
+update cloud_accounts
+set tags_drift_detected = $1,
+    updated_at          = now()
+where cloud = $2
+  and tenant_id = $3
+  and account_id = $4;
 
 -- name: UpdateCloudAccount :exec
 update cloud_accounts
