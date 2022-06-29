@@ -2,6 +2,7 @@ package awsclient
 
 import (
 	"context"
+	"reflect"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/organizations"
@@ -77,7 +78,7 @@ func (o *OrganizationsClient) SyncTags(ctx context.Context, app *application.App
 		return err
 	}
 
-	err = app.DB.CreateCloudAccount(ctx, db.CreateCloudAccountParams{
+	account, err := app.DB.CreateOrInsertCloudAccount(ctx, db.CreateOrInsertCloudAccountParams{
 		Cloud:       "AWS",
 		TenantID:    input.TenantID,
 		AccountID:   input.AccountID,
@@ -87,6 +88,20 @@ func (o *OrganizationsClient) SyncTags(ctx context.Context, app *application.App
 	})
 	if err != nil {
 		return err
+	}
+
+	driftDetected := !reflect.DeepEqual(account.TagsDesired, account.TagsCurrent)
+
+	if driftDetected != account.TagsDriftDetected {
+		err = app.DB.UpdateCloudAccountTagsDriftDetected(ctx, db.UpdateCloudAccountTagsDriftDetectedParams{
+			Cloud:             "AWS",
+			TenantID:          input.TenantID,
+			AccountID:         input.AccountID,
+			TagsDriftDetected: driftDetected,
+		})
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

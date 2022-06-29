@@ -4,13 +4,13 @@
 
     <div class="account-toolbar">
       <div
-        class="inline-block bg-red-500 rounded p-2 text-white"
+        class="inline-block bg-red-500 rounded p-2 text-white mr-2"
         *ngIf="cloudAccount.tags_drift_detected">
         Drift Detected
       </div>
       <div
-        class="inline-block bg-gray-500 rounded p-2 text-white"
-        *ngIf="cloudAccount.active">
+        class="inline-block bg-gray-500 rounded p-2 text-white mr-2"
+        *ngIf="!cloudAccount.active">
         Inactive Account
       </div>
     </div>
