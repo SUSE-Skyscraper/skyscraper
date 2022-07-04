@@ -3,8 +3,11 @@ package application
 import (
 	"fmt"
 
+	"github.com/nats-io/nats.go"
 	"github.com/spf13/viper"
 )
+
+const DefaultConfigDir = "."
 
 type Configurator struct {
 	viper *viper.Viper
@@ -46,6 +49,10 @@ type DBConfig struct {
 	Host     string `mapstructure:"host"`
 }
 
+type NatsConfig struct {
+	URL string `mapstructure:"url"`
+}
+
 func (db *DBConfig) GetDSN() string {
 	dsn := fmt.Sprintf("postgresql://%s:%s@%s:%d/%s", db.User, db.Password, db.Host, db.Port, db.Database)
 	return dsn
@@ -56,6 +63,7 @@ type Config struct {
 	DB       DBConfig       `mapstructure:"db"`
 	Frontend FrontendConfig `mapstructure:"frontend"`
 	Clouds   Clouds         `mapstructure:"clouds"`
+	Nats     NatsConfig     `mapstructure:"nats"`
 }
 
 func NewConfigurator(configDir string) Configurator {
@@ -75,22 +83,27 @@ func (c *Configurator) Parse() (Config, error) {
 		return Config{}, err
 	}
 
-	// set defaults
-	conf := Config{
+	conf := defaultConfig()
+	err = c.viper.Unmarshal(&conf)
+	if err != nil {
+		return conf, err
+	}
+
+	return conf, nil
+}
+
+func defaultConfig() Config {
+	return Config{
 		Clouds: Clouds{
 			AWSTenants:   []AWSTenant{},
 			GCPTenants:   []GCPTenant{},
 			AzureTenants: []AzureTenant{},
 		},
+		Nats: NatsConfig{
+			URL: nats.DefaultURL,
+		},
 		Okta: OktaConfig{
 			Enabled: false,
 		},
 	}
-
-	err = c.viper.Unmarshal(&conf)
-	if err != nil {
-		return Config{}, err
-	}
-
-	return conf, nil
 }

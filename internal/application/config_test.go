@@ -27,6 +27,18 @@ func TestConfigurator_Parse(t *testing.T) {
 	assert.NotNil(t, config)
 }
 
+func TestConfigurator_Parse_Bad(t *testing.T) {
+	configDir, err := filepath.Abs("../../testdata/bad-config")
+	assert.Nil(t, err)
+
+	configurator := NewConfigurator(configDir)
+	assert.NotNil(t, configurator)
+
+	config, err := configurator.Parse()
+	assert.NotNil(t, err)
+	assert.NotNil(t, config)
+}
+
 func TestConfigurator_Defaults(t *testing.T) {
 	configDir, err := filepath.Abs("../../testdata/null-config")
 	assert.Nil(t, err)
