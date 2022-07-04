@@ -6,6 +6,10 @@ import (
 	"github.com/spf13/viper"
 )
 
+type Configurator struct {
+	viper *viper.Viper
+}
+
 type Clouds struct {
 	AWSTenants   []AWSTenant   `mapstructure:"aws"`
 	AzureTenants []AzureTenant `mapstructure:"azure"`
@@ -54,13 +58,19 @@ type Config struct {
 	Clouds   Clouds         `mapstructure:"clouds"`
 }
 
-func Configuration() (Config, error) {
+func NewConfigurator(configDir string) Configurator {
 	v := viper.New()
 	v.SetConfigName("config")
 	v.SetConfigType("yaml")
-	v.AddConfigPath(".")
+	v.AddConfigPath(configDir)
 
-	err := v.ReadInConfig()
+	return Configurator{
+		viper: v,
+	}
+}
+
+func (c *Configurator) Parse() (Config, error) {
+	err := c.viper.ReadInConfig()
 	if err != nil {
 		return Config{}, err
 	}
@@ -77,7 +87,7 @@ func Configuration() (Config, error) {
 		},
 	}
 
-	err = v.Unmarshal(&conf)
+	err = c.viper.Unmarshal(&conf)
 	if err != nil {
 		return Config{}, err
 	}

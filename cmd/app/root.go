@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"fmt"
 	"os"
 
@@ -14,17 +15,22 @@ import (
 
 var (
 	// Used for the application state. Cobra hasn't read the environment flag yet, so we cannot set it up.
-	app = &application.App{}
+	app       = &application.App{}
+	ctx       = context.Background()
+	configDir = "."
 
 	rootCmd = &cobra.Command{
 		Use: "cloud-dashboard",
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			err := app.Setup()
+			err := app.Start(ctx, configDir)
 			if err != nil {
 				return err
 			}
 
 			return nil
+		},
+		PersistentPostRun: func(cmd *cobra.Command, args []string) {
+			app.Shutdown(ctx)
 		},
 	}
 )

@@ -9,8 +9,30 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    services:
+      jetstream:
+        image: nats:alpine
+        options: --name jetstream
+        ports:
+          - "4222:4222"
+      postgres:
+        image: postgres:latest
+        env:
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - "5432:5432"
     steps:
       - uses: actions/checkout@v3
+
+      - name: start_jetstream
+        run: |
+          docker cp ${{ github.workspace }}/.github/workflows/nats-entrypoint.sh jetstream:/usr/local/bin/docker-entrypoint.sh
+          docker restart jetstream
 
       - name: Set up Go
         uses: actions/setup-go@v3
@@ -26,6 +48,11 @@ jobs:
 
       - name: Build
         run: make build
+
+      - name: Configure Tests
+        run: |
+          cp ${{ github.workspace }}/.github/workflows/config.yaml .
+          go run ./cmd/main.go migrate up
 
       - name: Test
         run: make test

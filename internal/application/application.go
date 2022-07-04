@@ -10,34 +10,67 @@ import (
 )
 
 type App struct {
-	Config Config
-	DB     *db.Queries
-	JS     nats.JetStreamContext
+	Config       Config
+	DB           *db.Queries
+	JS           nats.JetStreamContext
+	postgresPool *pgxpool.Pool
+	natsConn     *nats.Conn
 }
 
-func (a *App) Setup() error {
-	ctx := context.Background()
-
-	config, err := Configuration()
+func (a *App) Start(ctx context.Context, configDir string) error {
+	configurator := NewConfigurator(configDir)
+	config, err := configurator.Parse()
 	if err != nil {
 		return err
 	}
 	a.Config = config
 
+	database, pool, err := setupDatabase(ctx, config)
+	if err != nil {
+		return err
+	}
+	a.DB = database
+	a.postgresPool = pool
+
+	js, nc, err := setupNats(ctx, config)
+	if err != nil {
+		return err
+	}
+	a.JS = js
+	a.natsConn = nc
+
+	return nil
+}
+
+func (a *App) Shutdown(_ context.Context) {
+	if a.postgresPool != nil {
+		a.postgresPool.Close()
+	}
+
+	if a.natsConn != nil {
+		a.natsConn.Close()
+	}
+}
+
+func setupDatabase(ctx context.Context, config Config) (*db.Queries, *pgxpool.Pool, error) {
 	poolConfig, err := pgxpool.ParseConfig(config.DB.GetDSN())
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
-	database, err := pgxpool.ConnectConfig(ctx, poolConfig)
+	pool, err := pgxpool.ConnectConfig(ctx, poolConfig)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
-	a.DB = db.New(database)
+	database := db.New(pool)
 
+	return database, pool, nil
+}
+
+func setupNats(_ context.Context, _ Config) (nats.JetStreamContext, *nats.Conn, error) {
 	nc, _ := nats.Connect(nats.DefaultURL)
 	js, _ := nc.JetStream(nats.PublishAsyncMaxPending(256))
-	_, err = js.AddStream(&nats.StreamConfig{
+	_, err := js.AddStream(&nats.StreamConfig{
 		Name:       "TAGS",
 		Subjects:   []string{"TAGS.*"},
 		Storage:    nats.FileStorage,
@@ -48,10 +81,8 @@ func (a *App) Setup() error {
 		MaxBytes:   -1,
 	})
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
-	a.JS = js
-
-	return nil
+	return js, nc, nil
 }
