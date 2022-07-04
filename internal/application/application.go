@@ -17,22 +17,26 @@ type App struct {
 	natsConn     *nats.Conn
 }
 
-func (a *App) Start(ctx context.Context, configDir string) error {
+func NewApp(configDir string) (*App, error) {
 	configurator := NewConfigurator(configDir)
 	config, err := configurator.Parse()
 	if err != nil {
-		return err
+		return &App{}, err
 	}
-	a.Config = config
+	return &App{
+		Config: config,
+	}, nil
+}
 
-	database, pool, err := setupDatabase(ctx, config)
+func (a *App) Start(ctx context.Context) error {
+	database, pool, err := setupDatabase(ctx, a.Config)
 	if err != nil {
 		return err
 	}
 	a.DB = database
 	a.postgresPool = pool
 
-	js, nc, err := setupNats(ctx, config)
+	js, nc, err := setupNats(ctx, a.Config)
 	if err != nil {
 		return err
 	}
@@ -67,8 +71,8 @@ func setupDatabase(ctx context.Context, config Config) (*db.Queries, *pgxpool.Po
 	return database, pool, nil
 }
 
-func setupNats(_ context.Context, _ Config) (nats.JetStreamContext, *nats.Conn, error) {
-	nc, _ := nats.Connect(nats.DefaultURL)
+func setupNats(_ context.Context, conf Config) (nats.JetStreamContext, *nats.Conn, error) {
+	nc, _ := nats.Connect(conf.Nats.URL)
 	js, _ := nc.JetStream(nats.PublishAsyncMaxPending(256))
 	_, err := js.AddStream(&nats.StreamConfig{
 		Name:       "TAGS",
