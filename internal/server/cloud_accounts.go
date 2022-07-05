@@ -1,12 +1,10 @@
 package server
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
-	"github.com/jackc/pgtype"
 	"github.com/suse-skyscraper/skyscraper/internal/application"
 	"github.com/suse-skyscraper/skyscraper/internal/db"
 	"github.com/suse-skyscraper/skyscraper/internal/server/middleware"
@@ -31,15 +29,13 @@ func V1ListCloudAccounts(app *application.App) func(w http.ResponseWriter, r *ht
 			return
 		}
 
-		err = render.RenderList(w, r, responses.NewCloudAccountListResponse(cloudTenantAccounts))
-		if err != nil {
-			_ = render.Render(w, r, responses.ErrRender(err))
-			return
-		}
+		_ = render.RenderList(w, r, responses.NewCloudAccountListResponse(cloudTenantAccounts))
 	}
 }
 
 func V1UpdateCloudTenantAccount(app *application.App) func(w http.ResponseWriter, r *http.Request) {
+	natsWorker := workers.NewWorker(app)
+
 	return func(w http.ResponseWriter, r *http.Request) {
 		tenantID := chi.URLParam(r, "tenant_id")
 		cloudProvider := chi.URLParam(r, "cloud")
@@ -52,17 +48,11 @@ func V1UpdateCloudTenantAccount(app *application.App) func(w http.ResponseWriter
 			return
 		}
 
-		jsonTags := pgtype.JSONB{}
-		err = jsonTags.Set(payload.TagsDesired)
-		if err != nil {
-			_ = render.Render(w, r, responses.ErrInternalServerError)
-			return
-		}
 		err = app.DB.UpdateCloudAccount(r.Context(), db.UpdateCloudAccountParams{
 			Cloud:       cloudProvider,
 			TenantID:    tenantID,
 			AccountID:   id,
-			TagsDesired: jsonTags,
+			TagsDesired: payload.GetJSON(),
 		})
 		if err != nil {
 			_ = render.Render(w, r, responses.ErrInternalServerError)
@@ -85,24 +75,13 @@ func V1UpdateCloudTenantAccount(app *application.App) func(w http.ResponseWriter
 			AccountID:   id,
 			AccountName: account.Name,
 		}
-
-		workerPayload, err := json.Marshal(changeCloudPayload)
+		err = natsWorker.PublishTagChange(changeCloudPayload)
 		if err != nil {
 			_ = render.Render(w, r, responses.ErrInternalServerError)
 			return
 		}
 
-		_, err = app.JS.PublishAsync("TAGS.change", workerPayload)
-		if err != nil {
-			_ = render.Render(w, r, responses.ErrInternalServerError)
-			return
-		}
-
-		err = render.Render(w, r, responses.NewCloudAccountResponse(account))
-		if err != nil {
-			_ = render.Render(w, r, responses.ErrRender(err))
-			return
-		}
+		_ = render.Render(w, r, responses.NewCloudAccountResponse(account))
 	}
 }
 
@@ -110,10 +89,6 @@ func V1GetCloudAccount(_ *application.App) func(w http.ResponseWriter, r *http.R
 	return func(w http.ResponseWriter, r *http.Request) {
 		cloudTenantAccount := r.Context().Value(middleware.CloudAccount).(db.CloudAccount)
 
-		err := render.Render(w, r, responses.NewCloudAccountResponse(cloudTenantAccount))
-		if err != nil {
-			_ = render.Render(w, r, responses.ErrRender(err))
-			return
-		}
+		_ = render.Render(w, r, responses.NewCloudAccountResponse(cloudTenantAccount))
 	}
 }

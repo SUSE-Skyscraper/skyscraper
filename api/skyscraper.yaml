@@ -117,6 +117,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Account'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '500':
@@ -157,6 +159,8 @@ paths:
           $ref: '#/components/responses/InternalError'
 components:
   responses:
+    BadRequestError:
+      description: Bad request
     UnauthorizedError:
       description: Access token is missing or invalid
     InternalError:

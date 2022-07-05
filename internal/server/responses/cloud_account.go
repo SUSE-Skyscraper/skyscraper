@@ -23,6 +23,7 @@ type CloudAccountResponse struct {
 func (rd *CloudAccountResponse) Render(_ http.ResponseWriter, _ *http.Request) error {
 	return nil
 }
+
 func NewCloudAccountResponse(account db.CloudAccount) *CloudAccountResponse {
 	return &CloudAccountResponse{
 		CloudProvider:     account.Cloud,
