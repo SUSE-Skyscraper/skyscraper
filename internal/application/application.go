@@ -11,7 +11,7 @@ import (
 
 type App struct {
 	Config       Config
-	DB           *db.Queries
+	DB           db.Querier
 	JS           nats.JetStreamContext
 	postgresPool *pgxpool.Pool
 	natsConn     *nats.Conn
