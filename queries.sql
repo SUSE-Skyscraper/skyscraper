@@ -72,3 +72,85 @@ from cloud_accounts
 where cloud = $1
   and tenant_id = $2
   and account_id = $3;
+
+--------------------------------------------------------------------------------------------------------------------
+-- Users
+--------------------------------------------------------------------------------------------------------------------
+
+-- name: GetUsers :many
+select *
+from users
+order by id
+LIMIT $1 OFFSET $2;
+
+-- name: GetUser :one
+select *
+from users
+where id = $1;
+
+-- name: FindByUsername :one
+select *
+from users
+where username = $1;
+
+-- name: CreateUser :one
+insert into users (username, name, emails, active, created_at, updated_at)
+values ($1, $2, $3, $4, now(), now())
+returning *;
+
+-- name: UpdateUser :exec
+update users
+set username   =$2,
+    name       = $3,
+    emails     = $4,
+    active     = $5,
+    updated_at = now()
+where id = $1;
+
+-- name: PatchUser :exec
+update users
+set active     = $2,
+    updated_at = now()
+where id = $1;
+
+-- name: DeleteUser :exec
+delete
+from users
+where id = $1;
+
+-- name: GetUserCount :one
+select count(*)
+from users;
+
+--------------------------------------------------------------------------------------------------------------------
+-- Users
+--------------------------------------------------------------------------------------------------------------------
+
+-- name: GetGroups :many
+select *
+from groups
+order by id
+LIMIT $1 OFFSET $2;
+
+-- name: GetGroup :one
+select *
+from groups
+where id = $1;
+
+-- name: CreateGroup :one
+insert into groups (display_name, created_at, updated_at)
+values ($1, now(), now())
+returning *;
+
+-- name: DeleteGroup :exec
+delete
+from groups
+where id = $1;
+
+-- name: GetGroupCount :one
+select count(*)
+from groups;
+
+--------------------------------------------------------------------------------------------------------------------
+-- User Membership
+--------------------------------------------------------------------------------------------------------------------

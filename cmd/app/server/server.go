@@ -8,8 +8,10 @@ import (
 	"github.com/go-chi/cors"
 	"github.com/spf13/cobra"
 	"github.com/suse-skyscraper/skyscraper/internal/application"
+	"github.com/suse-skyscraper/skyscraper/internal/scim"
+	scimmiddleware "github.com/suse-skyscraper/skyscraper/internal/scim/middleware"
 	"github.com/suse-skyscraper/skyscraper/internal/server"
-	middleware2 "github.com/suse-skyscraper/skyscraper/internal/server/middleware"
+	apimiddleware "github.com/suse-skyscraper/skyscraper/internal/server/middleware"
 )
 
 func NewCmd(app *application.App) *cobra.Command {
@@ -19,8 +21,9 @@ func NewCmd(app *application.App) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			r := chi.NewRouter()
 
-			oktaAuthorizer := middleware2.OktaAuthorizationHandler(app.Config)
-			cloudAccountCtx := middleware2.CloudAccountCtx(app)
+			oktaAuthorizer := apimiddleware.OktaAuthorizationHandler(app.Config)
+			cloudAccountCtx := apimiddleware.CloudAccountCtx(app)
+			scimUserCtx := scimmiddleware.UserCtx(app)
 
 			// common middleware
 			r.Use(chimiddleware.Logger)
@@ -54,6 +57,34 @@ func NewCmd(app *application.App) *cobra.Command {
 							})
 						})
 					})
+				})
+			})
+
+			r.Group(func(r chi.Router) {
+				r.Route("/scim/v2", func(r chi.Router) {
+					r.Get("/Users", scim.V2ListUsers(app))
+					r.Post("/Users", scim.V2CreateUser(app))
+					r.Route("/Users/{id}", func(r chi.Router) {
+						r.Use(scimUserCtx)
+						r.Get("/", scim.V2GetUser(app))
+						r.Put("/", scim.V2UpdateUser(app))
+						r.Patch("/", scim.V2PatchUser(app))
+						r.Delete("/", scim.V2DeleteUser(app))
+					})
+
+					r.Get("/Groups", scim.V2ListGroups(app))
+					/*
+						r.Get("/Groups/{id}", server.V2GetGroup(app))
+						r.Post("/Groups", server.V2CreateGroup(app))
+						r.Put("/Groups/{id}", server.V2UpdateGroup(app))
+						r.Delete("/Groups/{id}", server.V2DeleteGroup(app))
+
+						r.Get("/ServiceProviderConfig", server.V2GetServiceProviderConfig(app))
+						r.Get("/Schemas", server.V2ListSchemas(app))
+						r.Get("/Schemas/{id}", server.V2GetSchema(app))
+						r.Get("/ResourceTypes", server.V2ListResourceTypes(app))
+						r.Get("/ResourceTypes/{id}", server.V2GetResourceType(app))
+					*/
 				})
 			})
 

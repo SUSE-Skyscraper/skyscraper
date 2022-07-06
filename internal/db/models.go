@@ -31,3 +31,28 @@ type CloudTenant struct {
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
+
+type Group struct {
+	ID          int32
+	DisplayName string
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+}
+
+type GroupMember struct {
+	ID        int32
+	GroupID   int32
+	UserID    int32
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
+type User struct {
+	ID        int32
+	Username  string
+	Name      pgtype.JSONB
+	Active    bool
+	Emails    pgtype.JSONB
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}

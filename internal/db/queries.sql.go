@@ -33,6 +33,24 @@ func (q *Queries) CreateCloudTenant(ctx context.Context, arg CreateCloudTenantPa
 	return err
 }
 
+const createGroup = `-- name: CreateGroup :one
+insert into groups (display_name, created_at, updated_at)
+values ($1, now(), now())
+returning id, display_name, created_at, updated_at
+`
+
+func (q *Queries) CreateGroup(ctx context.Context, displayName string) (Group, error) {
+	row := q.db.QueryRow(ctx, createGroup, displayName)
+	var i Group
+	err := row.Scan(
+		&i.ID,
+		&i.DisplayName,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const createOrInsertCloudAccount = `-- name: CreateOrInsertCloudAccount :one
 
 insert into cloud_accounts (cloud, tenant_id, account_id, name, tags_current, tags_desired)
@@ -75,6 +93,82 @@ func (q *Queries) CreateOrInsertCloudAccount(ctx context.Context, arg CreateOrIn
 		&i.TagsCurrent,
 		&i.TagsDesired,
 		&i.TagsDriftDetected,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const createUser = `-- name: CreateUser :one
+insert into users (username, name, emails, active, created_at, updated_at)
+values ($1, $2, $3, $4, now(), now())
+returning id, username, name, active, emails, created_at, updated_at
+`
+
+type CreateUserParams struct {
+	Username string
+	Name     pgtype.JSONB
+	Emails   pgtype.JSONB
+	Active   bool
+}
+
+func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
+	row := q.db.QueryRow(ctx, createUser,
+		arg.Username,
+		arg.Name,
+		arg.Emails,
+		arg.Active,
+	)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.Name,
+		&i.Active,
+		&i.Emails,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const deleteGroup = `-- name: DeleteGroup :exec
+delete
+from groups
+where id = $1
+`
+
+func (q *Queries) DeleteGroup(ctx context.Context, id int32) error {
+	_, err := q.db.Exec(ctx, deleteGroup, id)
+	return err
+}
+
+const deleteUser = `-- name: DeleteUser :exec
+delete
+from users
+where id = $1
+`
+
+func (q *Queries) DeleteUser(ctx context.Context, id int32) error {
+	_, err := q.db.Exec(ctx, deleteUser, id)
+	return err
+}
+
+const findByUsername = `-- name: FindByUsername :one
+select id, username, name, active, emails, created_at, updated_at
+from users
+where username = $1
+`
+
+func (q *Queries) FindByUsername(ctx context.Context, username string) (User, error) {
+	row := q.db.QueryRow(ctx, findByUsername, username)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.Name,
+		&i.Active,
+		&i.Emails,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -291,6 +385,171 @@ func (q *Queries) GetCloudTenants(ctx context.Context) ([]CloudTenant, error) {
 	return items, nil
 }
 
+const getGroup = `-- name: GetGroup :one
+select id, display_name, created_at, updated_at
+from groups
+where id = $1
+`
+
+func (q *Queries) GetGroup(ctx context.Context, id int32) (Group, error) {
+	row := q.db.QueryRow(ctx, getGroup, id)
+	var i Group
+	err := row.Scan(
+		&i.ID,
+		&i.DisplayName,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getGroupCount = `-- name: GetGroupCount :one
+select count(*)
+from groups
+`
+
+func (q *Queries) GetGroupCount(ctx context.Context) (int64, error) {
+	row := q.db.QueryRow(ctx, getGroupCount)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const getGroups = `-- name: GetGroups :many
+
+select id, display_name, created_at, updated_at
+from groups
+order by id
+LIMIT $1 OFFSET $2
+`
+
+type GetGroupsParams struct {
+	Limit  int32
+	Offset int32
+}
+
+//------------------------------------------------------------------------------------------------------------------
+// Users
+//------------------------------------------------------------------------------------------------------------------
+func (q *Queries) GetGroups(ctx context.Context, arg GetGroupsParams) ([]Group, error) {
+	rows, err := q.db.Query(ctx, getGroups, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Group
+	for rows.Next() {
+		var i Group
+		if err := rows.Scan(
+			&i.ID,
+			&i.DisplayName,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getUser = `-- name: GetUser :one
+select id, username, name, active, emails, created_at, updated_at
+from users
+where id = $1
+`
+
+func (q *Queries) GetUser(ctx context.Context, id int32) (User, error) {
+	row := q.db.QueryRow(ctx, getUser, id)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.Name,
+		&i.Active,
+		&i.Emails,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getUserCount = `-- name: GetUserCount :one
+select count(*)
+from users
+`
+
+func (q *Queries) GetUserCount(ctx context.Context) (int64, error) {
+	row := q.db.QueryRow(ctx, getUserCount)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const getUsers = `-- name: GetUsers :many
+
+select id, username, name, active, emails, created_at, updated_at
+from users
+order by id
+LIMIT $1 OFFSET $2
+`
+
+type GetUsersParams struct {
+	Limit  int32
+	Offset int32
+}
+
+//------------------------------------------------------------------------------------------------------------------
+// Users
+//------------------------------------------------------------------------------------------------------------------
+func (q *Queries) GetUsers(ctx context.Context, arg GetUsersParams) ([]User, error) {
+	rows, err := q.db.Query(ctx, getUsers, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []User
+	for rows.Next() {
+		var i User
+		if err := rows.Scan(
+			&i.ID,
+			&i.Username,
+			&i.Name,
+			&i.Active,
+			&i.Emails,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const patchUser = `-- name: PatchUser :exec
+update users
+set active     = $2,
+    updated_at = now()
+where id = $1
+`
+
+type PatchUserParams struct {
+	ID     int32
+	Active bool
+}
+
+func (q *Queries) PatchUser(ctx context.Context, arg PatchUserParams) error {
+	_, err := q.db.Exec(ctx, patchUser, arg.ID, arg.Active)
+	return err
+}
+
 const updateCloudAccount = `-- name: UpdateCloudAccount :exec
 update cloud_accounts
 set tags_desired = $4,
@@ -339,6 +598,35 @@ func (q *Queries) UpdateCloudAccountTagsDriftDetected(ctx context.Context, arg U
 		arg.Cloud,
 		arg.TenantID,
 		arg.AccountID,
+	)
+	return err
+}
+
+const updateUser = `-- name: UpdateUser :exec
+update users
+set username   =$2,
+    name       = $3,
+    emails     = $4,
+    active     = $5,
+    updated_at = now()
+where id = $1
+`
+
+type UpdateUserParams struct {
+	ID       int32
+	Username string
+	Name     pgtype.JSONB
+	Emails   pgtype.JSONB
+	Active   bool
+}
+
+func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) error {
+	_, err := q.db.Exec(ctx, updateUser,
+		arg.ID,
+		arg.Username,
+		arg.Name,
+		arg.Emails,
+		arg.Active,
 	)
 	return err
 }

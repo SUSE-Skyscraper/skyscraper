@@ -13,18 +13,37 @@ type Querier interface {
 	// Cloud Tenants
 	//------------------------------------------------------------------------------------------------------------------
 	CreateCloudTenant(ctx context.Context, arg CreateCloudTenantParams) error
+	CreateGroup(ctx context.Context, displayName string) (Group, error)
 	//------------------------------------------------------------------------------------------------------------------
 	// Cloud Account Metadata
 	//------------------------------------------------------------------------------------------------------------------
 	CreateOrInsertCloudAccount(ctx context.Context, arg CreateOrInsertCloudAccountParams) (CloudAccount, error)
+	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
+	DeleteGroup(ctx context.Context, id int32) error
+	DeleteUser(ctx context.Context, id int32) error
+	FindByUsername(ctx context.Context, username string) (User, error)
 	GetCloudAccount(ctx context.Context, arg GetCloudAccountParams) (CloudAccount, error)
 	GetCloudAllAccounts(ctx context.Context) ([]CloudAccount, error)
 	GetCloudAllAccountsForCloud(ctx context.Context, cloud string) ([]CloudAccount, error)
 	GetCloudAllAccountsForCloudAndTenant(ctx context.Context, arg GetCloudAllAccountsForCloudAndTenantParams) ([]CloudAccount, error)
 	GetCloudTenant(ctx context.Context, arg GetCloudTenantParams) (CloudTenant, error)
 	GetCloudTenants(ctx context.Context) ([]CloudTenant, error)
+	GetGroup(ctx context.Context, id int32) (Group, error)
+	GetGroupCount(ctx context.Context) (int64, error)
+	//------------------------------------------------------------------------------------------------------------------
+	// Users
+	//------------------------------------------------------------------------------------------------------------------
+	GetGroups(ctx context.Context, arg GetGroupsParams) ([]Group, error)
+	GetUser(ctx context.Context, id int32) (User, error)
+	GetUserCount(ctx context.Context) (int64, error)
+	//------------------------------------------------------------------------------------------------------------------
+	// Users
+	//------------------------------------------------------------------------------------------------------------------
+	GetUsers(ctx context.Context, arg GetUsersParams) ([]User, error)
+	PatchUser(ctx context.Context, arg PatchUserParams) error
 	UpdateCloudAccount(ctx context.Context, arg UpdateCloudAccountParams) error
 	UpdateCloudAccountTagsDriftDetected(ctx context.Context, arg UpdateCloudAccountTagsDriftDetectedParams) error
+	UpdateUser(ctx context.Context, arg UpdateUserParams) error
 }
 
 var _ Querier = (*Queries)(nil)

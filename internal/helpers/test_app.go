@@ -36,6 +36,84 @@ type TestDB struct {
 	mock.Mock
 }
 
+func (t *TestDB) CreateGroup(ctx context.Context, displayName string) (db.Group, error) {
+	args := t.Called(ctx, displayName)
+
+	return args.Get(0).(db.Group), args.Error(1)
+}
+
+func (t *TestDB) DeleteGroup(ctx context.Context, id int32) error {
+	args := t.Called(ctx, id)
+
+	return args.Error(0)
+}
+
+func (t *TestDB) FindByUsername(ctx context.Context, username string) (db.User, error) {
+	args := t.Called(ctx, username)
+
+	return args.Get(0).(db.User), args.Error(1)
+}
+
+func (t *TestDB) GetGroup(ctx context.Context, id int32) (db.Group, error) {
+	args := t.Called(ctx, id)
+
+	return args.Get(0).(db.Group), args.Error(1)
+}
+
+func (t *TestDB) GetGroupCount(ctx context.Context) (int64, error) {
+	args := t.Called(ctx)
+
+	return args.Get(0).(int64), args.Error(1)
+}
+
+func (t *TestDB) GetGroups(ctx context.Context, arg db.GetGroupsParams) ([]db.Group, error) {
+	args := t.Called(ctx, arg)
+
+	return args.Get(0).([]db.Group), args.Error(1)
+}
+
+func (t *TestDB) PatchUser(ctx context.Context, arg db.PatchUserParams) error {
+	args := t.Called(ctx, arg)
+
+	return args.Error(0)
+}
+
+func (t *TestDB) UpdateUser(ctx context.Context, arg db.UpdateUserParams) error {
+	args := t.Called(ctx, arg)
+
+	return args.Error(0)
+}
+
+func (t *TestDB) CreateUser(ctx context.Context, arg db.CreateUserParams) (db.User, error) {
+	args := t.Called(ctx, arg)
+
+	return args.Get(0).(db.User), args.Error(1)
+}
+
+func (t *TestDB) DeleteUser(ctx context.Context, id int32) error {
+	args := t.Called(ctx, id)
+
+	return args.Error(0)
+}
+
+func (t *TestDB) GetUser(ctx context.Context, id int32) (db.User, error) {
+	args := t.Called(ctx, id)
+
+	return args.Get(0).(db.User), args.Error(1)
+}
+
+func (t *TestDB) GetUserCount(ctx context.Context) (int64, error) {
+	args := t.Called(ctx)
+
+	return args.Get(0).(int64), args.Error(1)
+}
+
+func (t *TestDB) GetUsers(ctx context.Context, arg db.GetUsersParams) ([]db.User, error) {
+	args := t.Called(ctx, arg)
+
+	return args.Get(0).([]db.User), args.Error(1)
+}
+
 func (t *TestDB) CreateCloudTenant(ctx context.Context, arg db.CreateCloudTenantParams) error {
 	args := t.Called(ctx, arg)
 
