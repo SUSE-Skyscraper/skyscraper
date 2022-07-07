@@ -94,17 +94,20 @@ from users
 where username = $1;
 
 -- name: CreateUser :one
-insert into users (username, name, emails, active, created_at, updated_at)
-values ($1, $2, $3, $4, now(), now())
+insert into users (username, name, display_name, emails, active, locale, external_id, created_at, updated_at)
+values ($1, $2, $3, $4, $5, $6, $7, now(), now())
 returning *;
 
 -- name: UpdateUser :exec
 update users
-set username   =$2,
-    name       = $3,
-    emails     = $4,
-    active     = $5,
-    updated_at = now()
+set username     =$2,
+    name         = $3,
+    display_name = $4,
+    emails       = $5,
+    active       = $6,
+    external_id  = $7,
+    locale       = $8,
+    updated_at   = now()
 where id = $1;
 
 -- name: PatchUser :exec
@@ -151,6 +154,32 @@ where id = $1;
 select count(*)
 from groups;
 
+-- name: PatchGroupDisplayName :exec
+update groups
+set display_name = $2,
+    updated_at   = now()
+where id = $1;
+
 --------------------------------------------------------------------------------------------------------------------
 -- User Membership
 --------------------------------------------------------------------------------------------------------------------
+
+-- name: GetGroupMembership :many
+select group_members.*, users.display_name as display_name
+from group_members
+         left join users on users.id = group_members.user_id
+where group_members.group_id = $1;
+
+-- name: DropMembershipForGroup :exec
+delete from group_members
+where group_id = $1;
+
+-- name: DropMembershipForUserAndGroup :exec
+delete from group_members
+where user_id = $1
+  and group_id = $2;
+
+-- name: CreateMembershipForUserAndGroup :exec
+insert into group_members (user_id, group_id, created_at, updated_at)
+values ($1, $2, now(), now())
+on conflict (user_id, group_id) do update set updated_at = now();;

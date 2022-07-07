@@ -3,6 +3,7 @@ package helpers
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/nats-io/nats.go"
 	"github.com/stretchr/testify/mock"
 	"github.com/suse-skyscraper/skyscraper/internal/application"
@@ -36,28 +37,73 @@ type TestDB struct {
 	mock.Mock
 }
 
+func (t *TestDB) DeleteGroup(ctx context.Context, id uuid.UUID) error {
+	args := t.Called(ctx, id)
+
+	return args.Error(0)
+}
+
+func (t *TestDB) DeleteUser(ctx context.Context, id uuid.UUID) error {
+	args := t.Called(ctx, id)
+
+	return args.Error(0)
+}
+
+func (t *TestDB) GetGroup(ctx context.Context, id uuid.UUID) (db.Group, error) {
+	args := t.Called(ctx, id)
+
+	return args.Get(0).(db.Group), args.Error(1)
+}
+
+func (t *TestDB) CreateMembershipForUserAndGroup(
+	ctx context.Context,
+	arg db.CreateMembershipForUserAndGroupParams,
+) error {
+	args := t.Called(ctx, arg)
+
+	return args.Error(0)
+}
+
+func (t *TestDB) DropMembershipForGroup(ctx context.Context, groupID uuid.UUID) error {
+	args := t.Called(ctx, groupID)
+
+	return args.Error(0)
+}
+
+func (t *TestDB) DropMembershipForUserAndGroup(ctx context.Context, arg db.DropMembershipForUserAndGroupParams) error {
+	args := t.Called(ctx, arg)
+
+	return args.Error(0)
+}
+
+func (t *TestDB) GetGroupMembership(ctx context.Context, groupID uuid.UUID) ([]db.GetGroupMembershipRow, error) {
+	args := t.Called(ctx, groupID)
+
+	return args.Get(0).([]db.GetGroupMembershipRow), args.Error(1)
+}
+
+func (t *TestDB) GetUser(ctx context.Context, id uuid.UUID) (db.User, error) {
+	args := t.Called(ctx, id)
+
+	return args.Get(0).(db.User), args.Error(1)
+}
+
+func (t *TestDB) PatchGroupDisplayName(ctx context.Context, arg db.PatchGroupDisplayNameParams) error {
+	args := t.Called(ctx, arg)
+
+	return args.Error(0)
+}
+
 func (t *TestDB) CreateGroup(ctx context.Context, displayName string) (db.Group, error) {
 	args := t.Called(ctx, displayName)
 
 	return args.Get(0).(db.Group), args.Error(1)
 }
 
-func (t *TestDB) DeleteGroup(ctx context.Context, id int32) error {
-	args := t.Called(ctx, id)
-
-	return args.Error(0)
-}
-
 func (t *TestDB) FindByUsername(ctx context.Context, username string) (db.User, error) {
 	args := t.Called(ctx, username)
 
 	return args.Get(0).(db.User), args.Error(1)
-}
-
-func (t *TestDB) GetGroup(ctx context.Context, id int32) (db.Group, error) {
-	args := t.Called(ctx, id)
-
-	return args.Get(0).(db.Group), args.Error(1)
 }
 
 func (t *TestDB) GetGroupCount(ctx context.Context) (int64, error) {
@@ -86,18 +132,6 @@ func (t *TestDB) UpdateUser(ctx context.Context, arg db.UpdateUserParams) error 
 
 func (t *TestDB) CreateUser(ctx context.Context, arg db.CreateUserParams) (db.User, error) {
 	args := t.Called(ctx, arg)
-
-	return args.Get(0).(db.User), args.Error(1)
-}
-
-func (t *TestDB) DeleteUser(ctx context.Context, id int32) error {
-	args := t.Called(ctx, id)
-
-	return args.Error(0)
-}
-
-func (t *TestDB) GetUser(ctx context.Context, id int32) (db.User, error) {
-	args := t.Called(ctx, id)
 
 	return args.Get(0).(db.User), args.Error(1)
 }

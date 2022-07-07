@@ -13,7 +13,7 @@ type App struct {
 	Config       Config
 	DB           db.Querier
 	JS           nats.JetStreamContext
-	postgresPool *pgxpool.Pool
+	PostgresPool *pgxpool.Pool
 	natsConn     *nats.Conn
 }
 
@@ -34,7 +34,7 @@ func (a *App) Start(ctx context.Context) error {
 		return err
 	}
 	a.DB = database
-	a.postgresPool = pool
+	a.PostgresPool = pool
 
 	js, nc, err := setupNats(ctx, a.Config)
 	if err != nil {
@@ -47,8 +47,8 @@ func (a *App) Start(ctx context.Context) error {
 }
 
 func (a *App) Shutdown(_ context.Context) {
-	if a.postgresPool != nil {
-		a.postgresPool.Close()
+	if a.PostgresPool != nil {
+		a.PostgresPool.Close()
 	}
 
 	if a.natsConn != nil {

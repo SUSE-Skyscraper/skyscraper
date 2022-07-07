@@ -5,8 +5,10 @@
 package db
 
 import (
+	"database/sql"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgtype"
 )
 
@@ -33,7 +35,7 @@ type CloudTenant struct {
 }
 
 type Group struct {
-	ID          int32
+	ID          uuid.UUID
 	DisplayName string
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
@@ -41,18 +43,21 @@ type Group struct {
 
 type GroupMember struct {
 	ID        int32
-	GroupID   int32
-	UserID    int32
+	GroupID   uuid.UUID
+	UserID    uuid.UUID
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
 
 type User struct {
-	ID        int32
-	Username  string
-	Name      pgtype.JSONB
-	Active    bool
-	Emails    pgtype.JSONB
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	ID          uuid.UUID
+	Username    string
+	ExternalID  sql.NullString
+	Name        pgtype.JSONB
+	DisplayName sql.NullString
+	Locale      sql.NullString
+	Active      bool
+	Emails      pgtype.JSONB
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
 }

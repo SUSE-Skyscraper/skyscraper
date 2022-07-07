@@ -6,16 +6,14 @@ import (
 	"github.com/go-chi/render"
 )
 
-var ErrNotFound = &ErrResponse{HTTPStatusCode: 404, StatusText: "Resource not found."}
-var ErrInternalServerError = &ErrResponse{HTTPStatusCode: 500, StatusText: "internal error"}
+var ErrInternalServerError = &ErrResponse{Schemas: errorSchema, HTTPStatusCode: 500, Details: "Internal server error"}
+var errorSchema = []string{"urn:ietf:params:scim:api:messages:2.0:Error"}
 
 type ErrResponse struct {
-	Err            error `json:"-"` // low-level runtime error
-	HTTPStatusCode int   `json:"-"` // http response status code
-
-	StatusText string `json:"status"`          // user-level status message
-	AppCode    int64  `json:"code,omitempty"`  // application-specific error code
-	ErrorText  string `json:"error,omitempty"` // application-level error message, for debugging
+	Schemas        []string `json:"schemas"`
+	Details        string   `json:"details"`
+	HTTPStatusCode int      `json:"status"`
+	ScimType       string   `json:"scimType,omitempty"`
 }
 
 func (e *ErrResponse) Render(w http.ResponseWriter, r *http.Request) error {
@@ -23,20 +21,30 @@ func (e *ErrResponse) Render(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-func ErrInvalidRequest(err error) render.Renderer {
+func ErrNotFound(id string) render.Renderer {
+	details := "Resource " + id + " not found"
+
 	return &ErrResponse{
-		Err:            err,
-		HTTPStatusCode: 400,
-		StatusText:     "Invalid request.",
-		ErrorText:      err.Error(),
+		Schemas:        errorSchema,
+		HTTPStatusCode: 404,
+		Details:        details,
 	}
 }
 
-func ErrRender(err error) render.Renderer {
+func ErrBadValue(err error) render.Renderer {
 	return &ErrResponse{
-		Err:            err,
-		HTTPStatusCode: 422,
-		StatusText:     "Error rendering response.",
-		ErrorText:      err.Error(),
+		Schemas:        errorSchema,
+		ScimType:       "invalidValue",
+		Details:        err.Error(),
+		HTTPStatusCode: 400,
+	}
+}
+
+func ErrBadFilter(err error) render.Renderer {
+	return &ErrResponse{
+		Schemas:        errorSchema,
+		ScimType:       "invalidFilter",
+		Details:        err.Error(),
+		HTTPStatusCode: 400,
 	}
 }

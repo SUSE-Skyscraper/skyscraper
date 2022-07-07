@@ -7,7 +7,10 @@ package db
 
 import (
 	"context"
+	"database/sql"
+	"time"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgtype"
 )
 
@@ -49,6 +52,22 @@ func (q *Queries) CreateGroup(ctx context.Context, displayName string) (Group, e
 		&i.UpdatedAt,
 	)
 	return i, err
+}
+
+const createMembershipForUserAndGroup = `-- name: CreateMembershipForUserAndGroup :exec
+insert into group_members (user_id, group_id, created_at, updated_at)
+values ($1, $2, now(), now())
+on conflict (user_id, group_id) do update set updated_at = now()
+`
+
+type CreateMembershipForUserAndGroupParams struct {
+	UserID  uuid.UUID
+	GroupID uuid.UUID
+}
+
+func (q *Queries) CreateMembershipForUserAndGroup(ctx context.Context, arg CreateMembershipForUserAndGroupParams) error {
+	_, err := q.db.Exec(ctx, createMembershipForUserAndGroup, arg.UserID, arg.GroupID)
+	return err
 }
 
 const createOrInsertCloudAccount = `-- name: CreateOrInsertCloudAccount :one
@@ -100,30 +119,39 @@ func (q *Queries) CreateOrInsertCloudAccount(ctx context.Context, arg CreateOrIn
 }
 
 const createUser = `-- name: CreateUser :one
-insert into users (username, name, emails, active, created_at, updated_at)
-values ($1, $2, $3, $4, now(), now())
-returning id, username, name, active, emails, created_at, updated_at
+insert into users (username, name, display_name, emails, active, locale, external_id, created_at, updated_at)
+values ($1, $2, $3, $4, $5, $6, $7, now(), now())
+returning id, username, external_id, name, display_name, locale, active, emails, created_at, updated_at
 `
 
 type CreateUserParams struct {
-	Username string
-	Name     pgtype.JSONB
-	Emails   pgtype.JSONB
-	Active   bool
+	Username    string
+	Name        pgtype.JSONB
+	DisplayName sql.NullString
+	Emails      pgtype.JSONB
+	Active      bool
+	Locale      sql.NullString
+	ExternalID  sql.NullString
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
 	row := q.db.QueryRow(ctx, createUser,
 		arg.Username,
 		arg.Name,
+		arg.DisplayName,
 		arg.Emails,
 		arg.Active,
+		arg.Locale,
+		arg.ExternalID,
 	)
 	var i User
 	err := row.Scan(
 		&i.ID,
 		&i.Username,
+		&i.ExternalID,
 		&i.Name,
+		&i.DisplayName,
+		&i.Locale,
 		&i.Active,
 		&i.Emails,
 		&i.CreatedAt,
@@ -138,7 +166,7 @@ from groups
 where id = $1
 `
 
-func (q *Queries) DeleteGroup(ctx context.Context, id int32) error {
+func (q *Queries) DeleteGroup(ctx context.Context, id uuid.UUID) error {
 	_, err := q.db.Exec(ctx, deleteGroup, id)
 	return err
 }
@@ -149,13 +177,39 @@ from users
 where id = $1
 `
 
-func (q *Queries) DeleteUser(ctx context.Context, id int32) error {
+func (q *Queries) DeleteUser(ctx context.Context, id uuid.UUID) error {
 	_, err := q.db.Exec(ctx, deleteUser, id)
 	return err
 }
 
+const dropMembershipForGroup = `-- name: DropMembershipForGroup :exec
+delete from group_members
+where group_id = $1
+`
+
+func (q *Queries) DropMembershipForGroup(ctx context.Context, groupID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, dropMembershipForGroup, groupID)
+	return err
+}
+
+const dropMembershipForUserAndGroup = `-- name: DropMembershipForUserAndGroup :exec
+delete from group_members
+where user_id = $1
+  and group_id = $2
+`
+
+type DropMembershipForUserAndGroupParams struct {
+	UserID  uuid.UUID
+	GroupID uuid.UUID
+}
+
+func (q *Queries) DropMembershipForUserAndGroup(ctx context.Context, arg DropMembershipForUserAndGroupParams) error {
+	_, err := q.db.Exec(ctx, dropMembershipForUserAndGroup, arg.UserID, arg.GroupID)
+	return err
+}
+
 const findByUsername = `-- name: FindByUsername :one
-select id, username, name, active, emails, created_at, updated_at
+select id, username, external_id, name, display_name, locale, active, emails, created_at, updated_at
 from users
 where username = $1
 `
@@ -166,7 +220,10 @@ func (q *Queries) FindByUsername(ctx context.Context, username string) (User, er
 	err := row.Scan(
 		&i.ID,
 		&i.Username,
+		&i.ExternalID,
 		&i.Name,
+		&i.DisplayName,
+		&i.Locale,
 		&i.Active,
 		&i.Emails,
 		&i.CreatedAt,
@@ -391,7 +448,7 @@ from groups
 where id = $1
 `
 
-func (q *Queries) GetGroup(ctx context.Context, id int32) (Group, error) {
+func (q *Queries) GetGroup(ctx context.Context, id uuid.UUID) (Group, error) {
 	row := q.db.QueryRow(ctx, getGroup, id)
 	var i Group
 	err := row.Scan(
@@ -413,6 +470,53 @@ func (q *Queries) GetGroupCount(ctx context.Context) (int64, error) {
 	var count int64
 	err := row.Scan(&count)
 	return count, err
+}
+
+const getGroupMembership = `-- name: GetGroupMembership :many
+
+select group_members.id, group_members.group_id, group_members.user_id, group_members.created_at, group_members.updated_at, users.display_name as display_name
+from group_members
+         left join users on users.id = group_members.user_id
+where group_members.group_id = $1
+`
+
+type GetGroupMembershipRow struct {
+	ID          int32
+	GroupID     uuid.UUID
+	UserID      uuid.UUID
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+	DisplayName sql.NullString
+}
+
+//------------------------------------------------------------------------------------------------------------------
+// User Membership
+//------------------------------------------------------------------------------------------------------------------
+func (q *Queries) GetGroupMembership(ctx context.Context, groupID uuid.UUID) ([]GetGroupMembershipRow, error) {
+	rows, err := q.db.Query(ctx, getGroupMembership, groupID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetGroupMembershipRow
+	for rows.Next() {
+		var i GetGroupMembershipRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.GroupID,
+			&i.UserID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.DisplayName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getGroups = `-- name: GetGroups :many
@@ -457,18 +561,21 @@ func (q *Queries) GetGroups(ctx context.Context, arg GetGroupsParams) ([]Group, 
 }
 
 const getUser = `-- name: GetUser :one
-select id, username, name, active, emails, created_at, updated_at
+select id, username, external_id, name, display_name, locale, active, emails, created_at, updated_at
 from users
 where id = $1
 `
 
-func (q *Queries) GetUser(ctx context.Context, id int32) (User, error) {
+func (q *Queries) GetUser(ctx context.Context, id uuid.UUID) (User, error) {
 	row := q.db.QueryRow(ctx, getUser, id)
 	var i User
 	err := row.Scan(
 		&i.ID,
 		&i.Username,
+		&i.ExternalID,
 		&i.Name,
+		&i.DisplayName,
+		&i.Locale,
 		&i.Active,
 		&i.Emails,
 		&i.CreatedAt,
@@ -491,7 +598,7 @@ func (q *Queries) GetUserCount(ctx context.Context) (int64, error) {
 
 const getUsers = `-- name: GetUsers :many
 
-select id, username, name, active, emails, created_at, updated_at
+select id, username, external_id, name, display_name, locale, active, emails, created_at, updated_at
 from users
 order by id
 LIMIT $1 OFFSET $2
@@ -517,7 +624,10 @@ func (q *Queries) GetUsers(ctx context.Context, arg GetUsersParams) ([]User, err
 		if err := rows.Scan(
 			&i.ID,
 			&i.Username,
+			&i.ExternalID,
 			&i.Name,
+			&i.DisplayName,
+			&i.Locale,
 			&i.Active,
 			&i.Emails,
 			&i.CreatedAt,
@@ -533,6 +643,23 @@ func (q *Queries) GetUsers(ctx context.Context, arg GetUsersParams) ([]User, err
 	return items, nil
 }
 
+const patchGroupDisplayName = `-- name: PatchGroupDisplayName :exec
+update groups
+set display_name = $2,
+    updated_at   = now()
+where id = $1
+`
+
+type PatchGroupDisplayNameParams struct {
+	ID          uuid.UUID
+	DisplayName string
+}
+
+func (q *Queries) PatchGroupDisplayName(ctx context.Context, arg PatchGroupDisplayNameParams) error {
+	_, err := q.db.Exec(ctx, patchGroupDisplayName, arg.ID, arg.DisplayName)
+	return err
+}
+
 const patchUser = `-- name: PatchUser :exec
 update users
 set active     = $2,
@@ -541,7 +668,7 @@ where id = $1
 `
 
 type PatchUserParams struct {
-	ID     int32
+	ID     uuid.UUID
 	Active bool
 }
 
@@ -604,20 +731,26 @@ func (q *Queries) UpdateCloudAccountTagsDriftDetected(ctx context.Context, arg U
 
 const updateUser = `-- name: UpdateUser :exec
 update users
-set username   =$2,
-    name       = $3,
-    emails     = $4,
-    active     = $5,
-    updated_at = now()
+set username     =$2,
+    name         = $3,
+    display_name = $4,
+    emails       = $5,
+    active       = $6,
+    external_id  = $7,
+    locale       = $8,
+    updated_at   = now()
 where id = $1
 `
 
 type UpdateUserParams struct {
-	ID       int32
-	Username string
-	Name     pgtype.JSONB
-	Emails   pgtype.JSONB
-	Active   bool
+	ID          uuid.UUID
+	Username    string
+	Name        pgtype.JSONB
+	DisplayName sql.NullString
+	Emails      pgtype.JSONB
+	Active      bool
+	ExternalID  sql.NullString
+	Locale      sql.NullString
 }
 
 func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) error {
@@ -625,8 +758,11 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) error {
 		arg.ID,
 		arg.Username,
 		arg.Name,
+		arg.DisplayName,
 		arg.Emails,
 		arg.Active,
+		arg.ExternalID,
+		arg.Locale,
 	)
 	return err
 }

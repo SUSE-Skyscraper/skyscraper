@@ -13,7 +13,7 @@ import (
 	"github.com/suse-skyscraper/skyscraper/internal/scim/responses"
 )
 
-func UserCtx(app *application.App) func(next http.Handler) http.Handler {
+func GroupCtx(app *application.App) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			idString := chi.URLParam(r, "id")
@@ -24,7 +24,7 @@ func UserCtx(app *application.App) func(next http.Handler) http.Handler {
 				return
 			}
 
-			user, err := app.DB.GetUser(r.Context(), id)
+			group, err := app.DB.GetGroup(r.Context(), id)
 			if errors.Is(err, pgx.ErrNoRows) {
 				_ = render.Render(w, r, responses.ErrNotFound(idString))
 				return
@@ -33,7 +33,7 @@ func UserCtx(app *application.App) func(next http.Handler) http.Handler {
 				return
 			}
 
-			ctx := context.WithValue(r.Context(), User, user)
+			ctx := context.WithValue(r.Context(), Group, group)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}

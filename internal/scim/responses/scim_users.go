@@ -3,17 +3,20 @@ package responses
 import (
 	"fmt"
 	"net/http"
+	"time"
 
+	"github.com/suse-skyscraper/skyscraper/internal/application"
 	"github.com/suse-skyscraper/skyscraper/internal/db"
 )
 
 type ScimUserResponse struct {
-	Schemas  []string    `json:"schemas,omitempty"`
-	UserName string      `json:"userName"`
-	ID       string      `json:"id"`
-	Name     interface{} `json:"name,omitempty"`
-	Emails   interface{} `json:"emails,omitempty"`
-	Active   bool        `json:"active"`
+	Schemas  []string          `json:"schemas,omitempty"`
+	UserName string            `json:"userName"`
+	ID       string            `json:"id"`
+	Name     interface{}       `json:"name,omitempty"`
+	Emails   interface{}       `json:"emails,omitempty"`
+	Active   bool              `json:"active"`
+	Meta     map[string]string `json:"meta"`
 }
 
 func (rd *ScimUserResponse) Render(_ http.ResponseWriter, _ *http.Request) error {
@@ -32,11 +35,11 @@ func (rd *ScimListUsersResponse) Render(_ http.ResponseWriter, _ *http.Request) 
 	return nil
 }
 
-func NewScimUserResponse(user db.User) *ScimUserResponse {
-	return newScimUserResponse(user, true)
+func NewScimUserResponse(config application.Config, user db.User) *ScimUserResponse {
+	return newScimUserResponse(config, user, true)
 }
 
-func newScimUserResponse(user db.User, singleResponse bool) *ScimUserResponse {
+func newScimUserResponse(config application.Config, user db.User, singleResponse bool) *ScimUserResponse {
 	// the schemas should be added if the response is a single user, not a list
 	var schemas []string
 	if singleResponse {
@@ -45,11 +48,17 @@ func newScimUserResponse(user db.User, singleResponse bool) *ScimUserResponse {
 
 	return &ScimUserResponse{
 		Schemas:  schemas,
-		ID:       fmt.Sprintf("%d", user.ID),
+		ID:       user.ID.String(),
 		UserName: user.Username,
 		Name:     user.Name.Get(),
 		Emails:   user.Emails.Get(),
 		Active:   user.Active,
+		Meta: map[string]string{
+			"resourceType": "User",
+			"created":      user.CreatedAt.Format(time.RFC3339),
+			"lastModified": user.UpdatedAt.Format(time.RFC3339),
+			"location":     fmt.Sprintf("%s/scim/v2/Users/%s", config.ServerConfig.BaseURL, user.ID.String()),
+		},
 	}
 }
 
@@ -59,10 +68,14 @@ type ScimUserListResponseInput struct {
 	ItemsPerPage int
 }
 
-func NewScimUserListResponse(users []db.User, input ScimUserListResponseInput) *ScimListUsersResponse {
+func NewScimUserListResponse(
+	config application.Config,
+	users []db.User,
+	input ScimUserListResponseInput,
+) *ScimListUsersResponse {
 	var list []*ScimUserResponse
 	for _, user := range users {
-		list = append(list, newScimUserResponse(user, false))
+		list = append(list, newScimUserResponse(config, user, false))
 	}
 
 	return &ScimListUsersResponse{

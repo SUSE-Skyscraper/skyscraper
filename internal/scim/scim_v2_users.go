@@ -1,9 +1,11 @@
 package scim
 
 import (
+	"database/sql"
 	"net/http"
 	"strings"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
 	"github.com/jackc/pgx/v4"
 	"github.com/pkg/errors"
@@ -19,15 +21,11 @@ func V2ListUsers(app *application.App) func(w http.ResponseWriter, r *http.Reque
 		filterString := r.URL.Query().Get("filter")
 		filters, err := ParseFilter(filterString)
 		if err != nil {
-			_ = render.Render(w, r, responses.ErrInvalidRequest(err))
+			_ = render.Render(w, r, responses.ErrBadFilter(err))
 			return
 		}
 
-		pagination, err := paginate(r)
-		if err != nil {
-			_ = render.Render(w, r, responses.ErrInvalidRequest(err))
-			return
-		}
+		pagination := paginate(r)
 
 		var totalCount int64
 		var users []db.User
@@ -65,24 +63,31 @@ func V2ListUsers(app *application.App) func(w http.ResponseWriter, r *http.Reque
 					return
 				}
 			} else {
-				_ = render.Render(w, r, responses.ErrInvalidRequest(errors.New("unsupported filter")))
+				_ = render.Render(w, r,
+					responses.ErrBadFilter(
+						errors.New("unsupported filter - only \"userName\" with the operator \"eq\" is supported"),
+					),
+				)
 				return
 			}
 		}
 
-		RenderScimJSON(w, r, http.StatusOK, responses.NewScimUserListResponse(users, responses.ScimUserListResponseInput{
-			StartIndex:   int(pagination.Offset)/int(pagination.Limit) + 1,
-			TotalResults: int(totalCount),
-			ItemsPerPage: int(pagination.Limit),
-		}))
+		RenderScimJSON(w, r, http.StatusOK, responses.NewScimUserListResponse(
+			app.Config,
+			users,
+			responses.ScimUserListResponseInput{
+				StartIndex:   int(pagination.Offset)/int(pagination.Limit) + 1,
+				TotalResults: int(totalCount),
+				ItemsPerPage: int(pagination.Limit),
+			}))
 	}
 }
 
-func V2GetUser(_ *application.App) func(w http.ResponseWriter, r *http.Request) {
+func V2GetUser(app *application.App) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		user := r.Context().Value(middleware.User).(db.User)
 
-		RenderScimJSON(w, r, http.StatusOK, responses.NewScimUserResponse(user))
+		RenderScimJSON(w, r, http.StatusOK, responses.NewScimUserResponse(app.Config, user))
 	}
 }
 
@@ -90,7 +95,12 @@ func V2CreateUser(app *application.App) func(w http.ResponseWriter, r *http.Requ
 	return func(w http.ResponseWriter, r *http.Request) {
 		payload, err := payloads.UserPayloadFromJSON(r.Body)
 		if err != nil {
-			_ = render.Render(w, r, responses.ErrInvalidRequest(err))
+			_ = render.Render(w, r, responses.ErrBadValue(err))
+			return
+		}
+
+		if payload.Username == "" {
+			_ = render.Render(w, r, responses.ErrBadValue(errors.New("Attribute 'userName' is required")))
 			return
 		}
 
@@ -99,6 +109,18 @@ func V2CreateUser(app *application.App) func(w http.ResponseWriter, r *http.Requ
 			Name:     payload.GetJSONName(),
 			Active:   payload.Active,
 			Emails:   payload.GetJSONEmails(),
+			Locale: sql.NullString{
+				String: payload.Locale,
+				Valid:  payload.Locale != "",
+			},
+			ExternalID: sql.NullString{
+				String: payload.ExternalID,
+				Valid:  payload.ExternalID != "",
+			},
+			DisplayName: sql.NullString{
+				String: payload.DisplayName,
+				Valid:  payload.DisplayName != "",
+			},
 		})
 		if err != nil && strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
 			w.WriteHeader(http.StatusConflict)
@@ -108,17 +130,18 @@ func V2CreateUser(app *application.App) func(w http.ResponseWriter, r *http.Requ
 			return
 		}
 
-		RenderScimJSON(w, r, http.StatusCreated, responses.NewScimUserResponse(user))
+		RenderScimJSON(w, r, http.StatusCreated, responses.NewScimUserResponse(app.Config, user))
 	}
 }
 
 func V2DeleteUser(app *application.App) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
+		id := chi.URLParam(r, "id")
 		user := r.Context().Value(middleware.User).(db.User)
 
 		err := app.DB.DeleteUser(r.Context(), user.ID)
 		if errors.Is(err, pgx.ErrNoRows) {
-			_ = render.Render(w, r, responses.ErrNotFound)
+			_ = render.Render(w, r, responses.ErrNotFound(id))
 			return
 		} else if err != nil {
 			_ = render.Render(w, r, responses.ErrInternalServerError)
@@ -135,7 +158,7 @@ func V2UpdateUser(app *application.App) func(w http.ResponseWriter, r *http.Requ
 
 		payload, err := payloads.UserPayloadFromJSON(r.Body)
 		if err != nil {
-			_ = render.Render(w, r, responses.ErrInvalidRequest(err))
+			_ = render.Render(w, r, responses.ErrBadValue(err))
 			return
 		}
 		err = app.DB.UpdateUser(r.Context(), db.UpdateUserParams{
@@ -144,6 +167,18 @@ func V2UpdateUser(app *application.App) func(w http.ResponseWriter, r *http.Requ
 			Name:     payload.GetJSONName(),
 			Active:   payload.Active,
 			Emails:   payload.GetJSONEmails(),
+			Locale: sql.NullString{
+				String: payload.Locale,
+				Valid:  payload.Locale != "",
+			},
+			DisplayName: sql.NullString{
+				String: payload.DisplayName,
+				Valid:  payload.DisplayName != "",
+			},
+			ExternalID: sql.NullString{
+				String: payload.ExternalID,
+				Valid:  payload.ExternalID != "",
+			},
 		})
 		if err != nil {
 			_ = render.Render(w, r, responses.ErrInternalServerError)
@@ -156,7 +191,7 @@ func V2UpdateUser(app *application.App) func(w http.ResponseWriter, r *http.Requ
 			return
 		}
 
-		RenderScimJSON(w, r, http.StatusOK, responses.NewScimUserResponse(user))
+		RenderScimJSON(w, r, http.StatusOK, responses.NewScimUserResponse(app.Config, user))
 	}
 }
 
@@ -166,18 +201,23 @@ func V2PatchUser(app *application.App) func(w http.ResponseWriter, r *http.Reque
 
 		payload, err := payloads.UserPatchPayloadFromJSON(r.Body)
 		if err != nil {
-			_ = render.Render(w, r, responses.ErrInvalidRequest(err))
+			_ = render.Render(w, r, responses.ErrBadValue(err))
 			return
 		}
 
 		for _, op := range payload.Operations {
-			err = app.DB.PatchUser(r.Context(), db.PatchUserParams{
-				ID:     user.ID,
-				Active: op.Value.Active,
-			})
-			if err != nil {
-				_ = render.Render(w, r, responses.ErrInternalServerError)
-				return
+			switch op.Op {
+			case "replace":
+				err = app.DB.PatchUser(r.Context(), db.PatchUserParams{
+					ID:     user.ID,
+					Active: op.Value.Active,
+				})
+				if err != nil {
+					_ = render.Render(w, r, responses.ErrInternalServerError)
+					return
+				}
+			default:
+				_ = render.Render(w, r, responses.ErrBadValue(errors.New("Unsupported operation")))
 			}
 		}
 
@@ -187,6 +227,6 @@ func V2PatchUser(app *application.App) func(w http.ResponseWriter, r *http.Reque
 			return
 		}
 
-		RenderScimJSON(w, r, http.StatusOK, responses.NewScimUserResponse(user))
+		RenderScimJSON(w, r, http.StatusOK, responses.NewScimUserResponse(app.Config, user))
 	}
 }

@@ -6,6 +6,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/google/uuid"
 )
 
 type Querier interface {
@@ -14,13 +16,16 @@ type Querier interface {
 	//------------------------------------------------------------------------------------------------------------------
 	CreateCloudTenant(ctx context.Context, arg CreateCloudTenantParams) error
 	CreateGroup(ctx context.Context, displayName string) (Group, error)
+	CreateMembershipForUserAndGroup(ctx context.Context, arg CreateMembershipForUserAndGroupParams) error
 	//------------------------------------------------------------------------------------------------------------------
 	// Cloud Account Metadata
 	//------------------------------------------------------------------------------------------------------------------
 	CreateOrInsertCloudAccount(ctx context.Context, arg CreateOrInsertCloudAccountParams) (CloudAccount, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
-	DeleteGroup(ctx context.Context, id int32) error
-	DeleteUser(ctx context.Context, id int32) error
+	DeleteGroup(ctx context.Context, id uuid.UUID) error
+	DeleteUser(ctx context.Context, id uuid.UUID) error
+	DropMembershipForGroup(ctx context.Context, groupID uuid.UUID) error
+	DropMembershipForUserAndGroup(ctx context.Context, arg DropMembershipForUserAndGroupParams) error
 	FindByUsername(ctx context.Context, username string) (User, error)
 	GetCloudAccount(ctx context.Context, arg GetCloudAccountParams) (CloudAccount, error)
 	GetCloudAllAccounts(ctx context.Context) ([]CloudAccount, error)
@@ -28,18 +33,23 @@ type Querier interface {
 	GetCloudAllAccountsForCloudAndTenant(ctx context.Context, arg GetCloudAllAccountsForCloudAndTenantParams) ([]CloudAccount, error)
 	GetCloudTenant(ctx context.Context, arg GetCloudTenantParams) (CloudTenant, error)
 	GetCloudTenants(ctx context.Context) ([]CloudTenant, error)
-	GetGroup(ctx context.Context, id int32) (Group, error)
+	GetGroup(ctx context.Context, id uuid.UUID) (Group, error)
 	GetGroupCount(ctx context.Context) (int64, error)
+	//------------------------------------------------------------------------------------------------------------------
+	// User Membership
+	//------------------------------------------------------------------------------------------------------------------
+	GetGroupMembership(ctx context.Context, groupID uuid.UUID) ([]GetGroupMembershipRow, error)
 	//------------------------------------------------------------------------------------------------------------------
 	// Users
 	//------------------------------------------------------------------------------------------------------------------
 	GetGroups(ctx context.Context, arg GetGroupsParams) ([]Group, error)
-	GetUser(ctx context.Context, id int32) (User, error)
+	GetUser(ctx context.Context, id uuid.UUID) (User, error)
 	GetUserCount(ctx context.Context) (int64, error)
 	//------------------------------------------------------------------------------------------------------------------
 	// Users
 	//------------------------------------------------------------------------------------------------------------------
 	GetUsers(ctx context.Context, arg GetUsersParams) ([]User, error)
+	PatchGroupDisplayName(ctx context.Context, arg PatchGroupDisplayNameParams) error
 	PatchUser(ctx context.Context, arg PatchUserParams) error
 	UpdateCloudAccount(ctx context.Context, arg UpdateCloudAccountParams) error
 	UpdateCloudAccountTagsDriftDetected(ctx context.Context, arg UpdateCloudAccountTagsDriftDetectedParams) error

@@ -19,7 +19,7 @@ func TestApp_Start(t *testing.T) {
 	err = app.Start(ctx)
 	assert.Nil(t, err)
 
-	err = app.postgresPool.Ping(ctx)
+	err = app.PostgresPool.Ping(ctx)
 	assert.Nil(t, err)
 }
 

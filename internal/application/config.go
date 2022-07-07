@@ -58,12 +58,17 @@ func (db *DBConfig) GetDSN() string {
 	return dsn
 }
 
+type ServerConfig struct {
+	BaseURL string `mapstructure:"base_url"`
+}
+
 type Config struct {
-	Okta     OktaConfig     `mapstructure:"okta"`
-	DB       DBConfig       `mapstructure:"db"`
-	Frontend FrontendConfig `mapstructure:"frontend"`
-	Clouds   Clouds         `mapstructure:"clouds"`
-	Nats     NatsConfig     `mapstructure:"nats"`
+	Okta         OktaConfig     `mapstructure:"okta"`
+	DB           DBConfig       `mapstructure:"db"`
+	Frontend     FrontendConfig `mapstructure:"frontend"`
+	Clouds       Clouds         `mapstructure:"clouds"`
+	Nats         NatsConfig     `mapstructure:"nats"`
+	ServerConfig ServerConfig   `mapstructure:"server"`
 }
 
 func NewConfigurator(configDir string) Configurator {
@@ -104,6 +109,9 @@ func defaultConfig() Config {
 		},
 		Okta: OktaConfig{
 			Enabled: false,
+		},
+		ServerConfig: ServerConfig{
+			BaseURL: "http://localhost:8080",
 		},
 	}
 }

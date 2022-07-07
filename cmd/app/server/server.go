@@ -24,6 +24,7 @@ func NewCmd(app *application.App) *cobra.Command {
 			oktaAuthorizer := apimiddleware.OktaAuthorizationHandler(app.Config)
 			cloudAccountCtx := apimiddleware.CloudAccountCtx(app)
 			scimUserCtx := scimmiddleware.UserCtx(app)
+			scimGroupCtc := scimmiddleware.GroupCtx(app)
 
 			// common middleware
 			r.Use(chimiddleware.Logger)
@@ -73,12 +74,15 @@ func NewCmd(app *application.App) *cobra.Command {
 					})
 
 					r.Get("/Groups", scim.V2ListGroups(app))
+					r.Post("/Groups", scim.V2CreateGroup(app))
+					r.Route("/Groups/{id}", func(r chi.Router) {
+						r.Use(scimGroupCtc)
+						r.Get("/", scim.V2GetGroup(app))
+						// r.Put("/", scim.V2UpdateUser(app))
+						r.Patch("/", scim.V2PatchGroup(app))
+						r.Delete("/", scim.V2DeleteGroup(app))
+					})
 					/*
-						r.Get("/Groups/{id}", server.V2GetGroup(app))
-						r.Post("/Groups", server.V2CreateGroup(app))
-						r.Put("/Groups/{id}", server.V2UpdateGroup(app))
-						r.Delete("/Groups/{id}", server.V2DeleteGroup(app))
-
 						r.Get("/ServiceProviderConfig", server.V2GetServiceProviderConfig(app))
 						r.Get("/Schemas", server.V2ListSchemas(app))
 						r.Get("/Schemas/{id}", server.V2GetSchema(app))

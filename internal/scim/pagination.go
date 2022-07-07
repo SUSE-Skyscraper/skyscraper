@@ -5,7 +5,6 @@ import (
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/pkg/errors"
 )
 
 type paginationParams struct {
@@ -13,7 +12,12 @@ type paginationParams struct {
 	Limit  int32
 }
 
-func paginate(r *http.Request) (paginationParams, error) {
+var defaultPaginationParams = paginationParams{
+	Offset: 0,
+	Limit:  10,
+}
+
+func paginate(r *http.Request) paginationParams {
 	startIndex := chi.URLParam(r, "startIndex")
 	count := chi.URLParam(r, "count")
 
@@ -26,7 +30,7 @@ func paginate(r *http.Request) (paginationParams, error) {
 	} else {
 		limit, err = strconv.ParseInt(count, 10, 32)
 		if err != nil {
-			return paginationParams{}, errors.New("invalid count")
+			return defaultPaginationParams
 		}
 	}
 
@@ -35,7 +39,7 @@ func paginate(r *http.Request) (paginationParams, error) {
 	} else {
 		offset, err = strconv.ParseInt(startIndex, 10, 32)
 		if err != nil {
-			return paginationParams{}, errors.New("invalid startIndex")
+			return defaultPaginationParams
 		}
 	}
 
@@ -44,5 +48,5 @@ func paginate(r *http.Request) (paginationParams, error) {
 		Limit:  int32(limit),
 	}
 
-	return params, nil
+	return params
 }
