@@ -85,7 +85,11 @@ func V2ListUsers(app *application.App) func(w http.ResponseWriter, r *http.Reque
 
 func V2GetUser(app *application.App) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		user := r.Context().Value(middleware.User).(db.User)
+		user, ok := r.Context().Value(middleware.User).(db.User)
+		if !ok {
+			_ = render.Render(w, r, responses.ErrInternalServerError)
+			return
+		}
 
 		RenderScimJSON(w, r, http.StatusOK, responses.NewScimUserResponse(app.Config, user))
 	}
@@ -137,7 +141,11 @@ func V2CreateUser(app *application.App) func(w http.ResponseWriter, r *http.Requ
 func V2DeleteUser(app *application.App) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
-		user := r.Context().Value(middleware.User).(db.User)
+		user, ok := r.Context().Value(middleware.User).(db.User)
+		if !ok {
+			_ = render.Render(w, r, responses.ErrInternalServerError)
+			return
+		}
 
 		err := app.DB.DeleteUser(r.Context(), user.ID)
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -154,7 +162,11 @@ func V2DeleteUser(app *application.App) func(w http.ResponseWriter, r *http.Requ
 
 func V2UpdateUser(app *application.App) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		user := r.Context().Value(middleware.User).(db.User)
+		user, ok := r.Context().Value(middleware.User).(db.User)
+		if !ok {
+			_ = render.Render(w, r, responses.ErrInternalServerError)
+			return
+		}
 
 		payload, err := payloads.UserPayloadFromJSON(r.Body)
 		if err != nil {
@@ -197,7 +209,11 @@ func V2UpdateUser(app *application.App) func(w http.ResponseWriter, r *http.Requ
 
 func V2PatchUser(app *application.App) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		user := r.Context().Value(middleware.User).(db.User)
+		user, ok := r.Context().Value(middleware.User).(db.User)
+		if !ok {
+			_ = render.Render(w, r, responses.ErrInternalServerError)
+			return
+		}
 
 		payload, err := payloads.UserPatchPayloadFromJSON(r.Body)
 		if err != nil {

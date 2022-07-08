@@ -3,6 +3,6 @@ package middleware
 type key int
 
 const (
-	UserEmail key = iota
+	User key = iota
 	CloudAccount
 )

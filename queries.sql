@@ -126,7 +126,7 @@ select count(*)
 from users;
 
 --------------------------------------------------------------------------------------------------------------------
--- Users
+-- Groups
 --------------------------------------------------------------------------------------------------------------------
 
 -- name: GetGroups :many
@@ -161,14 +161,21 @@ set display_name = $2,
 where id = $1;
 
 --------------------------------------------------------------------------------------------------------------------
--- User Membership
+-- Membership
 --------------------------------------------------------------------------------------------------------------------
 
 -- name: GetGroupMembership :many
-select group_members.*, users.display_name as display_name
+select group_members.*, users.username as username
 from group_members
          left join users on users.id = group_members.user_id
 where group_members.group_id = $1;
+
+-- name: GetGroupMembershipForUser :one
+select group_members.*, users.username as username
+from group_members
+         left join users on users.id = group_members.user_id
+where group_members.group_id = $1 and group_members.user_id = $2;
+
 
 -- name: DropMembershipForGroup :exec
 delete from group_members
@@ -183,3 +190,47 @@ where user_id = $1
 insert into group_members (user_id, group_id, created_at, updated_at)
 values ($1, $2, now(), now())
 on conflict (user_id, group_id) do update set updated_at = now();;
+
+--------------------------------------------------------------------------------------------------------------------
+-- SCIM API Key
+--------------------------------------------------------------------------------------------------------------------
+
+-- name: InsertAPIKey :one
+insert into scim_api_keys (token, created_at, updated_at)
+values ($1, now(), now())
+returning *;
+
+-- name: FindAPIKey :one
+select *
+from scim_api_keys
+where token = $1;
+
+--------------------------------------------------------------------------------------------------------------------
+-- Policies
+--
+-- 6ba7b812-9dad-11d1-80b4-00c04fd430c8 is NameSpace_OID as specified in rfc4122 (https://tools.ietf.org/html/rfc4122)
+-- we use uuid v5 so we can calculate the id from a collection of values
+--------------------------------------------------------------------------------------------------------------------
+
+-- name: GetPolicies :many
+select *
+from policies
+order by id;
+
+-- name: AddPolicy :exec
+insert into policies (id, ptype, v0, v1, v2, v3, v4, v5)
+values ( uuid_generate_v5('6ba7b812-9dad-11d1-80b4-00c04fd430c8', concat(sqlc.arg(ptype)::text, sqlc.arg(v0)::text, sqlc.arg(v1)::text, sqlc.arg(v2)::text, sqlc.arg(v3)::text, sqlc.arg(v4)::text, sqlc.arg(v5)::text)), sqlc.arg(ptype)::text, sqlc.arg(v0)::text, sqlc.arg(v1)::text, sqlc.arg(v2)::text, sqlc.arg(v3)::text, sqlc.arg(v4)::text, sqlc.arg(v5)::text)
+on conflict do nothing;
+
+-- name: RemovePolicy :exec
+delete from policies
+where id = uuid_generate_v5('6ba7b812-9dad-11d1-80b4-00c04fd430c8', concat(sqlc.arg(ptype), sqlc.arg(v0), sqlc.arg(v1), sqlc.arg(v2), sqlc.arg(v3), sqlc.arg(v4), sqlc.arg(v5)));
+
+-- name: RemovePoliciesForGroup :exec
+delete from policies
+    where ptype = 'g'
+and v1 = $1;
+
+
+-- name: TruncatePolicies :exec
+truncate policies;

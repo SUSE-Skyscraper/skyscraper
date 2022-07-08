@@ -21,7 +21,14 @@ func NewCmd(app *application.App) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			r := chi.NewRouter()
 
-			oktaAuthorizer := apimiddleware.OktaAuthorizationHandler(app.Config)
+			err := app.StartEnforcer()
+			if err != nil {
+				return err
+			}
+
+			enforcerHandler := apimiddleware.EnforcerHandler(app)
+			oktaAuthorizer := apimiddleware.OktaAuthorizationHandler(app)
+			scimAuthorizer := scimmiddleware.BearerAuthorizationHandler(app)
 			cloudAccountCtx := apimiddleware.CloudAccountCtx(app)
 			scimUserCtx := scimmiddleware.UserCtx(app)
 			scimGroupCtc := scimmiddleware.GroupCtx(app)
@@ -43,6 +50,7 @@ func NewCmd(app *application.App) *cobra.Command {
 				if app.Config.Okta.Enabled {
 					r.Use(oktaAuthorizer)
 				}
+				r.Use(enforcerHandler)
 				r.Route("/api/v1", func(r chi.Router) {
 					r.Get("/profile", server.V1Profile)
 
@@ -62,6 +70,7 @@ func NewCmd(app *application.App) *cobra.Command {
 			})
 
 			r.Group(func(r chi.Router) {
+				r.Use(scimAuthorizer)
 				r.Route("/scim/v2", func(r chi.Router) {
 					r.Get("/Users", scim.V2ListUsers(app))
 					r.Post("/Users", scim.V2CreateUser(app))
@@ -92,7 +101,7 @@ func NewCmd(app *application.App) *cobra.Command {
 				})
 			})
 
-			err := http.ListenAndServe(":8080", r)
+			err = http.ListenAndServe(":8080", r)
 			if err != nil {
 				return err
 			}

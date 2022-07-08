@@ -8,16 +8,20 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/suse-skyscraper/skyscraper/internal/db"
 	"github.com/suse-skyscraper/skyscraper/internal/helpers"
 	"github.com/suse-skyscraper/skyscraper/internal/server/middleware"
 )
 
 func TestV1Profile(t *testing.T) {
-	expectedEmail := "foo@bar.com"
+	expectedUsername := "foo@bar.com"
+	user := db.User{
+		Username: expectedUsername,
+	}
 	req, _ := http.NewRequest("GET", "/api/v1/profile", nil)
 	req.Header.Set("Content-Type", "application/json")
 	ctx := req.Context()
-	ctx = context.WithValue(ctx, middleware.UserEmail, "foo@bar.com")
+	ctx = context.WithValue(ctx, middleware.User, user)
 	req = req.WithContext(ctx)
 
 	w := httptest.NewRecorder()
@@ -27,7 +31,7 @@ func TestV1Profile(t *testing.T) {
 	var userProfile userProfile
 	err := json.Unmarshal(body, &userProfile)
 	assert.Nil(t, err)
-	assert.Equal(t, expectedEmail, userProfile.Email)
+	assert.Equal(t, user.Username, userProfile.Email)
 }
 
 func TestV1ProfileNoContext(t *testing.T) {

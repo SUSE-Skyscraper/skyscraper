@@ -6,12 +6,14 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/go-chi/render"
 	jwtverifier "github.com/okta/okta-jwt-verifier-golang"
 	"github.com/suse-skyscraper/skyscraper/internal/application"
+	"github.com/suse-skyscraper/skyscraper/internal/server/responses"
 )
 
-func OktaAuthorizationHandler(conf application.Config) func(next http.Handler) http.Handler {
-	jwtVerifier := NewJwtVerifier(conf.Okta.Issuer, conf.Okta.ClientID)
+func OktaAuthorizationHandler(app *application.App) func(next http.Handler) http.Handler {
+	jwtVerifier := NewJwtVerifier(app.Config.Okta.Issuer, app.Config.Okta.ClientID)
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			authHeader := strings.Split(r.Header.Get("Authorization"), "Bearer ")
@@ -29,8 +31,15 @@ func OktaAuthorizationHandler(conf application.Config) func(next http.Handler) h
 				return
 			}
 
-			userEmail := claims.Claims["sub"]
-			ctx := context.WithValue(r.Context(), UserEmail, userEmail)
+			username := claims.Claims["sub"].(string)
+
+			user, err := app.DB.FindByUsername(r.Context(), username)
+			if err != nil {
+				_ = render.Render(w, r, responses.ErrInternalServerError)
+				return
+			}
+			ctx := context.WithValue(r.Context(), User, user)
+
 			r = r.WithContext(ctx)
 
 			next.ServeHTTP(w, r)

@@ -37,6 +37,57 @@ type TestDB struct {
 	mock.Mock
 }
 
+func (t *TestDB) AddPolicy(ctx context.Context, arg db.AddPolicyParams) error {
+	args := t.Called(ctx, arg)
+
+	return args.Error(0)
+}
+
+func (t *TestDB) FindAPIKey(ctx context.Context, token string) (db.ScimApiKey, error) {
+	args := t.Called(ctx, token)
+
+	return args.Get(0).(db.ScimApiKey), args.Error(1)
+}
+
+func (t *TestDB) GetGroupMembershipForUser(
+	ctx context.Context,
+	arg db.GetGroupMembershipForUserParams,
+) (db.GetGroupMembershipForUserRow, error) {
+	args := t.Called(ctx, arg)
+
+	return args.Get(0).(db.GetGroupMembershipForUserRow), args.Error(1)
+}
+
+func (t *TestDB) GetPolicies(ctx context.Context) ([]db.Policy, error) {
+	args := t.Called(ctx)
+
+	return args.Get(0).([]db.Policy), args.Error(1)
+}
+
+func (t *TestDB) InsertAPIKey(ctx context.Context, token string) (db.ScimApiKey, error) {
+	args := t.Called(ctx, token)
+
+	return args.Get(0).(db.ScimApiKey), args.Error(1)
+}
+
+func (t *TestDB) RemovePoliciesForGroup(ctx context.Context, v1 string) error {
+	args := t.Called(ctx, v1)
+
+	return args.Error(0)
+}
+
+func (t *TestDB) RemovePolicy(ctx context.Context, arg db.RemovePolicyParams) error {
+	args := t.Called(ctx, arg)
+
+	return args.Error(0)
+}
+
+func (t *TestDB) TruncatePolicies(ctx context.Context) error {
+	args := t.Called(ctx)
+
+	return args.Error(0)
+}
+
 func (t *TestDB) DeleteGroup(ctx context.Context, id uuid.UUID) error {
 	args := t.Called(ctx, id)
 

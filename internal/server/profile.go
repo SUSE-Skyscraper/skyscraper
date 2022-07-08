@@ -4,7 +4,10 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/go-chi/render"
+	"github.com/suse-skyscraper/skyscraper/internal/db"
 	"github.com/suse-skyscraper/skyscraper/internal/server/middleware"
+	"github.com/suse-skyscraper/skyscraper/internal/server/responses"
 )
 
 type userProfile struct {
@@ -12,16 +15,14 @@ type userProfile struct {
 }
 
 func V1Profile(w http.ResponseWriter, r *http.Request) {
-	email := r.Context().Value(middleware.UserEmail)
-
-	// This should only happen if we didn't enable an authorizer such as Okta
-	if email == nil {
-		http.Error(w, "user not found", http.StatusInternalServerError)
+	user, ok := r.Context().Value(middleware.User).(db.User)
+	if !ok {
+		_ = render.Render(w, r, responses.ErrInternalServerError)
 		return
 	}
 
 	profile := userProfile{
-		Email: email.(string),
+		Email: user.Username,
 	}
 	profileJSON, err := json.Marshal(&profile)
 	if err != nil {

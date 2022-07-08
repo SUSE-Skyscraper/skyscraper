@@ -11,6 +11,7 @@ import (
 )
 
 type Querier interface {
+	AddPolicy(ctx context.Context, arg AddPolicyParams) error
 	//------------------------------------------------------------------------------------------------------------------
 	// Cloud Tenants
 	//------------------------------------------------------------------------------------------------------------------
@@ -26,6 +27,7 @@ type Querier interface {
 	DeleteUser(ctx context.Context, id uuid.UUID) error
 	DropMembershipForGroup(ctx context.Context, groupID uuid.UUID) error
 	DropMembershipForUserAndGroup(ctx context.Context, arg DropMembershipForUserAndGroupParams) error
+	FindAPIKey(ctx context.Context, token string) (ScimApiKey, error)
 	FindByUsername(ctx context.Context, username string) (User, error)
 	GetCloudAccount(ctx context.Context, arg GetCloudAccountParams) (CloudAccount, error)
 	GetCloudAllAccounts(ctx context.Context) ([]CloudAccount, error)
@@ -36,21 +38,36 @@ type Querier interface {
 	GetGroup(ctx context.Context, id uuid.UUID) (Group, error)
 	GetGroupCount(ctx context.Context) (int64, error)
 	//------------------------------------------------------------------------------------------------------------------
-	// User Membership
+	// Membership
 	//------------------------------------------------------------------------------------------------------------------
 	GetGroupMembership(ctx context.Context, groupID uuid.UUID) ([]GetGroupMembershipRow, error)
+	GetGroupMembershipForUser(ctx context.Context, arg GetGroupMembershipForUserParams) (GetGroupMembershipForUserRow, error)
 	//------------------------------------------------------------------------------------------------------------------
-	// Users
+	// Groups
 	//------------------------------------------------------------------------------------------------------------------
 	GetGroups(ctx context.Context, arg GetGroupsParams) ([]Group, error)
+	//------------------------------------------------------------------------------------------------------------------
+	// Policies
+	//
+	// 6ba7b812-9dad-11d1-80b4-00c04fd430c8 is NameSpace_OID as specified in rfc4122 (https://tools.ietf.org/html/rfc4122)
+	// we use uuid v5 so we can calculate the id from a collection of values
+	//------------------------------------------------------------------------------------------------------------------
+	GetPolicies(ctx context.Context) ([]Policy, error)
 	GetUser(ctx context.Context, id uuid.UUID) (User, error)
 	GetUserCount(ctx context.Context) (int64, error)
 	//------------------------------------------------------------------------------------------------------------------
 	// Users
 	//------------------------------------------------------------------------------------------------------------------
 	GetUsers(ctx context.Context, arg GetUsersParams) ([]User, error)
+	//------------------------------------------------------------------------------------------------------------------
+	// SCIM API Key
+	//------------------------------------------------------------------------------------------------------------------
+	InsertAPIKey(ctx context.Context, token string) (ScimApiKey, error)
 	PatchGroupDisplayName(ctx context.Context, arg PatchGroupDisplayNameParams) error
 	PatchUser(ctx context.Context, arg PatchUserParams) error
+	RemovePoliciesForGroup(ctx context.Context, v1 string) error
+	RemovePolicy(ctx context.Context, arg RemovePolicyParams) error
+	TruncatePolicies(ctx context.Context) error
 	UpdateCloudAccount(ctx context.Context, arg UpdateCloudAccountParams) error
 	UpdateCloudAccountTagsDriftDetected(ctx context.Context, arg UpdateCloudAccountTagsDriftDetectedParams) error
 	UpdateUser(ctx context.Context, arg UpdateUserParams) error

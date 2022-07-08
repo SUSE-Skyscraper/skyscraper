@@ -42,7 +42,7 @@ func NewScimGroupResponse(
 	for _, member := range members {
 		memberships = append(memberships, map[string]string{
 			"value":   member.UserID.String(),
-			"display": member.DisplayName.String,
+			"display": member.Username.String,
 		})
 	}
 	return newScimGroupResponse(config, group, memberships, true)

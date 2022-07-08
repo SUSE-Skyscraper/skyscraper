@@ -14,6 +14,35 @@ import (
 	"github.com/jackc/pgtype"
 )
 
+const addPolicy = `-- name: AddPolicy :exec
+insert into policies (id, ptype, v0, v1, v2, v3, v4, v5)
+values ( uuid_generate_v5('6ba7b812-9dad-11d1-80b4-00c04fd430c8', concat($1::text, $2::text, $3::text, $4::text, $5::text, $6::text, $7::text)), $1::text, $2::text, $3::text, $4::text, $5::text, $6::text, $7::text)
+on conflict do nothing
+`
+
+type AddPolicyParams struct {
+	Ptype string
+	V0    string
+	V1    string
+	V2    string
+	V3    string
+	V4    string
+	V5    string
+}
+
+func (q *Queries) AddPolicy(ctx context.Context, arg AddPolicyParams) error {
+	_, err := q.db.Exec(ctx, addPolicy,
+		arg.Ptype,
+		arg.V0,
+		arg.V1,
+		arg.V2,
+		arg.V3,
+		arg.V4,
+		arg.V5,
+	)
+	return err
+}
+
 const createCloudTenant = `-- name: CreateCloudTenant :exec
 
 insert into cloud_tenants (cloud, tenant_id, name)
@@ -206,6 +235,24 @@ type DropMembershipForUserAndGroupParams struct {
 func (q *Queries) DropMembershipForUserAndGroup(ctx context.Context, arg DropMembershipForUserAndGroupParams) error {
 	_, err := q.db.Exec(ctx, dropMembershipForUserAndGroup, arg.UserID, arg.GroupID)
 	return err
+}
+
+const findAPIKey = `-- name: FindAPIKey :one
+select id, token, created_at, updated_at
+from scim_api_keys
+where token = $1
+`
+
+func (q *Queries) FindAPIKey(ctx context.Context, token string) (ScimApiKey, error) {
+	row := q.db.QueryRow(ctx, findAPIKey, token)
+	var i ScimApiKey
+	err := row.Scan(
+		&i.ID,
+		&i.Token,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }
 
 const findByUsername = `-- name: FindByUsername :one
@@ -474,23 +521,23 @@ func (q *Queries) GetGroupCount(ctx context.Context) (int64, error) {
 
 const getGroupMembership = `-- name: GetGroupMembership :many
 
-select group_members.id, group_members.group_id, group_members.user_id, group_members.created_at, group_members.updated_at, users.display_name as display_name
+select group_members.id, group_members.group_id, group_members.user_id, group_members.created_at, group_members.updated_at, users.username as username
 from group_members
          left join users on users.id = group_members.user_id
 where group_members.group_id = $1
 `
 
 type GetGroupMembershipRow struct {
-	ID          int32
-	GroupID     uuid.UUID
-	UserID      uuid.UUID
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
-	DisplayName sql.NullString
+	ID        int32
+	GroupID   uuid.UUID
+	UserID    uuid.UUID
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	Username  sql.NullString
 }
 
 //------------------------------------------------------------------------------------------------------------------
-// User Membership
+// Membership
 //------------------------------------------------------------------------------------------------------------------
 func (q *Queries) GetGroupMembership(ctx context.Context, groupID uuid.UUID) ([]GetGroupMembershipRow, error) {
 	rows, err := q.db.Query(ctx, getGroupMembership, groupID)
@@ -507,7 +554,7 @@ func (q *Queries) GetGroupMembership(ctx context.Context, groupID uuid.UUID) ([]
 			&i.UserID,
 			&i.CreatedAt,
 			&i.UpdatedAt,
-			&i.DisplayName,
+			&i.Username,
 		); err != nil {
 			return nil, err
 		}
@@ -517,6 +564,41 @@ func (q *Queries) GetGroupMembership(ctx context.Context, groupID uuid.UUID) ([]
 		return nil, err
 	}
 	return items, nil
+}
+
+const getGroupMembershipForUser = `-- name: GetGroupMembershipForUser :one
+select group_members.id, group_members.group_id, group_members.user_id, group_members.created_at, group_members.updated_at, users.username as username
+from group_members
+         left join users on users.id = group_members.user_id
+where group_members.group_id = $1 and group_members.user_id = $2
+`
+
+type GetGroupMembershipForUserParams struct {
+	GroupID uuid.UUID
+	UserID  uuid.UUID
+}
+
+type GetGroupMembershipForUserRow struct {
+	ID        int32
+	GroupID   uuid.UUID
+	UserID    uuid.UUID
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	Username  sql.NullString
+}
+
+func (q *Queries) GetGroupMembershipForUser(ctx context.Context, arg GetGroupMembershipForUserParams) (GetGroupMembershipForUserRow, error) {
+	row := q.db.QueryRow(ctx, getGroupMembershipForUser, arg.GroupID, arg.UserID)
+	var i GetGroupMembershipForUserRow
+	err := row.Scan(
+		&i.ID,
+		&i.GroupID,
+		&i.UserID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Username,
+	)
+	return i, err
 }
 
 const getGroups = `-- name: GetGroups :many
@@ -533,7 +615,7 @@ type GetGroupsParams struct {
 }
 
 //------------------------------------------------------------------------------------------------------------------
-// Users
+// Groups
 //------------------------------------------------------------------------------------------------------------------
 func (q *Queries) GetGroups(ctx context.Context, arg GetGroupsParams) ([]Group, error) {
 	rows, err := q.db.Query(ctx, getGroups, arg.Limit, arg.Offset)
@@ -549,6 +631,48 @@ func (q *Queries) GetGroups(ctx context.Context, arg GetGroupsParams) ([]Group, 
 			&i.DisplayName,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getPolicies = `-- name: GetPolicies :many
+
+select id, ptype, v0, v1, v2, v3, v4, v5
+from policies
+order by id
+`
+
+//------------------------------------------------------------------------------------------------------------------
+// Policies
+//
+// 6ba7b812-9dad-11d1-80b4-00c04fd430c8 is NameSpace_OID as specified in rfc4122 (https://tools.ietf.org/html/rfc4122)
+// we use uuid v5 so we can calculate the id from a collection of values
+//------------------------------------------------------------------------------------------------------------------
+func (q *Queries) GetPolicies(ctx context.Context) ([]Policy, error) {
+	rows, err := q.db.Query(ctx, getPolicies)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Policy
+	for rows.Next() {
+		var i Policy
+		if err := rows.Scan(
+			&i.ID,
+			&i.Ptype,
+			&i.V0,
+			&i.V1,
+			&i.V2,
+			&i.V3,
+			&i.V4,
+			&i.V5,
 		); err != nil {
 			return nil, err
 		}
@@ -643,6 +767,28 @@ func (q *Queries) GetUsers(ctx context.Context, arg GetUsersParams) ([]User, err
 	return items, nil
 }
 
+const insertAPIKey = `-- name: InsertAPIKey :one
+
+insert into scim_api_keys (token, created_at, updated_at)
+values ($1, now(), now())
+returning id, token, created_at, updated_at
+`
+
+//------------------------------------------------------------------------------------------------------------------
+// SCIM API Key
+//------------------------------------------------------------------------------------------------------------------
+func (q *Queries) InsertAPIKey(ctx context.Context, token string) (ScimApiKey, error) {
+	row := q.db.QueryRow(ctx, insertAPIKey, token)
+	var i ScimApiKey
+	err := row.Scan(
+		&i.ID,
+		&i.Token,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const patchGroupDisplayName = `-- name: PatchGroupDisplayName :exec
 update groups
 set display_name = $2,
@@ -674,6 +820,54 @@ type PatchUserParams struct {
 
 func (q *Queries) PatchUser(ctx context.Context, arg PatchUserParams) error {
 	_, err := q.db.Exec(ctx, patchUser, arg.ID, arg.Active)
+	return err
+}
+
+const removePoliciesForGroup = `-- name: RemovePoliciesForGroup :exec
+delete from policies
+    where ptype = 'g'
+and v1 = $1
+`
+
+func (q *Queries) RemovePoliciesForGroup(ctx context.Context, v1 string) error {
+	_, err := q.db.Exec(ctx, removePoliciesForGroup, v1)
+	return err
+}
+
+const removePolicy = `-- name: RemovePolicy :exec
+delete from policies
+where id = uuid_generate_v5('6ba7b812-9dad-11d1-80b4-00c04fd430c8', concat($1, $2, $3, $4, $5, $6, $7))
+`
+
+type RemovePolicyParams struct {
+	Ptype interface{}
+	V0    interface{}
+	V1    interface{}
+	V2    interface{}
+	V3    interface{}
+	V4    interface{}
+	V5    interface{}
+}
+
+func (q *Queries) RemovePolicy(ctx context.Context, arg RemovePolicyParams) error {
+	_, err := q.db.Exec(ctx, removePolicy,
+		arg.Ptype,
+		arg.V0,
+		arg.V1,
+		arg.V2,
+		arg.V3,
+		arg.V4,
+		arg.V5,
+	)
+	return err
+}
+
+const truncatePolicies = `-- name: TruncatePolicies :exec
+truncate policies
+`
+
+func (q *Queries) TruncatePolicies(ctx context.Context) error {
+	_, err := q.db.Exec(ctx, truncatePolicies)
 	return err
 }
 

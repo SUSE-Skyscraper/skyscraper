@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v4"
 	"github.com/suse-skyscraper/skyscraper/internal/application"
 	"github.com/suse-skyscraper/skyscraper/internal/db"
@@ -22,13 +23,13 @@ func NewGroupPatcher(ctx context.Context, app *application.App) *GroupPatcher {
 	}
 }
 
-func (p *GroupPatcher) patchAdd(group db.Group, op *payloads.GroupPatchOperation) error {
+func (p *GroupPatcher) patchAdd(q *db.Queries, group db.Group, op *payloads.GroupPatchOperation) error {
 	newMembers, err := op.GetAddMembersPatch()
 	if err != nil {
 		return errors.New("failed to get add members patch")
 	}
 
-	err = p.addMembers(group, newMembers)
+	err = p.addMembers(q, group, newMembers)
 	if err != nil {
 		return errors.New("failed to add members")
 	}
@@ -36,24 +37,16 @@ func (p *GroupPatcher) patchAdd(group db.Group, op *payloads.GroupPatchOperation
 	return nil
 }
 
-func (p *GroupPatcher) patchRemove(group db.Group, op *payloads.GroupPatchOperation) error {
+func (p *GroupPatcher) patchRemove(q *db.Queries, group db.Group, op *payloads.GroupPatchOperation) error {
 	id, err := op.ParseIDFromPath()
 	if err != nil {
 		return errors.New("failed to parse id from path")
 	}
 
-	err = p.app.DB.DropMembershipForUserAndGroup(p.ctx, db.DropMembershipForUserAndGroupParams{
-		UserID:  id,
-		GroupID: group.ID,
-	})
-	if err != nil && !errors.Is(pgx.ErrNoRows, err) {
-		return errors.New("failed to drop membership")
-	}
-
-	return nil
+	return removeUserFromGroup(p.ctx, q, id, group.ID)
 }
 
-func (p *GroupPatcher) patchReplace(group db.Group, op *payloads.GroupPatchOperation) error {
+func (p *GroupPatcher) patchReplace(q *db.Queries, group db.Group, op *payloads.GroupPatchOperation) error {
 	switch op.Path {
 	case "members":
 		newMembers, err := op.GetAddMembersPatch()
@@ -61,7 +54,7 @@ func (p *GroupPatcher) patchReplace(group db.Group, op *payloads.GroupPatchOpera
 			return errors.New("failed to get add members patch")
 		}
 
-		err = p.replaceMembers(group, newMembers)
+		err = p.replaceMembers(q, group, newMembers)
 		if err != nil {
 			return errors.New("failed to replace members")
 		}
@@ -71,7 +64,7 @@ func (p *GroupPatcher) patchReplace(group db.Group, op *payloads.GroupPatchOpera
 			return errors.New("failed to get patch")
 		}
 
-		err = p.app.DB.PatchGroupDisplayName(p.ctx, db.PatchGroupDisplayNameParams{
+		err = q.PatchGroupDisplayName(p.ctx, db.PatchGroupDisplayNameParams{
 			ID:          group.ID,
 			DisplayName: patch.DisplayName,
 		})
@@ -84,80 +77,130 @@ func (p *GroupPatcher) patchReplace(group db.Group, op *payloads.GroupPatchOpera
 }
 
 func (p *GroupPatcher) Patch(group db.Group, payload *payloads.GroupPatchPayload) error {
+	tx, err := p.app.PostgresPool.Begin(p.ctx)
+	if err != nil {
+		return errors.New("failed to begin transaction")
+	}
+	defer func(tx pgx.Tx, ctx context.Context) {
+		_ = tx.Rollback(ctx)
+	}(tx, p.ctx)
+
+	q := db.New(tx)
+
 	for _, op := range payload.Operations {
 		switch op.Op {
 		case "add":
-			return p.patchAdd(group, op)
+			err = p.patchAdd(q, group, op)
+			if err != nil {
+				return err
+			}
 		case "remove":
-			return p.patchRemove(group, op)
+			err = p.patchRemove(q, group, op)
+			if err != nil {
+				return err
+			}
 		case "replace":
-			return p.patchReplace(group, op)
+			err = p.patchReplace(q, group, op)
+			if err != nil {
+				return err
+			}
 		default:
 			return errors.New("unknown operation")
 		}
 	}
 
-	return nil
+	return tx.Commit(p.ctx)
 }
 
-func (p *GroupPatcher) replaceMembers(group db.Group, members []payloads.MemberPatch) error {
-	tx, err := p.app.PostgresPool.Begin(p.ctx)
-	if err != nil {
-		return errors.New("failed to begin transaction")
-	}
-	defer func(tx pgx.Tx, ctx context.Context) {
-		_ = tx.Rollback(ctx)
-	}(tx, p.ctx)
-
-	q := db.New(tx)
-
-	err = q.DropMembershipForGroup(p.ctx, group.ID)
+func (p *GroupPatcher) replaceMembers(q *db.Queries, group db.Group, members []payloads.MemberPatch) error {
+	err := q.DropMembershipForGroup(p.ctx, group.ID)
 	if err != nil {
 		return errors.New("failed to drop membership")
 	}
 
+	err = q.RemovePoliciesForGroup(p.ctx, group.ID.String())
+	if err != nil {
+		return errors.New("failed to drop membership permissions")
+	}
+
 	for _, member := range members {
-		err = q.CreateMembershipForUserAndGroup(p.ctx, db.CreateMembershipForUserAndGroupParams{
-			UserID:  member.Value,
-			GroupID: group.ID,
-		})
+		err = addUserToGroup(p.ctx, q, member.Value, group.ID)
 		if err != nil {
 			return errors.New("failed to add membership")
 		}
-	}
-
-	err = tx.Commit(p.ctx)
-	if err != nil {
-		return errors.New("failed to commit transaction")
 	}
 
 	return nil
 }
 
-func (p *GroupPatcher) addMembers(group db.Group, members []payloads.MemberPatch) error {
-	tx, err := p.app.PostgresPool.Begin(p.ctx)
-	if err != nil {
-		return errors.New("failed to begin transaction")
-	}
-	defer func(tx pgx.Tx, ctx context.Context) {
-		_ = tx.Rollback(ctx)
-	}(tx, p.ctx)
-
-	q := db.New(tx)
-
+func (p *GroupPatcher) addMembers(q *db.Queries, group db.Group, members []payloads.MemberPatch) error {
 	for _, member := range members {
-		err = q.CreateMembershipForUserAndGroup(p.ctx, db.CreateMembershipForUserAndGroupParams{
-			UserID:  member.Value,
-			GroupID: group.ID,
-		})
+		err := addUserToGroup(p.ctx, q, member.Value, group.ID)
 		if err != nil {
 			return errors.New("failed to add membership")
 		}
 	}
 
-	err = tx.Commit(p.ctx)
+	return nil
+}
+
+func addUserToGroup(ctx context.Context, q *db.Queries, userID, groupID uuid.UUID) error {
+	err := q.CreateMembershipForUserAndGroup(ctx, db.CreateMembershipForUserAndGroupParams{
+		UserID:  userID,
+		GroupID: groupID,
+	})
 	if err != nil {
-		return errors.New("failed to commit transaction")
+		return err
+	}
+
+	membership, err := q.GetGroupMembershipForUser(ctx, db.GetGroupMembershipForUserParams{
+		UserID:  userID,
+		GroupID: groupID,
+	})
+	if err != nil {
+		return err
+	} else if !membership.Username.Valid {
+		return errors.New("internal error")
+	}
+
+	err = q.AddPolicy(ctx, db.AddPolicyParams{
+		Ptype: "g",
+		V0:    membership.Username.String,
+		V1:    groupID.String(),
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func removeUserFromGroup(ctx context.Context, q *db.Queries, userID, groupID uuid.UUID) error {
+	membership, err := q.GetGroupMembershipForUser(ctx, db.GetGroupMembershipForUserParams{
+		UserID:  userID,
+		GroupID: groupID,
+	})
+	if err != nil {
+		return err
+	} else if !membership.Username.Valid {
+		return errors.New("internal error")
+	}
+
+	err = q.DropMembershipForUserAndGroup(ctx, db.DropMembershipForUserAndGroupParams{
+		UserID:  userID,
+		GroupID: groupID,
+	})
+	if err != nil && !errors.Is(pgx.ErrNoRows, err) {
+		return errors.New("failed to drop membership")
+	}
+
+	err = q.RemovePolicy(ctx, db.RemovePolicyParams{
+		Ptype: "g",
+		V0:    membership.Username.String,
+		V1:    groupID.String(),
+	})
+	if err != nil {
+		return err
 	}
 
 	return nil

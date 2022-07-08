@@ -47,7 +47,11 @@ func V2ListGroups(app *application.App) func(w http.ResponseWriter, r *http.Requ
 
 func V2GetGroup(app *application.App) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		group := r.Context().Value(middleware.Group).(db.Group)
+		group, ok := r.Context().Value(middleware.Group).(db.Group)
+		if !ok {
+			_ = render.Render(w, r, responses.ErrInternalServerError)
+			return
+		}
 
 		members, err := app.DB.GetGroupMembership(r.Context(), group.ID)
 		if err != nil {
@@ -80,6 +84,12 @@ func V2CreateGroup(app *application.App) func(w http.ResponseWriter, r *http.Req
 
 func V2PatchGroup(app *application.App) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
+		group, ok := r.Context().Value(middleware.Group).(db.Group)
+		if !ok {
+			_ = render.Render(w, r, responses.ErrInternalServerError)
+			return
+		}
+
 		payload, err := payloads.GroupPatchPayloadFromJSON(r.Body)
 		if err != nil {
 			_ = render.Render(w, r, responses.ErrBadValue(err))
@@ -87,7 +97,6 @@ func V2PatchGroup(app *application.App) func(w http.ResponseWriter, r *http.Requ
 		}
 
 		groupPatcher := patcher.NewGroupPatcher(r.Context(), app)
-		group := r.Context().Value(middleware.Group).(db.Group)
 		err = groupPatcher.Patch(group, payload)
 		if err != nil {
 			_ = render.Render(w, r, responses.ErrInternalServerError)
@@ -115,6 +124,12 @@ func V2DeleteGroup(app *application.App) func(w http.ResponseWriter, r *http.Req
 			_ = render.Render(w, r, responses.ErrNotFound(id))
 			return
 		} else if err != nil {
+			_ = render.Render(w, r, responses.ErrInternalServerError)
+			return
+		}
+
+		err = app.DB.RemovePoliciesForGroup(r.Context(), group.ID.String())
+		if err != nil {
 			_ = render.Render(w, r, responses.ErrInternalServerError)
 			return
 		}

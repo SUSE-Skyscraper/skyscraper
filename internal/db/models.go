@@ -49,6 +49,24 @@ type GroupMember struct {
 	UpdatedAt time.Time
 }
 
+type Policy struct {
+	ID    uuid.UUID
+	Ptype string
+	V0    string
+	V1    string
+	V2    sql.NullString
+	V3    sql.NullString
+	V4    sql.NullString
+	V5    sql.NullString
+}
+
+type ScimApiKey struct {
+	ID        uuid.UUID
+	Token     string
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
 type User struct {
 	ID          uuid.UUID
 	Username    string
