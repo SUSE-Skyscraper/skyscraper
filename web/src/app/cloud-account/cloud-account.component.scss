@@ -1,6 +1,10 @@
 @use 'sass:map';
 @use '@angular/material' as mat;
 
+:host {
+  @apply flex-grow;
+}
+
 dl {
   @apply w-full;
   @apply pt-4;
@@ -21,15 +25,21 @@ dl dt {
   order: 2;
 }
 
-.account-display {
+#cloud-account-wrapper {
+  width: 72rem;
+  margin: 0 auto;
+}
+
+#account-display {
   @apply flex-wrap flex;
 }
 
-.account-display .main {
+#account-display main {
   flex: 1;
+  @apply p-4;
 }
 
-.account-display .aside {
-  flex: 1;
+#account-display aside {
+  flex: 0 1 600px;
   @apply p-4 bg-gray-100;
 }

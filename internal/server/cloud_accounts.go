@@ -15,21 +15,21 @@ import (
 
 func V1ListCloudAccounts(app *application.App) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		cloudTenantID := chi.URLParam(r, "tenant_id")
-		cloudProvider := chi.URLParam(r, "cloud")
+		filters := getCloudAccountFilters(r)
 
-		var cloudTenantAccounts, err = app.DB.GetCloudAllAccountsForCloudAndTenant(
-			r.Context(),
-			db.GetCloudAllAccountsForCloudAndTenantParams{
-				Cloud:    cloudProvider,
-				TenantID: cloudTenantID,
-			})
+		for key, value := range r.URL.Query() {
+			filters[key] = value[0]
+		}
+
+		cloudAccounts, err := app.Search.SearchCloudAccounts(r.Context(), db.SearchCloudAccountsInput{
+			Filters: filters,
+		})
 		if err != nil {
 			_ = render.Render(w, r, responses.ErrInternalServerError)
 			return
 		}
 
-		_ = render.RenderList(w, r, responses.NewCloudAccountListResponse(cloudTenantAccounts))
+		_ = render.Render(w, r, responses.NewCloudAccountListResponse(cloudAccounts))
 	}
 }
 
@@ -52,7 +52,7 @@ func V1UpdateCloudTenantAccount(app *application.App) func(w http.ResponseWriter
 			Cloud:       cloudProvider,
 			TenantID:    tenantID,
 			AccountID:   id,
-			TagsDesired: payload.GetJSON(),
+			TagsDesired: payload.Data.GetJSON(),
 		})
 		if err != nil {
 			_ = render.Render(w, r, responses.ErrInternalServerError)
@@ -91,4 +91,23 @@ func V1GetCloudAccount(_ *application.App) func(w http.ResponseWriter, r *http.R
 
 		_ = render.Render(w, r, responses.NewCloudAccountResponse(cloudTenantAccount))
 	}
+}
+
+func getCloudAccountFilters(r *http.Request) map[string]interface{} {
+	cloudTenantID := chi.URLParam(r, "tenant_id")
+	cloudProvider := chi.URLParam(r, "cloud")
+
+	filters := make(map[string]interface{})
+	if cloudTenantID != "" {
+		filters["tenant_id"] = cloudTenantID
+	}
+	if cloudProvider != "" {
+		filters["cloud"] = cloudProvider
+	}
+
+	for key, value := range r.URL.Query() {
+		filters[key] = value[0]
+	}
+
+	return filters
 }

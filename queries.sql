@@ -23,6 +23,13 @@ where cloud = $1
 -- Cloud Account Metadata
 --------------------------------------------------------------------------------------------------------------------
 
+-- name: SearchTag :many
+select *
+from cloud_accounts
+where cloud = $1
+  and tenant_id = $2
+  and tags_current ->> sqlc.arg(tag_key) = sqcl.arg(tag_value);
+
 -- name: CreateOrInsertCloudAccount :one
 insert into cloud_accounts (cloud, tenant_id, account_id, name, tags_current, tags_desired)
 VALUES ($1, $2, $3, $4, $5, $6)
@@ -47,24 +54,6 @@ set tags_desired = $4,
 where cloud = $1
   and tenant_id = $2
   and account_id = $3;
-
--- name: GetCloudAllAccounts :many
-select *
-from cloud_accounts
-order by cloud, tenant_id, account_id;
-
--- name: GetCloudAllAccountsForCloud :many
-select *
-from cloud_accounts
-where cloud = $1
-order by tenant_id, account_id;
-
--- name: GetCloudAllAccountsForCloudAndTenant :many
-select *
-from cloud_accounts
-where cloud = $1
-  and tenant_id = $2
-order by account_id;
 
 -- name: GetCloudAccount :one
 select *
@@ -174,15 +163,18 @@ where group_members.group_id = $1;
 select group_members.*, users.username as username
 from group_members
          left join users on users.id = group_members.user_id
-where group_members.group_id = $1 and group_members.user_id = $2;
+where group_members.group_id = $1
+  and group_members.user_id = $2;
 
 
 -- name: DropMembershipForGroup :exec
-delete from group_members
+delete
+from group_members
 where group_id = $1;
 
 -- name: DropMembershipForUserAndGroup :exec
-delete from group_members
+delete
+from group_members
 where user_id = $1
   and group_id = $2;
 
@@ -219,18 +211,25 @@ order by id;
 
 -- name: AddPolicy :exec
 insert into policies (id, ptype, v0, v1, v2, v3, v4, v5)
-values ( uuid_generate_v5('6ba7b812-9dad-11d1-80b4-00c04fd430c8', concat(sqlc.arg(ptype)::text, sqlc.arg(v0)::text, sqlc.arg(v1)::text, sqlc.arg(v2)::text, sqlc.arg(v3)::text, sqlc.arg(v4)::text, sqlc.arg(v5)::text)), sqlc.arg(ptype)::text, sqlc.arg(v0)::text, sqlc.arg(v1)::text, sqlc.arg(v2)::text, sqlc.arg(v3)::text, sqlc.arg(v4)::text, sqlc.arg(v5)::text)
+values (uuid_generate_v5('6ba7b812-9dad-11d1-80b4-00c04fd430c8',
+                         concat(sqlc.arg(ptype)::text, sqlc.arg(v0)::text, sqlc.arg(v1)::text, sqlc.arg(v2)::text,
+                                sqlc.arg(v3)::text, sqlc.arg(v4)::text, sqlc.arg(v5)::text)), sqlc.arg(ptype)::text,
+        sqlc.arg(v0)::text, sqlc.arg(v1)::text, sqlc.arg(v2)::text, sqlc.arg(v3)::text, sqlc.arg(v4)::text,
+        sqlc.arg(v5)::text)
 on conflict do nothing;
 
 -- name: RemovePolicy :exec
-delete from policies
-where id = uuid_generate_v5('6ba7b812-9dad-11d1-80b4-00c04fd430c8', concat(sqlc.arg(ptype), sqlc.arg(v0), sqlc.arg(v1), sqlc.arg(v2), sqlc.arg(v3), sqlc.arg(v4), sqlc.arg(v5)));
+delete
+from policies
+where id = uuid_generate_v5('6ba7b812-9dad-11d1-80b4-00c04fd430c8',
+                            concat(sqlc.arg(ptype), sqlc.arg(v0), sqlc.arg(v1), sqlc.arg(v2), sqlc.arg(v3),
+                                   sqlc.arg(v4), sqlc.arg(v5)));
 
 -- name: RemovePoliciesForGroup :exec
-delete from policies
-    where ptype = 'g'
-and v1 = $1;
-
+delete
+from policies
+where ptype = 'g'
+  and v1 = $1;
 
 -- name: TruncatePolicies :exec
 truncate policies;

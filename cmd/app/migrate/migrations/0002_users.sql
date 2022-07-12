@@ -1,6 +1,4 @@
 -- +goose Up
-create extension "uuid-ossp";
-
 create table users
 (
     id           uuid                  default uuid_generate_v4() not null primary key,
@@ -59,5 +57,3 @@ drop table scim_api_keys;
 drop table group_members;
 drop table groups;
 drop table users;
-
-drop extension "uuid-ossp";

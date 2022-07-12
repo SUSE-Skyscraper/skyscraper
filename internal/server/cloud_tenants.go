@@ -16,10 +16,15 @@ func V1CloudTenants(app *application.App) func(w http.ResponseWriter, r *http.Re
 			return
 		}
 
-		err = render.RenderList(w, r, responses.NewCloudTenantListResponse(cloudTenants))
-		if err != nil {
-			_ = render.Render(w, r, responses.ErrRender(err))
-			return
-		}
+		_ = render.Render(w, r, responses.NewCloudTenantListResponse(cloudTenants))
+	}
+}
+
+func V1CloudTenantTags(_ *application.App) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		tags := []string{"Owner", "Group", "PoNumber", "CostCenter", "Stakeholder", "Department", "GeneralLedgerCode",
+			"Environment", "FinanceBusinessPartner", "BillingContacts", "AdminContacts", "SlackChannels"}
+
+		_ = render.Render(w, r, responses.NewCloudAccountTagsResponse(tags))
 	}
 }

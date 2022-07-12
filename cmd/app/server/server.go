@@ -56,13 +56,17 @@ func NewCmd(app *application.App) *cobra.Command {
 
 					r.Route("/cloud_tenants", func(r chi.Router) {
 						r.Get("/", server.V1CloudTenants(app))
-						r.Route("/cloud/{cloud}/tenant/{tenant_id}/accounts", func(r chi.Router) {
-							r.Get("/", server.V1ListCloudAccounts(app))
+						r.Route("/cloud/{cloud}/tenant/{tenant_id}", func(r chi.Router) {
+							r.Get("/tags", server.V1CloudTenantTags(app))
 
-							r.Route("/{id}", func(r chi.Router) {
-								r.Use(cloudAccountCtx)
-								r.Get("/", server.V1GetCloudAccount(app))
-								r.Put("/", server.V1UpdateCloudTenantAccount(app))
+							r.Route("/accounts", func(r chi.Router) {
+								r.Get("/", server.V1ListCloudAccounts(app))
+
+								r.Route("/{id}", func(r chi.Router) {
+									r.Use(cloudAccountCtx)
+									r.Get("/", server.V1GetCloudAccount(app))
+									r.Put("/", server.V1UpdateCloudTenantAccount(app))
+								})
 							})
 						})
 					})
@@ -87,17 +91,9 @@ func NewCmd(app *application.App) *cobra.Command {
 					r.Route("/Groups/{id}", func(r chi.Router) {
 						r.Use(scimGroupCtc)
 						r.Get("/", scim.V2GetGroup(app))
-						// r.Put("/", scim.V2UpdateUser(app))
 						r.Patch("/", scim.V2PatchGroup(app))
 						r.Delete("/", scim.V2DeleteGroup(app))
 					})
-					/*
-						r.Get("/ServiceProviderConfig", server.V2GetServiceProviderConfig(app))
-						r.Get("/Schemas", server.V2ListSchemas(app))
-						r.Get("/Schemas/{id}", server.V2GetSchema(app))
-						r.Get("/ResourceTypes", server.V2ListResourceTypes(app))
-						r.Get("/ResourceTypes/{id}", server.V2GetResourceType(app))
-					*/
 				})
 			})
 

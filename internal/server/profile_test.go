@@ -7,15 +7,18 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/suse-skyscraper/skyscraper/internal/db"
 	"github.com/suse-skyscraper/skyscraper/internal/helpers"
 	"github.com/suse-skyscraper/skyscraper/internal/server/middleware"
+	"github.com/suse-skyscraper/skyscraper/internal/server/responses"
 )
 
 func TestV1Profile(t *testing.T) {
 	expectedUsername := "foo@bar.com"
 	user := db.User{
+		ID:       uuid.New(),
 		Username: expectedUsername,
 	}
 	req, _ := http.NewRequest("GET", "/api/v1/profile", nil)
@@ -28,10 +31,10 @@ func TestV1Profile(t *testing.T) {
 	V1Profile(w, req)
 	body := helpers.AssertOpenAPI(t, w, req)
 
-	var userProfile userProfile
-	err := json.Unmarshal(body, &userProfile)
+	var resp responses.UserResponse
+	err := json.Unmarshal(body, &resp)
 	assert.Nil(t, err)
-	assert.Equal(t, user.Username, userProfile.Email)
+	assert.Equal(t, user.Username, resp.Data.Attributes.Username)
 }
 
 func TestV1ProfileNoContext(t *testing.T) {

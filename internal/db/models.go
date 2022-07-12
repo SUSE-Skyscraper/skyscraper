@@ -13,6 +13,7 @@ import (
 )
 
 type CloudAccount struct {
+	ID                uuid.UUID
 	Cloud             string
 	TenantID          string
 	AccountID         string
@@ -26,6 +27,7 @@ type CloudAccount struct {
 }
 
 type CloudTenant struct {
+	ID        uuid.UUID
 	Cloud     string
 	TenantID  string
 	Name      string

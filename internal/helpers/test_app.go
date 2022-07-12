@@ -11,30 +11,53 @@ import (
 )
 
 type TestAppResponse struct {
-	App *application.App
-	DB  *TestDB
-	JS  *TestJS
+	App    *application.App
+	DB     *TestDB
+	JS     *TestJS
+	Search *TestSearch
 }
 
 func NewTestApp() *TestAppResponse {
 	database := new(TestDB)
 	js := new(TestJS)
+	search := new(TestSearch)
 
 	app := &application.App{
 		Config: application.Config{},
 		DB:     database,
 		JS:     js,
+		Search: search,
 	}
 
 	return &TestAppResponse{
-		App: app,
-		DB:  database,
-		JS:  js,
+		App:    app,
+		DB:     database,
+		JS:     js,
+		Search: search,
 	}
+}
+
+type TestSearch struct {
+	mock.Mock
+}
+
+func (t *TestSearch) SearchCloudAccounts(
+	ctx context.Context,
+	input db.SearchCloudAccountsInput,
+) ([]db.CloudAccount, error) {
+	args := t.Called(ctx, input)
+
+	return args.Get(0).([]db.CloudAccount), args.Error(1)
 }
 
 type TestDB struct {
 	mock.Mock
+}
+
+func (t *TestDB) SearchTag(ctx context.Context, arg db.SearchTagParams) ([]db.CloudAccount, error) {
+	args := t.Called(ctx, arg)
+
+	return args.Get(0).([]db.CloudAccount), args.Error(1)
 }
 
 func (t *TestDB) AddPolicy(ctx context.Context, arg db.AddPolicyParams) error {
@@ -218,27 +241,6 @@ func (t *TestDB) GetCloudAccount(ctx context.Context, arg db.GetCloudAccountPara
 	args := t.Called(ctx, arg)
 
 	return args.Get(0).(db.CloudAccount), args.Error(1)
-}
-
-func (t *TestDB) GetCloudAllAccounts(ctx context.Context) ([]db.CloudAccount, error) {
-	args := t.Called(ctx)
-
-	return args.Get(0).([]db.CloudAccount), args.Error(1)
-}
-
-func (t *TestDB) GetCloudAllAccountsForCloud(ctx context.Context, cloud string) ([]db.CloudAccount, error) {
-	args := t.Called(ctx, cloud)
-
-	return args.Get(0).([]db.CloudAccount), args.Error(1)
-}
-
-func (t *TestDB) GetCloudAllAccountsForCloudAndTenant(
-	ctx context.Context,
-	arg db.GetCloudAllAccountsForCloudAndTenantParams,
-) ([]db.CloudAccount, error) {
-	args := t.Called(ctx, arg)
-
-	return args.Get(0).([]db.CloudAccount), args.Error(1)
 }
 
 func (t *TestDB) GetCloudTenant(ctx context.Context, arg db.GetCloudTenantParams) (db.CloudTenant, error) {

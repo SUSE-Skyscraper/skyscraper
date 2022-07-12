@@ -16,6 +16,7 @@ type App struct {
 	Enforcer     *casbin.Enforcer
 	DB           db.Querier
 	JS           nats.JetStreamContext
+	Search       db.Searcher
 	PostgresPool *pgxpool.Pool
 	natsConn     *nats.Conn
 }
@@ -36,6 +37,7 @@ func (a *App) Start(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	a.Search = db.NewSearch(pool)
 	a.DB = database
 	a.PostgresPool = pool
 

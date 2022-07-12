@@ -27,7 +27,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Profile'
+                $ref: '#/components/schemas/User'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '500':
@@ -46,6 +46,37 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/CloudTenant'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/v1/cloud_tenants/cloud/{cloud}/tenant/{tenant_id}/tags:
+    get:
+      description: Returns the tags for a cloud tenant
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: cloud
+          in: path
+          description: The cloud name
+          required: true
+          schema:
+            type: string
+        - name: tenant_id
+          in: path
+          description: The tenant ID
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The tags for the tenant
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '500':
@@ -74,9 +105,7 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Account'
+                $ref: '#/components/schemas/CloudAccountsResponse'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '500':
@@ -152,7 +181,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Account'
+                $ref: '#/components/schemas/CloudAccountResponse'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '500':
@@ -171,13 +200,34 @@ components:
       scheme: bearer
       bearerFormat: JWT
   schemas:
-    Profile:
+    User:
       type: object
       properties:
-        email:
-          type: string
-      required:
-        - email
+        data:
+          type: object
+          required:
+            - id
+            - type
+          properties:
+            id:
+              type: string
+            type:
+              type: string
+            attributes:
+              type: object
+              required:
+                - username
+              properties:
+                username:
+                  type: string
+                locale:
+                  type: string
+                active:
+                  type: boolean
+                created_at:
+                  type: string
+                updated_at:
+                  type: string
     CloudTenant:
       type: object
       properties:
@@ -200,32 +250,51 @@ components:
           type: object
           additionalProperties:
             type: string
+    CloudAccountsResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Account'
+    CloudAccountResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/Account'
     Account:
       type: object
       properties:
-        cloud_provider:
+        id:
           type: string
-        tenant_id:
+        type:
           type: string
-        account_id:
-          type: string
-        name:
-          type: string
-        tags_current:
+        attributes:
           type: object
-          additionalProperties:
-            type: string
-        tags_desired:
-          type: object
-          additionalProperties:
-            type: string
-        tags_drift_detected:
-          type: boolean
-        active:
-          type: boolean
-        created_at:
-          type: string
-        updated_at:
-          type: string
+          properties:
+            cloud_provider:
+              type: string
+            tenant_id:
+              type: string
+            account_id:
+              type: string
+            name:
+              type: string
+            tags_current:
+              type: object
+              additionalProperties:
+                type: string
+            tags_desired:
+              type: object
+              additionalProperties:
+                type: string
+            tags_drift_detected:
+              type: boolean
+            active:
+              type: boolean
+            created_at:
+              type: string
+            updated_at:
+              type: string
 security:
   - bearerAuth: []

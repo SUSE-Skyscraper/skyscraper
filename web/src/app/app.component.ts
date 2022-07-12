@@ -2,7 +2,7 @@ import { Component, Inject, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { OKTA_AUTH, OktaAuthStateService } from '@okta/okta-angular';
 import { OktaAuth } from '@okta/okta-auth-js';
-import { BackendService, Profile } from './backend.service';
+import { BackendService, UserItem } from './backend.service';
 
 @Component({
   selector: 'app-root',
@@ -12,7 +12,7 @@ import { BackendService, Profile } from './backend.service';
 export class AppComponent implements OnInit {
   title = 'skyscraper-web';
   isAuthenticated: boolean = false;
-  profile: Profile | undefined;
+  profile: UserItem | undefined;
 
   constructor(
     private authStateService: OktaAuthStateService,
@@ -26,7 +26,7 @@ export class AppComponent implements OnInit {
 
       if (this.isAuthenticated) {
         this.backendService.getProfile().subscribe((profile) => {
-          this.profile = profile;
+          this.profile = profile.data;
         });
       }
     });

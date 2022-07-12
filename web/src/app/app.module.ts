@@ -22,10 +22,12 @@ import { MatTableModule } from '@angular/material/table';
 import { CloudAccountsComponent } from './cloud-accounts/cloud-accounts.component';
 import { MatDialogModule } from '@angular/material/dialog';
 import { CloudAccountComponent } from './cloud-account/cloud-account.component';
-import { ReactiveFormsModule } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatOptionModule } from '@angular/material/core';
+import { MatSelectModule } from '@angular/material/select';
 
 @NgModule({
   declarations: [
@@ -54,6 +56,9 @@ import { MatSnackBarModule } from '@angular/material/snack-bar';
     MatFormFieldModule,
     MatInputModule,
     MatSnackBarModule,
+    MatOptionModule,
+    MatSelectModule,
+    FormsModule,
   ],
   providers: [
     {

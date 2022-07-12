@@ -1,8 +1,9 @@
 import { Component, OnInit } from '@angular/core';
 import {
   BackendService,
-  CloudAccount,
-  UpdateCloudAccount,
+  CloudAccountItem,
+  CloudAccountResponse,
+  UpdateCloudAccountRequest,
 } from '../backend.service';
 import { ActivatedRoute } from '@angular/router';
 import { FormArray, FormBuilder, FormGroup } from '@angular/forms';
@@ -14,7 +15,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
   styleUrls: ['./cloud-account.component.scss'],
 })
 export class CloudAccountComponent implements OnInit {
-  cloudAccount: CloudAccount | undefined;
+  cloudAccount: CloudAccountItem | undefined;
   cloud: string = '';
   tenant_id: string = '';
   id: string = '';
@@ -42,24 +43,28 @@ export class CloudAccountComponent implements OnInit {
   }
 
   onSubmit() {
-    let update: UpdateCloudAccount = {
-      tags_desired: {},
+    let update: UpdateCloudAccountRequest = {
+      data: {
+        tags_desired: {},
+      },
     };
     this.tags.controls.forEach((tag) => {
       const key = tag.value['key'];
-      update.tags_desired[key] = tag.value['value'];
+      update.data.tags_desired[key] = tag.value['value'];
     });
 
     this.backendService
       .updateCloudAccount(this.cloud, this.tenant_id, this.id, update)
-      .subscribe((cloudAccount: CloudAccount) => {
-        this.cloudAccount = cloudAccount;
-        this.refreshForm();
-        this.snackBar.open('Tags Updated', 'close', {
-          horizontalPosition: 'center',
-          verticalPosition: 'top',
-          duration: 10000,
-        });
+      .subscribe((response: CloudAccountResponse) => {
+        if (response.data !== null) {
+          this.cloudAccount = response.data;
+          this.refreshForm();
+          this.snackBar.open('Tags Updated', 'close', {
+            horizontalPosition: 'center',
+            verticalPosition: 'top',
+            duration: 10000,
+          });
+        }
       });
   }
 
@@ -70,8 +75,10 @@ export class CloudAccountComponent implements OnInit {
 
     this.backendService
       .getCloudAccount(this.cloud, this.tenant_id, this.id)
-      .subscribe((cloudAccount: CloudAccount) => {
-        this.cloudAccount = cloudAccount;
+      .subscribe((response: CloudAccountResponse) => {
+        if (response.data !== null) {
+          this.cloudAccount = response.data;
+        }
         this.refreshForm();
       });
   }
@@ -82,9 +89,11 @@ export class CloudAccountComponent implements OnInit {
     }
     this.tags.clear();
 
-    Object.entries(this.cloudAccount.tags_desired).forEach(([key, value]) => {
-      this.tags.push(this.newTag(key, value));
-    });
+    Object.entries(this.cloudAccount.attributes.tags_desired).forEach(
+      ([key, value]) => {
+        this.tags.push(this.newTag(key, value));
+      },
+    );
   }
 
   addTag() {

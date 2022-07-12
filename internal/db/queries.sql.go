@@ -16,7 +16,11 @@ import (
 
 const addPolicy = `-- name: AddPolicy :exec
 insert into policies (id, ptype, v0, v1, v2, v3, v4, v5)
-values ( uuid_generate_v5('6ba7b812-9dad-11d1-80b4-00c04fd430c8', concat($1::text, $2::text, $3::text, $4::text, $5::text, $6::text, $7::text)), $1::text, $2::text, $3::text, $4::text, $5::text, $6::text, $7::text)
+values (uuid_generate_v5('6ba7b812-9dad-11d1-80b4-00c04fd430c8',
+                         concat($1::text, $2::text, $3::text, $4::text,
+                                $5::text, $6::text, $7::text)), $1::text,
+        $2::text, $3::text, $4::text, $5::text, $6::text,
+        $7::text)
 on conflict do nothing
 `
 
@@ -100,14 +104,13 @@ func (q *Queries) CreateMembershipForUserAndGroup(ctx context.Context, arg Creat
 }
 
 const createOrInsertCloudAccount = `-- name: CreateOrInsertCloudAccount :one
-
 insert into cloud_accounts (cloud, tenant_id, account_id, name, tags_current, tags_desired)
 VALUES ($1, $2, $3, $4, $5, $6)
 ON CONFLICT (cloud, tenant_id, account_id)
     DO UPDATE SET name         = $4,
                   tags_current = $5,
                   updated_at   = now()
-returning cloud, tenant_id, account_id, name, active, tags_current, tags_desired, tags_drift_detected, created_at, updated_at
+returning id, cloud, tenant_id, account_id, name, active, tags_current, tags_desired, tags_drift_detected, created_at, updated_at
 `
 
 type CreateOrInsertCloudAccountParams struct {
@@ -119,9 +122,6 @@ type CreateOrInsertCloudAccountParams struct {
 	TagsDesired pgtype.JSONB
 }
 
-//------------------------------------------------------------------------------------------------------------------
-// Cloud Account Metadata
-//------------------------------------------------------------------------------------------------------------------
 func (q *Queries) CreateOrInsertCloudAccount(ctx context.Context, arg CreateOrInsertCloudAccountParams) (CloudAccount, error) {
 	row := q.db.QueryRow(ctx, createOrInsertCloudAccount,
 		arg.Cloud,
@@ -133,6 +133,7 @@ func (q *Queries) CreateOrInsertCloudAccount(ctx context.Context, arg CreateOrIn
 	)
 	var i CloudAccount
 	err := row.Scan(
+		&i.ID,
 		&i.Cloud,
 		&i.TenantID,
 		&i.AccountID,
@@ -212,7 +213,8 @@ func (q *Queries) DeleteUser(ctx context.Context, id uuid.UUID) error {
 }
 
 const dropMembershipForGroup = `-- name: DropMembershipForGroup :exec
-delete from group_members
+delete
+from group_members
 where group_id = $1
 `
 
@@ -222,7 +224,8 @@ func (q *Queries) DropMembershipForGroup(ctx context.Context, groupID uuid.UUID)
 }
 
 const dropMembershipForUserAndGroup = `-- name: DropMembershipForUserAndGroup :exec
-delete from group_members
+delete
+from group_members
 where user_id = $1
   and group_id = $2
 `
@@ -280,7 +283,7 @@ func (q *Queries) FindByUsername(ctx context.Context, username string) (User, er
 }
 
 const getCloudAccount = `-- name: GetCloudAccount :one
-select cloud, tenant_id, account_id, name, active, tags_current, tags_desired, tags_drift_detected, created_at, updated_at
+select id, cloud, tenant_id, account_id, name, active, tags_current, tags_desired, tags_drift_detected, created_at, updated_at
 from cloud_accounts
 where cloud = $1
   and tenant_id = $2
@@ -297,6 +300,7 @@ func (q *Queries) GetCloudAccount(ctx context.Context, arg GetCloudAccountParams
 	row := q.db.QueryRow(ctx, getCloudAccount, arg.Cloud, arg.TenantID, arg.AccountID)
 	var i CloudAccount
 	err := row.Scan(
+		&i.ID,
 		&i.Cloud,
 		&i.TenantID,
 		&i.AccountID,
@@ -311,127 +315,8 @@ func (q *Queries) GetCloudAccount(ctx context.Context, arg GetCloudAccountParams
 	return i, err
 }
 
-const getCloudAllAccounts = `-- name: GetCloudAllAccounts :many
-select cloud, tenant_id, account_id, name, active, tags_current, tags_desired, tags_drift_detected, created_at, updated_at
-from cloud_accounts
-order by cloud, tenant_id, account_id
-`
-
-func (q *Queries) GetCloudAllAccounts(ctx context.Context) ([]CloudAccount, error) {
-	rows, err := q.db.Query(ctx, getCloudAllAccounts)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []CloudAccount
-	for rows.Next() {
-		var i CloudAccount
-		if err := rows.Scan(
-			&i.Cloud,
-			&i.TenantID,
-			&i.AccountID,
-			&i.Name,
-			&i.Active,
-			&i.TagsCurrent,
-			&i.TagsDesired,
-			&i.TagsDriftDetected,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const getCloudAllAccountsForCloud = `-- name: GetCloudAllAccountsForCloud :many
-select cloud, tenant_id, account_id, name, active, tags_current, tags_desired, tags_drift_detected, created_at, updated_at
-from cloud_accounts
-where cloud = $1
-order by tenant_id, account_id
-`
-
-func (q *Queries) GetCloudAllAccountsForCloud(ctx context.Context, cloud string) ([]CloudAccount, error) {
-	rows, err := q.db.Query(ctx, getCloudAllAccountsForCloud, cloud)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []CloudAccount
-	for rows.Next() {
-		var i CloudAccount
-		if err := rows.Scan(
-			&i.Cloud,
-			&i.TenantID,
-			&i.AccountID,
-			&i.Name,
-			&i.Active,
-			&i.TagsCurrent,
-			&i.TagsDesired,
-			&i.TagsDriftDetected,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const getCloudAllAccountsForCloudAndTenant = `-- name: GetCloudAllAccountsForCloudAndTenant :many
-select cloud, tenant_id, account_id, name, active, tags_current, tags_desired, tags_drift_detected, created_at, updated_at
-from cloud_accounts
-where cloud = $1
-  and tenant_id = $2
-order by account_id
-`
-
-type GetCloudAllAccountsForCloudAndTenantParams struct {
-	Cloud    string
-	TenantID string
-}
-
-func (q *Queries) GetCloudAllAccountsForCloudAndTenant(ctx context.Context, arg GetCloudAllAccountsForCloudAndTenantParams) ([]CloudAccount, error) {
-	rows, err := q.db.Query(ctx, getCloudAllAccountsForCloudAndTenant, arg.Cloud, arg.TenantID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []CloudAccount
-	for rows.Next() {
-		var i CloudAccount
-		if err := rows.Scan(
-			&i.Cloud,
-			&i.TenantID,
-			&i.AccountID,
-			&i.Name,
-			&i.Active,
-			&i.TagsCurrent,
-			&i.TagsDesired,
-			&i.TagsDriftDetected,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const getCloudTenant = `-- name: GetCloudTenant :one
-select cloud, tenant_id, name, active, created_at, updated_at
+select id, cloud, tenant_id, name, active, created_at, updated_at
 from cloud_tenants
 where cloud = $1
   and tenant_id = $2
@@ -446,6 +331,7 @@ func (q *Queries) GetCloudTenant(ctx context.Context, arg GetCloudTenantParams) 
 	row := q.db.QueryRow(ctx, getCloudTenant, arg.Cloud, arg.TenantID)
 	var i CloudTenant
 	err := row.Scan(
+		&i.ID,
 		&i.Cloud,
 		&i.TenantID,
 		&i.Name,
@@ -457,7 +343,7 @@ func (q *Queries) GetCloudTenant(ctx context.Context, arg GetCloudTenantParams) 
 }
 
 const getCloudTenants = `-- name: GetCloudTenants :many
-select cloud, tenant_id, name, active, created_at, updated_at
+select id, cloud, tenant_id, name, active, created_at, updated_at
 from cloud_tenants
 order by cloud, tenant_id
 `
@@ -472,6 +358,7 @@ func (q *Queries) GetCloudTenants(ctx context.Context) ([]CloudTenant, error) {
 	for rows.Next() {
 		var i CloudTenant
 		if err := rows.Scan(
+			&i.ID,
 			&i.Cloud,
 			&i.TenantID,
 			&i.Name,
@@ -570,7 +457,8 @@ const getGroupMembershipForUser = `-- name: GetGroupMembershipForUser :one
 select group_members.id, group_members.group_id, group_members.user_id, group_members.created_at, group_members.updated_at, users.username as username
 from group_members
          left join users on users.id = group_members.user_id
-where group_members.group_id = $1 and group_members.user_id = $2
+where group_members.group_id = $1
+  and group_members.user_id = $2
 `
 
 type GetGroupMembershipForUserParams struct {
@@ -824,9 +712,10 @@ func (q *Queries) PatchUser(ctx context.Context, arg PatchUserParams) error {
 }
 
 const removePoliciesForGroup = `-- name: RemovePoliciesForGroup :exec
-delete from policies
-    where ptype = 'g'
-and v1 = $1
+delete
+from policies
+where ptype = 'g'
+  and v1 = $1
 `
 
 func (q *Queries) RemovePoliciesForGroup(ctx context.Context, v1 string) error {
@@ -835,8 +724,11 @@ func (q *Queries) RemovePoliciesForGroup(ctx context.Context, v1 string) error {
 }
 
 const removePolicy = `-- name: RemovePolicy :exec
-delete from policies
-where id = uuid_generate_v5('6ba7b812-9dad-11d1-80b4-00c04fd430c8', concat($1, $2, $3, $4, $5, $6, $7))
+delete
+from policies
+where id = uuid_generate_v5('6ba7b812-9dad-11d1-80b4-00c04fd430c8',
+                            concat($1, $2, $3, $4, $5,
+                                   $6, $7))
 `
 
 type RemovePolicyParams struct {
@@ -860,6 +752,56 @@ func (q *Queries) RemovePolicy(ctx context.Context, arg RemovePolicyParams) erro
 		arg.V5,
 	)
 	return err
+}
+
+const searchTag = `-- name: SearchTag :many
+
+select id, cloud, tenant_id, account_id, name, active, tags_current, tags_desired, tags_drift_detected, created_at, updated_at
+from cloud_accounts
+where cloud = $1
+  and tenant_id = $2
+  and tags_current ->> $3 = sqcl.arg(tag_value)
+`
+
+type SearchTagParams struct {
+	Cloud    string
+	TenantID string
+	TagKey   pgtype.JSONB
+}
+
+//------------------------------------------------------------------------------------------------------------------
+// Cloud Account Metadata
+//------------------------------------------------------------------------------------------------------------------
+func (q *Queries) SearchTag(ctx context.Context, arg SearchTagParams) ([]CloudAccount, error) {
+	rows, err := q.db.Query(ctx, searchTag, arg.Cloud, arg.TenantID, arg.TagKey)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []CloudAccount
+	for rows.Next() {
+		var i CloudAccount
+		if err := rows.Scan(
+			&i.ID,
+			&i.Cloud,
+			&i.TenantID,
+			&i.AccountID,
+			&i.Name,
+			&i.Active,
+			&i.TagsCurrent,
+			&i.TagsDesired,
+			&i.TagsDriftDetected,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const truncatePolicies = `-- name: TruncatePolicies :exec

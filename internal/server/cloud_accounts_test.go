@@ -53,8 +53,8 @@ func TestV1ListCloudAccounts(t *testing.T) {
 		w := httptest.NewRecorder()
 		testApp := helpers.NewTestApp()
 
-		testApp.DB.
-			On("GetCloudAllAccountsForCloudAndTenant", mock.Anything, mock.Anything).
+		testApp.Search.
+			On("SearchCloudAccounts", mock.Anything, mock.Anything).
 			Return([]db.CloudAccount{cloudAccount}, tc.getError)
 
 		V1ListCloudAccounts(testApp.App)(w, req)
