@@ -33,7 +33,7 @@ func OktaAuthorizationHandler(app *application.App) func(next http.Handler) http
 
 			username := claims.Claims["sub"].(string)
 
-			user, err := app.DB.FindByUsername(r.Context(), username)
+			user, err := app.Repository.FindUserByUsername(r.Context(), username)
 			if err != nil {
 				_ = render.Render(w, r, responses.ErrInternalServerError)
 				return

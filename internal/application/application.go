@@ -14,11 +14,10 @@ import (
 type App struct {
 	Config       Config
 	Enforcer     *casbin.Enforcer
-	DB           db.Querier
 	JS           nats.JetStreamContext
-	Search       db.Searcher
-	PostgresPool *pgxpool.Pool
+	Repository   db.RepositoryQueries
 	natsConn     *nats.Conn
+	postgresPool *pgxpool.Pool
 }
 
 func NewApp(configDir string) (*App, error) {
@@ -37,9 +36,8 @@ func (a *App) Start(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	a.Search = db.NewSearch(pool)
-	a.DB = database
-	a.PostgresPool = pool
+	a.Repository = db.NewRepository(pool, database)
+	a.postgresPool = pool
 
 	js, nc, err := setupNats(ctx, a.Config)
 	if err != nil {
@@ -62,8 +60,8 @@ func (a *App) StartEnforcer() error {
 }
 
 func (a *App) Shutdown(_ context.Context) {
-	if a.PostgresPool != nil {
-		a.PostgresPool.Close()
+	if a.postgresPool != nil {
+		a.postgresPool.Close()
 	}
 
 	if a.natsConn != nil {

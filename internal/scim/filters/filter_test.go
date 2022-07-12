@@ -1,4 +1,4 @@
-package scim
+package filters
 
 import (
 	"testing"
@@ -25,7 +25,7 @@ func TestParseFilter(t *testing.T) {
 			want: []Filter{
 				{
 					FilterField:    Username,
-					FilterOperator: eq,
+					FilterOperator: Eq,
 					FilterValue:    "test",
 				},
 			},
@@ -55,7 +55,7 @@ func TestParseFilter(t *testing.T) {
 			want: []Filter{
 				{
 					FilterField:    Username,
-					FilterOperator: eq,
+					FilterOperator: Eq,
 					FilterValue:    "test",
 				},
 			},
@@ -67,7 +67,7 @@ func TestParseFilter(t *testing.T) {
 			want: []Filter{
 				{
 					FilterField:    Username,
-					FilterOperator: eq,
+					FilterOperator: Eq,
 					FilterValue:    "test",
 				},
 			},

@@ -78,7 +78,7 @@ func (o *OrganizationsClient) SyncTags(ctx context.Context, app *application.App
 		return err
 	}
 
-	account, err := app.DB.CreateOrInsertCloudAccount(ctx, db.CreateOrInsertCloudAccountParams{
+	account, err := app.Repository.CreateOrInsertCloudAccount(ctx, db.CreateOrInsertCloudAccountParams{
 		Cloud:       "AWS",
 		TenantID:    input.TenantID,
 		AccountID:   input.AccountID,
@@ -93,7 +93,7 @@ func (o *OrganizationsClient) SyncTags(ctx context.Context, app *application.App
 	driftDetected := !reflect.DeepEqual(account.TagsDesired, account.TagsCurrent)
 
 	if driftDetected != account.TagsDriftDetected {
-		err = app.DB.UpdateCloudAccountTagsDriftDetected(ctx, db.UpdateCloudAccountTagsDriftDetectedParams{
+		err = app.Repository.UpdateCloudAccountTagsDriftDetected(ctx, db.UpdateCloudAccountTagsDriftDetectedParams{
 			Cloud:             "AWS",
 			TenantID:          input.TenantID,
 			AccountID:         input.AccountID,

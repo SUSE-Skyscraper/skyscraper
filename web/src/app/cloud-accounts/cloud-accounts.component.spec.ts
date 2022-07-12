@@ -16,6 +16,7 @@ describe('CloudAccountsComponent', () => {
       providers: [
         MockProvider(BackendService, {
           getCloudAccounts: () => EMPTY,
+          getCloudTenantTags: () => EMPTY,
         }),
         {
           provide: ActivatedRoute,

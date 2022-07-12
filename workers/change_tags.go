@@ -7,9 +7,7 @@ import (
 )
 
 type ChangeTagsPayload struct {
-	Cloud       string `json:"cloud"`
-	TenantID    string `json:"tenant_id"`
-	AccountID   string `json:"account_id"`
+	ID          string `json:"id"`
 	AccountName string `json:"account_name"`
 }
 

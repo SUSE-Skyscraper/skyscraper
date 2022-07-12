@@ -49,13 +49,16 @@ where cloud = $2
 
 -- name: UpdateCloudAccount :exec
 update cloud_accounts
-set tags_desired = $4,
+set tags_desired = $2,
     updated_at   = now()
-where cloud = $1
-  and tenant_id = $2
-  and account_id = $3;
+where id = $1;
 
--- name: GetCloudAccount :one
+-- name: FindCloudAccount :one
+select *
+from cloud_accounts
+where id = $1;
+
+-- name: FindCloudAccountByCloudAndTenant :one
 select *
 from cloud_accounts
 where cloud = $1

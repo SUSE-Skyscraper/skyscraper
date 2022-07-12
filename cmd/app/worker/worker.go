@@ -105,10 +105,8 @@ func changeTags(ctx context.Context, app *application.App, msg *nats.Msg) error 
 		return err
 	}
 
-	account, err := app.DB.GetCloudAccount(ctx, db.GetCloudAccountParams{
-		Cloud:     payload.Cloud,
-		TenantID:  payload.TenantID,
-		AccountID: payload.AccountID,
+	account, err := app.Repository.FindCloudAccount(ctx, db.FindCloudAccountInput{
+		ID: payload.ID,
 	})
 	if err != nil {
 		return err
@@ -126,10 +124,10 @@ func changeTags(ctx context.Context, app *application.App, msg *nats.Msg) error 
 		return err
 	}
 
-	if payload.Cloud == "AWS" {
+	if account.Cloud == "AWS" {
 		err = changeAwsTags(ctx, app, changeAWSTagsInput{
-			tenantID:    payload.TenantID,
-			accountID:   payload.AccountID,
+			tenantID:    account.TenantID,
+			accountID:   account.AccountID,
 			desiredTags: desiredTags,
 			currentTags: currentTags,
 			accountName: payload.AccountName,

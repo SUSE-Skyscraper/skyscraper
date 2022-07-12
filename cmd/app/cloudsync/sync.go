@@ -37,7 +37,7 @@ func syncAWSAccounts(app *application.App) error {
 		}
 		organizationsClient := awsclient.NewOrganizationsClient(cfg)
 
-		err = app.DB.CreateCloudTenant(ctx, db.CreateCloudTenantParams{
+		err = app.Repository.CreateCloudTenant(ctx, db.CreateCloudTenantParams{
 			Cloud:    "AWS",
 			TenantID: tenant.MasterAccountID,
 			Name:     tenant.Name,

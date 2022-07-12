@@ -22,7 +22,7 @@ func NewCmd(app *application.App) *cobra.Command {
 				return err
 			}
 
-			_, err = app.DB.InsertAPIKey(context.Background(), token)
+			_, err = app.Repository.InsertAPIKey(context.Background(), token)
 			if err != nil {
 				return err
 			}

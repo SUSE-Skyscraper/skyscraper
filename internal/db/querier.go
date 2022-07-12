@@ -26,7 +26,8 @@ type Querier interface {
 	DropMembershipForUserAndGroup(ctx context.Context, arg DropMembershipForUserAndGroupParams) error
 	FindAPIKey(ctx context.Context, token string) (ScimApiKey, error)
 	FindByUsername(ctx context.Context, username string) (User, error)
-	GetCloudAccount(ctx context.Context, arg GetCloudAccountParams) (CloudAccount, error)
+	FindCloudAccount(ctx context.Context, id uuid.UUID) (CloudAccount, error)
+	FindCloudAccountByCloudAndTenant(ctx context.Context, arg FindCloudAccountByCloudAndTenantParams) (CloudAccount, error)
 	GetCloudTenant(ctx context.Context, arg GetCloudTenantParams) (CloudTenant, error)
 	GetCloudTenants(ctx context.Context) ([]CloudTenant, error)
 	GetGroup(ctx context.Context, id uuid.UUID) (Group, error)

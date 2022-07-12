@@ -8,266 +8,250 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/suse-skyscraper/skyscraper/internal/application"
 	"github.com/suse-skyscraper/skyscraper/internal/db"
+	"github.com/suse-skyscraper/skyscraper/internal/scim/payloads"
 )
 
 type TestAppResponse struct {
-	App    *application.App
-	DB     *TestDB
-	JS     *TestJS
-	Search *TestSearch
+	App        *application.App
+	JS         *TestJS
+	Repository *TestRepository
 }
 
 func NewTestApp() *TestAppResponse {
-	database := new(TestDB)
+	repository := new(TestRepository)
 	js := new(TestJS)
-	search := new(TestSearch)
 
 	app := &application.App{
-		Config: application.Config{},
-		DB:     database,
-		JS:     js,
-		Search: search,
+		Config:     application.Config{},
+		JS:         js,
+		Repository: repository,
 	}
 
 	return &TestAppResponse{
-		App:    app,
-		DB:     database,
-		JS:     js,
-		Search: search,
+		App:        app,
+		JS:         js,
+		Repository: repository,
 	}
 }
 
-type TestSearch struct {
+type TestRepository struct {
 	mock.Mock
 }
 
-func (t *TestSearch) SearchCloudAccounts(
+func (t *TestRepository) UpdateCloudAccountTagsDriftDetected(
+	ctx context.Context,
+	input db.UpdateCloudAccountTagsDriftDetectedParams,
+) error {
+	args := t.Called(ctx, input)
+
+	return args.Error(0)
+}
+
+func (t *TestRepository) CreateOrInsertCloudAccount(
+	ctx context.Context,
+	input db.CreateOrInsertCloudAccountParams,
+) (db.CloudAccount, error) {
+	args := t.Called(ctx, input)
+
+	return args.Get(0).(db.CloudAccount), args.Error(1)
+}
+
+func (t *TestRepository) CreateCloudTenant(ctx context.Context, input db.CreateCloudTenantParams) error {
+	args := t.Called(ctx, input)
+
+	return args.Error(0)
+}
+
+func (t *TestRepository) GetScimUsers(ctx context.Context, input db.GetScimUsersInput) (int64, []db.User, error) {
+	args := t.Called(ctx, input)
+
+	return args.Get(0).(int64), args.Get(1).([]db.User), args.Error(2)
+}
+
+func (t *TestRepository) CreateUser(ctx context.Context, input db.CreateUserParams) (db.User, error) {
+	args := t.Called(ctx, input)
+
+	return args.Get(0).(db.User), args.Error(1)
+}
+
+func (t *TestRepository) DeleteUser(ctx context.Context, id uuid.UUID) error {
+	args := t.Called(ctx, id)
+
+	return args.Error(0)
+}
+
+func (t *TestRepository) UpdateUser(ctx context.Context, id uuid.UUID, input db.UpdateUserParams) (db.User, error) {
+	args := t.Called(ctx, id, input)
+
+	return args.Get(0).(db.User), args.Error(1)
+}
+
+func (t *TestRepository) ScimPatchUser(ctx context.Context, input db.PatchUserParams) error {
+	args := t.Called(ctx, input)
+
+	return args.Error(0)
+}
+
+func (t *TestRepository) GetPolicies(ctx context.Context) ([]db.Policy, error) {
+	args := t.Called(ctx)
+
+	return args.Get(0).([]db.Policy), args.Error(1)
+}
+
+func (t *TestRepository) TruncatePolicies(ctx context.Context) error {
+	args := t.Called(ctx)
+
+	return args.Error(0)
+}
+
+func (t *TestRepository) CreatePolicy(ctx context.Context, input db.AddPolicyParams) error {
+	args := t.Called(ctx, input)
+
+	return args.Error(0)
+}
+
+func (t *TestRepository) RemovePolicy(ctx context.Context, input db.RemovePolicyParams) error {
+	args := t.Called(ctx, input)
+
+	return args.Error(0)
+}
+
+func (t *TestRepository) InsertAPIKey(ctx context.Context, token string) (db.ScimApiKey, error) {
+	args := t.Called(ctx, token)
+
+	return args.Get(0).(db.ScimApiKey), args.Error(1)
+}
+
+func (t *TestRepository) FindAPIKey(ctx context.Context, token string) (db.ScimApiKey, error) {
+	args := t.Called(ctx, token)
+
+	return args.Get(0).(db.ScimApiKey), args.Error(1)
+}
+
+func (t *TestRepository) Begin(ctx context.Context) (db.RepositoryQueries, error) {
+	args := t.Called(ctx)
+
+	return args.Get(0).(db.RepositoryQueries), args.Error(1)
+}
+
+func (t *TestRepository) Commit(ctx context.Context) error {
+	args := t.Called(ctx)
+
+	return args.Error(0)
+}
+
+func (t *TestRepository) Rollback(ctx context.Context) error {
+	args := t.Called(ctx)
+
+	return args.Error(0)
+}
+
+func (t *TestRepository) GetCloudTenants(ctx context.Context) ([]db.CloudTenant, error) {
+	args := t.Called(ctx)
+
+	return args.Get(0).([]db.CloudTenant), args.Error(1)
+}
+
+func (t *TestRepository) FindGroup(ctx context.Context, id string) (db.Group, error) {
+	args := t.Called(ctx, id)
+
+	return args.Get(0).(db.Group), args.Error(1)
+}
+
+func (t *TestRepository) CreateGroup(ctx context.Context, displayName string) (db.Group, error) {
+	args := t.Called(ctx, displayName)
+
+	return args.Get(0).(db.Group), args.Error(1)
+}
+
+func (t *TestRepository) DeleteGroup(ctx context.Context, id string) error {
+	args := t.Called(ctx, id)
+
+	return args.Error(0)
+}
+
+func (t *TestRepository) UpdateGroup(ctx context.Context, input db.PatchGroupDisplayNameParams) (db.Group, error) {
+	args := t.Called(ctx, input)
+
+	return args.Get(0).(db.Group), args.Error(1)
+}
+
+func (t *TestRepository) RemoveUserFromGroup(ctx context.Context, userID, groupID uuid.UUID) error {
+	args := t.Called(ctx, userID, groupID)
+
+	return args.Error(0)
+}
+
+func (t *TestRepository) AddUserToGroup(ctx context.Context, userID, groupID uuid.UUID) error {
+	args := t.Called(ctx, userID, groupID)
+
+	return args.Error(0)
+}
+
+func (t *TestRepository) ReplaceUsersInGroup(ctx context.Context,
+	groupID uuid.UUID,
+	members []payloads.MemberPatch,
+) error {
+	args := t.Called(ctx, groupID, members)
+
+	return args.Error(0)
+}
+
+func (t *TestRepository) AddUsersToGroup(ctx context.Context, groupID uuid.UUID, members []payloads.MemberPatch) error {
+	args := t.Called(ctx, groupID, members)
+
+	return args.Error(0)
+}
+
+func (t *TestRepository) GetGroupMembership(ctx context.Context, idString string) ([]db.GetGroupMembershipRow, error) {
+	args := t.Called(ctx, idString)
+
+	return args.Get(0).([]db.GetGroupMembershipRow), args.Error(1)
+}
+
+func (t *TestRepository) GetGroups(ctx context.Context, params db.GetGroupsParams) (int64, []db.Group, error) {
+	args := t.Called(ctx, params)
+
+	return args.Get(0).(int64), args.Get(1).([]db.Group), args.Error(2)
+}
+
+func (t *TestRepository) FindUser(ctx context.Context, id string) (db.User, error) {
+	args := t.Called(ctx, id)
+
+	return args.Get(0).(db.User), args.Error(1)
+}
+
+func (t *TestRepository) FindCloudAccount(
+	ctx context.Context,
+	input db.FindCloudAccountInput,
+) (db.CloudAccount, error) {
+	args := t.Called(ctx, input)
+
+	return args.Get(0).(db.CloudAccount), args.Error(1)
+}
+
+func (t *TestRepository) UpdateCloudAccount(
+	ctx context.Context,
+	input db.UpdateCloudAccountParams,
+) (db.CloudAccount, error) {
+	args := t.Called(ctx, input)
+
+	return args.Get(0).(db.CloudAccount), args.Error(1)
+}
+
+func (t *TestRepository) FindUserByUsername(ctx context.Context, username string) (db.User, error) {
+	args := t.Called(ctx, username)
+
+	return args.Get(0).(db.User), args.Error(1)
+}
+
+func (t *TestRepository) SearchCloudAccounts(
 	ctx context.Context,
 	input db.SearchCloudAccountsInput,
 ) ([]db.CloudAccount, error) {
 	args := t.Called(ctx, input)
 
 	return args.Get(0).([]db.CloudAccount), args.Error(1)
-}
-
-type TestDB struct {
-	mock.Mock
-}
-
-func (t *TestDB) SearchTag(ctx context.Context, arg db.SearchTagParams) ([]db.CloudAccount, error) {
-	args := t.Called(ctx, arg)
-
-	return args.Get(0).([]db.CloudAccount), args.Error(1)
-}
-
-func (t *TestDB) AddPolicy(ctx context.Context, arg db.AddPolicyParams) error {
-	args := t.Called(ctx, arg)
-
-	return args.Error(0)
-}
-
-func (t *TestDB) FindAPIKey(ctx context.Context, token string) (db.ScimApiKey, error) {
-	args := t.Called(ctx, token)
-
-	return args.Get(0).(db.ScimApiKey), args.Error(1)
-}
-
-func (t *TestDB) GetGroupMembershipForUser(
-	ctx context.Context,
-	arg db.GetGroupMembershipForUserParams,
-) (db.GetGroupMembershipForUserRow, error) {
-	args := t.Called(ctx, arg)
-
-	return args.Get(0).(db.GetGroupMembershipForUserRow), args.Error(1)
-}
-
-func (t *TestDB) GetPolicies(ctx context.Context) ([]db.Policy, error) {
-	args := t.Called(ctx)
-
-	return args.Get(0).([]db.Policy), args.Error(1)
-}
-
-func (t *TestDB) InsertAPIKey(ctx context.Context, token string) (db.ScimApiKey, error) {
-	args := t.Called(ctx, token)
-
-	return args.Get(0).(db.ScimApiKey), args.Error(1)
-}
-
-func (t *TestDB) RemovePoliciesForGroup(ctx context.Context, v1 string) error {
-	args := t.Called(ctx, v1)
-
-	return args.Error(0)
-}
-
-func (t *TestDB) RemovePolicy(ctx context.Context, arg db.RemovePolicyParams) error {
-	args := t.Called(ctx, arg)
-
-	return args.Error(0)
-}
-
-func (t *TestDB) TruncatePolicies(ctx context.Context) error {
-	args := t.Called(ctx)
-
-	return args.Error(0)
-}
-
-func (t *TestDB) DeleteGroup(ctx context.Context, id uuid.UUID) error {
-	args := t.Called(ctx, id)
-
-	return args.Error(0)
-}
-
-func (t *TestDB) DeleteUser(ctx context.Context, id uuid.UUID) error {
-	args := t.Called(ctx, id)
-
-	return args.Error(0)
-}
-
-func (t *TestDB) GetGroup(ctx context.Context, id uuid.UUID) (db.Group, error) {
-	args := t.Called(ctx, id)
-
-	return args.Get(0).(db.Group), args.Error(1)
-}
-
-func (t *TestDB) CreateMembershipForUserAndGroup(
-	ctx context.Context,
-	arg db.CreateMembershipForUserAndGroupParams,
-) error {
-	args := t.Called(ctx, arg)
-
-	return args.Error(0)
-}
-
-func (t *TestDB) DropMembershipForGroup(ctx context.Context, groupID uuid.UUID) error {
-	args := t.Called(ctx, groupID)
-
-	return args.Error(0)
-}
-
-func (t *TestDB) DropMembershipForUserAndGroup(ctx context.Context, arg db.DropMembershipForUserAndGroupParams) error {
-	args := t.Called(ctx, arg)
-
-	return args.Error(0)
-}
-
-func (t *TestDB) GetGroupMembership(ctx context.Context, groupID uuid.UUID) ([]db.GetGroupMembershipRow, error) {
-	args := t.Called(ctx, groupID)
-
-	return args.Get(0).([]db.GetGroupMembershipRow), args.Error(1)
-}
-
-func (t *TestDB) GetUser(ctx context.Context, id uuid.UUID) (db.User, error) {
-	args := t.Called(ctx, id)
-
-	return args.Get(0).(db.User), args.Error(1)
-}
-
-func (t *TestDB) PatchGroupDisplayName(ctx context.Context, arg db.PatchGroupDisplayNameParams) error {
-	args := t.Called(ctx, arg)
-
-	return args.Error(0)
-}
-
-func (t *TestDB) CreateGroup(ctx context.Context, displayName string) (db.Group, error) {
-	args := t.Called(ctx, displayName)
-
-	return args.Get(0).(db.Group), args.Error(1)
-}
-
-func (t *TestDB) FindByUsername(ctx context.Context, username string) (db.User, error) {
-	args := t.Called(ctx, username)
-
-	return args.Get(0).(db.User), args.Error(1)
-}
-
-func (t *TestDB) GetGroupCount(ctx context.Context) (int64, error) {
-	args := t.Called(ctx)
-
-	return args.Get(0).(int64), args.Error(1)
-}
-
-func (t *TestDB) GetGroups(ctx context.Context, arg db.GetGroupsParams) ([]db.Group, error) {
-	args := t.Called(ctx, arg)
-
-	return args.Get(0).([]db.Group), args.Error(1)
-}
-
-func (t *TestDB) PatchUser(ctx context.Context, arg db.PatchUserParams) error {
-	args := t.Called(ctx, arg)
-
-	return args.Error(0)
-}
-
-func (t *TestDB) UpdateUser(ctx context.Context, arg db.UpdateUserParams) error {
-	args := t.Called(ctx, arg)
-
-	return args.Error(0)
-}
-
-func (t *TestDB) CreateUser(ctx context.Context, arg db.CreateUserParams) (db.User, error) {
-	args := t.Called(ctx, arg)
-
-	return args.Get(0).(db.User), args.Error(1)
-}
-
-func (t *TestDB) GetUserCount(ctx context.Context) (int64, error) {
-	args := t.Called(ctx)
-
-	return args.Get(0).(int64), args.Error(1)
-}
-
-func (t *TestDB) GetUsers(ctx context.Context, arg db.GetUsersParams) ([]db.User, error) {
-	args := t.Called(ctx, arg)
-
-	return args.Get(0).([]db.User), args.Error(1)
-}
-
-func (t *TestDB) CreateCloudTenant(ctx context.Context, arg db.CreateCloudTenantParams) error {
-	args := t.Called(ctx, arg)
-
-	return args.Error(0)
-}
-
-func (t *TestDB) CreateOrInsertCloudAccount(
-	ctx context.Context,
-	arg db.CreateOrInsertCloudAccountParams,
-) (db.CloudAccount, error) {
-	args := t.Called(ctx, arg)
-
-	return args.Get(0).(db.CloudAccount), args.Error(1)
-}
-
-func (t *TestDB) GetCloudAccount(ctx context.Context, arg db.GetCloudAccountParams) (db.CloudAccount, error) {
-	args := t.Called(ctx, arg)
-
-	return args.Get(0).(db.CloudAccount), args.Error(1)
-}
-
-func (t *TestDB) GetCloudTenant(ctx context.Context, arg db.GetCloudTenantParams) (db.CloudTenant, error) {
-	args := t.Called(ctx, arg)
-
-	return args.Get(0).(db.CloudTenant), args.Error(1)
-}
-
-func (t *TestDB) GetCloudTenants(ctx context.Context) ([]db.CloudTenant, error) {
-	args := t.Called(ctx)
-
-	return args.Get(0).([]db.CloudTenant), args.Error(1)
-}
-
-func (t *TestDB) UpdateCloudAccount(ctx context.Context, arg db.UpdateCloudAccountParams) error {
-	args := t.Called(ctx, arg)
-
-	return args.Error(0)
-}
-
-func (t *TestDB) UpdateCloudAccountTagsDriftDetected(
-	ctx context.Context,
-	arg db.UpdateCloudAccountTagsDriftDetectedParams,
-) error {
-	args := t.Called(ctx, arg)
-
-	return args.Error(0)
 }
 
 type TestJS struct {

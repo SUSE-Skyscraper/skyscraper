@@ -1,4 +1,4 @@
-package scim
+package filters
 
 import (
 	"regexp"
@@ -10,7 +10,7 @@ import (
 type filterOperator int
 
 const (
-	eq filterOperator = iota
+	Eq filterOperator = iota
 	InvalidOperator
 )
 
@@ -68,7 +68,7 @@ func parseField(field string) (filterField, error) {
 func parseOperator(operator string) (filterOperator, error) {
 	switch strings.ToLower(operator) {
 	case "eq":
-		return eq, nil
+		return Eq, nil
 	default:
 		return InvalidOperator, errors.New("invalid operator")
 	}

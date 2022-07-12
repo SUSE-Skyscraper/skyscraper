@@ -21,7 +21,7 @@ func V1ListCloudAccounts(app *application.App) func(w http.ResponseWriter, r *ht
 			filters[key] = value[0]
 		}
 
-		cloudAccounts, err := app.Search.SearchCloudAccounts(r.Context(), db.SearchCloudAccountsInput{
+		cloudAccounts, err := app.Repository.SearchCloudAccounts(r.Context(), db.SearchCloudAccountsInput{
 			Filters: filters,
 		})
 		if err != nil {
@@ -37,9 +37,7 @@ func V1UpdateCloudTenantAccount(app *application.App) func(w http.ResponseWriter
 	natsWorker := workers.NewWorker(app)
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		tenantID := chi.URLParam(r, "tenant_id")
-		cloudProvider := chi.URLParam(r, "cloud")
-		id := chi.URLParam(r, "id")
+		cloudAccount := r.Context().Value(middleware.CloudAccount).(db.CloudAccount)
 
 		var payload payloads.UpdateCloudAccountPayload
 		err := render.Bind(r, &payload)
@@ -48,10 +46,8 @@ func V1UpdateCloudTenantAccount(app *application.App) func(w http.ResponseWriter
 			return
 		}
 
-		err = app.DB.UpdateCloudAccount(r.Context(), db.UpdateCloudAccountParams{
-			Cloud:       cloudProvider,
-			TenantID:    tenantID,
-			AccountID:   id,
+		account, err := app.Repository.UpdateCloudAccount(r.Context(), db.UpdateCloudAccountParams{
+			ID:          cloudAccount.ID,
 			TagsDesired: payload.Data.GetJSON(),
 		})
 		if err != nil {
@@ -59,23 +55,10 @@ func V1UpdateCloudTenantAccount(app *application.App) func(w http.ResponseWriter
 			return
 		}
 
-		account, err := app.DB.GetCloudAccount(r.Context(), db.GetCloudAccountParams{
-			Cloud:     cloudProvider,
-			TenantID:  tenantID,
-			AccountID: id,
-		})
-		if err != nil {
-			_ = render.Render(w, r, responses.ErrInternalServerError)
-			return
-		}
-
-		changeCloudPayload := workers.ChangeTagsPayload{
-			Cloud:       cloudProvider,
-			TenantID:    tenantID,
-			AccountID:   id,
+		err = natsWorker.PublishTagChange(workers.ChangeTagsPayload{
+			ID:          account.ID.String(),
 			AccountName: account.Name,
-		}
-		err = natsWorker.PublishTagChange(changeCloudPayload)
+		})
 		if err != nil {
 			_ = render.Render(w, r, responses.ErrInternalServerError)
 			return

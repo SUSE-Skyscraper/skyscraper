@@ -54,6 +54,14 @@ func NewCmd(app *application.App) *cobra.Command {
 				r.Route("/api/v1", func(r chi.Router) {
 					r.Get("/profile", server.V1Profile)
 
+					r.Route("/cloud_accounts", func(r chi.Router) {
+						r.Get("/", server.V1ListCloudAccounts(app))
+						r.Route("/{id}", func(r chi.Router) {
+							r.Use(cloudAccountCtx)
+							r.Get("/", server.V1GetCloudAccount(app))
+							r.Put("/", server.V1UpdateCloudTenantAccount(app))
+						})
+					})
 					r.Route("/cloud_tenants", func(r chi.Router) {
 						r.Get("/", server.V1CloudTenants(app))
 						r.Route("/cloud/{cloud}/tenant/{tenant_id}", func(r chi.Router) {
@@ -62,7 +70,7 @@ func NewCmd(app *application.App) *cobra.Command {
 							r.Route("/accounts", func(r chi.Router) {
 								r.Get("/", server.V1ListCloudAccounts(app))
 
-								r.Route("/{id}", func(r chi.Router) {
+								r.Route("/{account_id}", func(r chi.Router) {
 									r.Use(cloudAccountCtx)
 									r.Get("/", server.V1GetCloudAccount(app))
 									r.Put("/", server.V1UpdateCloudTenantAccount(app))

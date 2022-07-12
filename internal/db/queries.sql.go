@@ -282,7 +282,32 @@ func (q *Queries) FindByUsername(ctx context.Context, username string) (User, er
 	return i, err
 }
 
-const getCloudAccount = `-- name: GetCloudAccount :one
+const findCloudAccount = `-- name: FindCloudAccount :one
+select id, cloud, tenant_id, account_id, name, active, tags_current, tags_desired, tags_drift_detected, created_at, updated_at
+from cloud_accounts
+where id = $1
+`
+
+func (q *Queries) FindCloudAccount(ctx context.Context, id uuid.UUID) (CloudAccount, error) {
+	row := q.db.QueryRow(ctx, findCloudAccount, id)
+	var i CloudAccount
+	err := row.Scan(
+		&i.ID,
+		&i.Cloud,
+		&i.TenantID,
+		&i.AccountID,
+		&i.Name,
+		&i.Active,
+		&i.TagsCurrent,
+		&i.TagsDesired,
+		&i.TagsDriftDetected,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const findCloudAccountByCloudAndTenant = `-- name: FindCloudAccountByCloudAndTenant :one
 select id, cloud, tenant_id, account_id, name, active, tags_current, tags_desired, tags_drift_detected, created_at, updated_at
 from cloud_accounts
 where cloud = $1
@@ -290,14 +315,14 @@ where cloud = $1
   and account_id = $3
 `
 
-type GetCloudAccountParams struct {
+type FindCloudAccountByCloudAndTenantParams struct {
 	Cloud     string
 	TenantID  string
 	AccountID string
 }
 
-func (q *Queries) GetCloudAccount(ctx context.Context, arg GetCloudAccountParams) (CloudAccount, error) {
-	row := q.db.QueryRow(ctx, getCloudAccount, arg.Cloud, arg.TenantID, arg.AccountID)
+func (q *Queries) FindCloudAccountByCloudAndTenant(ctx context.Context, arg FindCloudAccountByCloudAndTenantParams) (CloudAccount, error) {
+	row := q.db.QueryRow(ctx, findCloudAccountByCloudAndTenant, arg.Cloud, arg.TenantID, arg.AccountID)
 	var i CloudAccount
 	err := row.Scan(
 		&i.ID,
@@ -815,27 +840,18 @@ func (q *Queries) TruncatePolicies(ctx context.Context) error {
 
 const updateCloudAccount = `-- name: UpdateCloudAccount :exec
 update cloud_accounts
-set tags_desired = $4,
+set tags_desired = $2,
     updated_at   = now()
-where cloud = $1
-  and tenant_id = $2
-  and account_id = $3
+where id = $1
 `
 
 type UpdateCloudAccountParams struct {
-	Cloud       string
-	TenantID    string
-	AccountID   string
+	ID          uuid.UUID
 	TagsDesired pgtype.JSONB
 }
 
 func (q *Queries) UpdateCloudAccount(ctx context.Context, arg UpdateCloudAccountParams) error {
-	_, err := q.db.Exec(ctx, updateCloudAccount,
-		arg.Cloud,
-		arg.TenantID,
-		arg.AccountID,
-		arg.TagsDesired,
-	)
+	_, err := q.db.Exec(ctx, updateCloudAccount, arg.ID, arg.TagsDesired)
 	return err
 }
 

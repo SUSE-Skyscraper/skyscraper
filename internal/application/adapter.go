@@ -8,7 +8,6 @@ import (
 
 	"github.com/casbin/casbin/v2/model"
 	"github.com/casbin/casbin/v2/persist"
-	"github.com/jackc/pgx/v4"
 	"github.com/suse-skyscraper/skyscraper/internal/db"
 )
 
@@ -28,7 +27,7 @@ func (a *Adapter) IsFiltered() bool {
 }
 
 func (a *Adapter) LoadPolicy(model model.Model) error {
-	policies, err := a.app.DB.GetPolicies(context.Background())
+	policies, err := a.app.Repository.GetPolicies(context.Background())
 	if err != nil {
 		return err
 	}
@@ -45,18 +44,16 @@ func (a *Adapter) LoadPolicy(model model.Model) error {
 func (a *Adapter) SavePolicy(model model.Model) error {
 	ctx := context.Background()
 
-	tx, err := a.app.PostgresPool.Begin(ctx)
+	repo, err := a.app.Repository.Begin(ctx)
 	if err != nil {
 		return err
 	}
 
-	defer func(tx pgx.Tx, ctx context.Context) {
+	defer func(tx db.RepositoryQueries, ctx context.Context) {
 		_ = tx.Rollback(ctx)
-	}(tx, ctx)
+	}(repo, ctx)
 
-	q := db.New(tx)
-
-	err = q.TruncatePolicies(ctx)
+	err = repo.TruncatePolicies(ctx)
 	if err != nil {
 		return err
 	}
@@ -78,13 +75,13 @@ func (a *Adapter) SavePolicy(model model.Model) error {
 	}
 
 	for _, input := range toInput {
-		err = q.AddPolicy(ctx, input)
+		err = repo.CreatePolicy(ctx, input)
 		if err != nil {
 			return err
 		}
 	}
 
-	err = tx.Commit(ctx)
+	err = repo.Commit(ctx)
 	if err != nil {
 		return err
 	}
@@ -94,12 +91,14 @@ func (a *Adapter) SavePolicy(model model.Model) error {
 
 func (a *Adapter) AddPolicy(_ string, ptype string, rule []string) error {
 	input := addPolicyInput(ptype, rule)
-	return a.app.DB.AddPolicy(context.Background(), input)
+
+	return a.app.Repository.CreatePolicy(context.Background(), input)
 }
 
 func (a *Adapter) RemovePolicy(_ string, ptype string, rule []string) error {
 	input := removePolicyInput(ptype, rule)
-	return a.app.DB.RemovePolicy(context.Background(), input)
+
+	return a.app.Repository.RemovePolicy(context.Background(), input)
 }
 
 func (a *Adapter) RemoveFilteredPolicy(sec string, ptype string, fieldIndex int, fieldValues ...string) error {

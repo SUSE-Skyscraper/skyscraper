@@ -53,7 +53,7 @@ func TestV1ListCloudAccounts(t *testing.T) {
 		w := httptest.NewRecorder()
 		testApp := helpers.NewTestApp()
 
-		testApp.Search.
+		testApp.Repository.
 			On("SearchCloudAccounts", mock.Anything, mock.Anything).
 			Return([]db.CloudAccount{cloudAccount}, tc.getError)
 
@@ -71,44 +71,32 @@ func TestV1UpdateCloudTenantAccount(t *testing.T) {
 	type Test struct {
 		tags         []byte
 		updateError  error
-		getError     error
 		publishError error
 		statusCode   int
 	}
 
 	tests := []Test{
 		{
-			tags:         []byte(`{"tags_desired": {}}`),
+			tags:         []byte(`{"data": {"tags_desired": {}}}`),
 			updateError:  nil,
-			getError:     nil,
 			publishError: nil,
 			statusCode:   http.StatusOK,
 		},
 		{
 			tags:         []byte(`{}`),
 			updateError:  nil,
-			getError:     nil,
 			publishError: nil,
 			statusCode:   http.StatusBadRequest,
 		},
 		{
-			tags:         []byte(`{"tags_desired": {}}`),
+			tags:         []byte(`{"data": {"tags_desired": {}}}`),
 			updateError:  errors.New(""),
-			getError:     nil,
 			publishError: nil,
 			statusCode:   http.StatusInternalServerError,
 		},
 		{
-			tags:         []byte(`{"tags_desired": {}}`),
+			tags:         []byte(`{"data": {"tags_desired": {}}}`),
 			updateError:  nil,
-			getError:     errors.New(""),
-			publishError: nil,
-			statusCode:   http.StatusInternalServerError,
-		},
-		{
-			tags:         []byte(`{"tags_desired": {}}`),
-			updateError:  nil,
-			getError:     nil,
 			publishError: errors.New(""),
 			statusCode:   http.StatusInternalServerError,
 		},
@@ -120,11 +108,13 @@ func TestV1UpdateCloudTenantAccount(t *testing.T) {
 			bytes.NewReader(tc.tags))
 		req.Header.Add("Content-Type", "application/json")
 		w := httptest.NewRecorder()
-
 		testApp := helpers.NewTestApp()
 
-		testApp.DB.On("UpdateCloudAccount", mock.Anything, mock.Anything).Return(tc.updateError)
-		testApp.DB.On("GetCloudAccount", mock.Anything, mock.Anything).Return(cloudAccount, tc.getError)
+		ctx := req.Context()
+		ctx = context.WithValue(ctx, middleware.CloudAccount, cloudAccount)
+		req = req.WithContext(ctx)
+
+		testApp.Repository.On("UpdateCloudAccount", mock.Anything, mock.Anything).Return(cloudAccount, tc.updateError)
 		testApp.JS.On("PublishAsync", mock.Anything, mock.Anything, mock.Anything).Return(PubAckFuture{}, tc.publishError)
 
 		V1UpdateCloudTenantAccount(testApp.App)(w, req)

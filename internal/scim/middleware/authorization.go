@@ -22,7 +22,7 @@ func BearerAuthorizationHandler(app *application.App) func(next http.Handler) ht
 			}
 
 			token := authHeader[1]
-			_, err := app.DB.FindAPIKey(r.Context(), token)
+			_, err := app.Repository.FindAPIKey(r.Context(), token)
 			if err != nil && err == pgx.ErrNoRows {
 				w.WriteHeader(http.StatusUnauthorized)
 				_, _ = fmt.Fprintf(w, "Not Authorized")

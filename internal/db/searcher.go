@@ -10,7 +10,7 @@ type Searches struct {
 	pool *pgxpool.Pool
 }
 
-func NewSearch(pool *pgxpool.Pool) *Searches {
+func newSearch(pool *pgxpool.Pool) *Searches {
 	return &Searches{pool: pool}
 }
 
