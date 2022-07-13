@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { BackendService, CloudAccountsResponse } from '../backend.service';
 import { ActivatedRoute } from '@angular/router';
-import { FormControl } from '@angular/forms';
+import { FormArray, FormBuilder, FormControl, FormGroup } from '@angular/forms';
 
 @Component({
   selector: 'app-cloud-accounts',
@@ -12,29 +12,27 @@ export class CloudAccountsComponent implements OnInit {
   private cloud = '';
   private tenant_id = '';
 
-  public filterKey = '';
-  public filterValue = '';
   public cloudAccounts: Record<string, string>[] = [];
   public cloudTenantTags: string[] = [];
   public displayedColumns: string[] = [];
   public cloudAccountTagsForm = new FormControl();
   private cloudAccountTagsFormSelectedValues: string[] = [];
 
+  public filtersForm = this.fb.group({
+    filters: this.fb.array([]),
+  });
+
   constructor(
     private backendService: BackendService,
     private router: ActivatedRoute,
+    private fb: FormBuilder,
   ) {}
 
   ngOnInit(): void {
     this.cloud = String(this.router.snapshot.paramMap.get('cloud'));
     this.tenant_id = String(this.router.snapshot.paramMap.get('tenant_id'));
-    this.backendService
-      .getCloudTenantTags(this.cloud, this.tenant_id)
-      .subscribe((tags) => {
-        this.cloudTenantTags = tags.tags;
-        this.initializeForm();
-      });
 
+    this.getTags();
     this.searchAccounts();
   }
 
@@ -45,17 +43,21 @@ export class CloudAccountsComponent implements OnInit {
       .concat(['actions']);
   }
 
-  public filter() {
-    console.log(this.filterKey, this.filterValue);
-    if (this.filterKey === '' || this.filterValue === '') {
-      this.searchAccounts();
-    } else {
-      let filter: Map<string, string> = new Map([
-        [this.filterKey, this.filterValue],
-      ]);
+  get filters() {
+    return this.filtersForm.controls['filters'] as FormArray;
+  }
 
-      this.searchAccounts(filter);
-    }
+  public onFilterSubmit() {
+    let filterMap: Map<string, string> = new Map();
+
+    this.filters.controls.forEach((filter) => {
+      const key = filter.value['key'];
+      const value = filter.value['value'];
+
+      filterMap.set(key, value);
+    });
+
+    this.searchAccounts(filterMap);
   }
 
   private searchAccounts(filter?: Map<string, string>) {
@@ -87,6 +89,15 @@ export class CloudAccountsComponent implements OnInit {
       });
   }
 
+  private getTags() {
+    this.backendService
+      .getCloudTenantTags(this.cloud, this.tenant_id)
+      .subscribe((tags) => {
+        this.cloudTenantTags = tags.tags;
+        this.initializeForm();
+      });
+  }
+
   private initializeForm() {
     for (let i = 0; i < this.cloudTenantTags.length; i++) {
       if (i > 4) {
@@ -97,5 +108,19 @@ export class CloudAccountsComponent implements OnInit {
 
     this.cloudAccountTagsForm.setValue(this.cloudAccountTagsFormSelectedValues);
     this.updateForm();
+  }
+
+  public addFilter() {
+    this.filters.push(this.newFilter('', ''));
+  }
+
+  public removeFilter(i: number) {
+    this.filters.removeAt(i);
+  }
+  private newFilter(key: string, value: string): FormGroup {
+    return this.fb.group({
+      key: [{ value: key, disabled: false }],
+      value: [{ value: value, disabled: false }],
+    });
   }
 }

@@ -16,37 +16,53 @@
         </mat-form-field>
       </form>
 
-      <form>
-        <h4>Filter:</h4>
-        <div>
-          <mat-form-field appearance="fill">
-            <mat-label>Tags</mat-label>
-            <mat-select [(ngModel)]="filterKey" name="key">
-              <mat-option *ngFor="let tag of cloudTenantTags" [value]="tag">
-                {{ tag }}
-              </mat-option>
-            </mat-select>
-          </mat-form-field>
-        </div>
-        <div>
-          <mat-form-field appearance="fill">
-            <mat-label>Filter Tag Value</mat-label>
-            <input
-              matInput
-              type="text"
-              [(ngModel)]="filterValue"
-              [ngModelOptions]="{ standalone: true }" />
-          </mat-form-field>
-        </div>
-        <div>
-          <button
-            type="button"
-            mat-raised-button
-            color="accent"
-            (click)="filter()">
-            Filter
-          </button>
-        </div>
+      <form [formGroup]="filtersForm" (ngSubmit)="onFilterSubmit()">
+        <ng-container formArrayName="filters">
+          <h4>Filters</h4>
+
+          <ng-container *ngFor="let filter of filters.controls; let i = index">
+            <div
+              [formGroupName]="i"
+              class="border-slate-200 border p-2 rounded my-2">
+              <mat-form-field appearance="fill">
+                <mat-select formControlName="key">
+                  <mat-option *ngFor="let tag of cloudTenantTags" [value]="tag">
+                    {{ tag }}
+                  </mat-option>
+                </mat-select>
+              </mat-form-field>
+              <mat-form-field appearance="fill">
+                <input
+                  matInput
+                  formControlName="value"
+                  placeholder="Filter Value" />
+              </mat-form-field>
+              <button
+                type="button"
+                mat-raised-button
+                color="warn"
+                (click)="removeFilter(i)">
+                Remove Tag
+              </button>
+            </div>
+          </ng-container>
+          <div class="flex">
+            <div>
+              <button type="submit" mat-raised-button color="primary">
+                Search
+              </button>
+            </div>
+            <div class="ml-auto">
+              <button
+                type="button"
+                mat-raised-button
+                color="accent"
+                (click)="addFilter()">
+                Add Filter
+              </button>
+            </div>
+          </div>
+        </ng-container>
       </form>
     </div>
   </aside>
