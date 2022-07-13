@@ -28,6 +28,11 @@ type RepositoryQueries interface {
 	UpdateCloudAccount(ctx context.Context, input UpdateCloudAccountParams) (CloudAccount, error)
 	SearchCloudAccounts(ctx context.Context, input SearchCloudAccountsInput) ([]CloudAccount, error)
 
+	CreateTag(ctx context.Context, input CreateTagParams) (Tag, error)
+	UpdateTag(ctx context.Context, input UpdateTagParams) (Tag, error)
+	FindTag(ctx context.Context, id uuid.UUID) (Tag, error)
+	GetTags(ctx context.Context) ([]Tag, error)
+
 	GetCloudTenants(ctx context.Context) ([]CloudTenant, error)
 	CreateCloudTenant(ctx context.Context, input CreateCloudTenantParams) error
 

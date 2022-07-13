@@ -3,9 +3,13 @@
 <mat-toolbar color="primary" id="navbar">
   <mat-toolbar-row>
     <span>SUSE Skyscraper</span>
+    <a mat-button *ngIf="isAuthenticated" routerLink="/cloud_accounts"
+      >Cloud Accounts</a
+    >
     <a mat-button *ngIf="isAuthenticated" routerLink="/cloud_tenants"
       >Cloud Tenants</a
     >
+    <a mat-button *ngIf="isAuthenticated" routerLink="/tags">Tags</a>
 
     <span class="example-spacer"></span>
     <div *ngIf="isAuthenticated && this.profile !== undefined; else loggedOut">

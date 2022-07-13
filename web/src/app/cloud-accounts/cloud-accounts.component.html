@@ -71,6 +71,16 @@
     <h1>Accounts</h1>
     <div *ngIf="cloudAccounts?.length; else noAccounts">
       <table mat-table [dataSource]="cloudAccounts" class="mat-elevation-z8">
+        <ng-container matColumnDef="cloud">
+          <th mat-header-cell *matHeaderCellDef>Cloud</th>
+          <td mat-cell *matCellDef="let element">{{ element.cloud }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="tenant_id">
+          <th mat-header-cell *matHeaderCellDef>Tenant ID</th>
+          <td mat-cell *matCellDef="let element">{{ element.tenant_id }}</td>
+        </ng-container>
+
         <ng-container matColumnDef="id">
           <th mat-header-cell *matHeaderCellDef>ID</th>
           <td mat-cell *matCellDef="let element">{{ element.account_id }}</td>

@@ -15,23 +15,32 @@ export class BackendService {
 
   getProfile(): Observable<UserResponse> {
     const url = new URL('/api/v1/profile', this.host);
+
     return this.http.get<UserResponse>(url.href);
+  }
+
+  getTags(): Observable<TagsResponse> {
+    const url = new URL(`/api/v1/tags`, this.host);
+
+    return this.http.get<TagsResponse>(url.href);
+  }
+
+  updateTag(id: string, update: UpdateTagRequest): Observable<TagsResponse> {
+    const url = new URL(`/api/v1/tags/${id}`, this.host);
+
+    return this.http.put<TagResponse>(url.href, update);
+  }
+
+  createTag(update: CreateTagRequest): Observable<TagsResponse> {
+    const url = new URL(`/api/v1/tags`, this.host);
+
+    return this.http.post<TagResponse>(url.href, update);
   }
 
   getCloudTenants(): Observable<CloudTenantsResponse> {
     const url = new URL('/api/v1/cloud_tenants', this.host);
-    return this.http.get<CloudTenantsResponse>(url.href);
-  }
 
-  getCloudTenantTags(
-    cloud: string,
-    tenantId: string,
-  ): Observable<CloudTenantTags> {
-    const url = new URL(
-      `/api/v1/cloud_tenants/cloud/${cloud}/tenant/${tenantId}/tags`,
-      this.host,
-    );
-    return this.http.get<CloudTenantTags>(url.href);
+    return this.http.get<CloudTenantsResponse>(url.href);
   }
 
   getCloudAccount(
@@ -60,14 +69,9 @@ export class BackendService {
   }
 
   getCloudAccounts(
-    cloud: string,
-    tenantId: string,
-    filter?: Map<string, string>,
+    filter: Map<string, string>,
   ): Observable<CloudAccountsResponse> {
-    const url = new URL(
-      `/api/v1/cloud_tenants/cloud/${cloud}/tenant/${tenantId}/accounts`,
-      this.host,
-    );
+    const url = new URL(`/api/v1/cloud_accounts`, this.host);
     if (filter !== undefined) {
       filter.forEach((value, key) => {
         url.searchParams.append(key, value);
@@ -131,14 +135,53 @@ export interface CloudAccountAttributes {
   updated_at: string;
 }
 
-export interface UpdateCloudAccountRequest {
-  data: UpdateCloudAccountRequestData;
-}
-
 export interface UpdateCloudAccountRequestData {
   tags_desired: { [key: string]: string };
 }
 
-export interface CloudTenantTags {
-  tags: string[];
+export interface UpdateCloudAccountRequest {
+  data: UpdateCloudAccountRequestData;
+}
+
+export interface TagItemAttributes {
+  display_name: string;
+  required: boolean;
+  description: string;
+  key: string;
+}
+
+export interface TagItem {
+  id: string;
+  type: string;
+  attributes: TagItemAttributes;
+}
+
+export interface TagsResponse {
+  data: TagItem[] | null;
+}
+
+export interface TagResponse {
+  data: TagItem[] | null;
+}
+
+export interface UpdateTagRequestData {
+  display_name: string;
+  key: string;
+  required: boolean;
+  description: string;
+}
+
+export interface UpdateTagRequest {
+  data: UpdateTagRequestData;
+}
+
+export interface CreateTagRequestData {
+  display_name: string;
+  key: string;
+  required: boolean;
+  description: string;
+}
+
+export interface CreateTagRequest {
+  data: CreateTagRequestData;
 }

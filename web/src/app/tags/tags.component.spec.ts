@@ -1,40 +1,28 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { CloudAccountsComponent } from './cloud-accounts.component';
-import { ActivatedRoute, convertToParamMap } from '@angular/router';
+import { TagsComponent } from './tags.component';
 import { MockProvider } from 'ng-mocks';
 import { BackendService } from '../backend.service';
 import { EMPTY } from 'rxjs';
 import { FormBuilder } from '@angular/forms';
 
-describe('CloudAccountsComponent', () => {
-  let component: CloudAccountsComponent;
-  let fixture: ComponentFixture<CloudAccountsComponent>;
+describe('TagsComponent', () => {
+  let component: TagsComponent;
+  let fixture: ComponentFixture<TagsComponent>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [CloudAccountsComponent],
+      declarations: [TagsComponent],
       providers: [
         MockProvider(BackendService, {
           getCloudAccounts: () => EMPTY,
           getTags: () => EMPTY,
         }),
         FormBuilder,
-        {
-          provide: ActivatedRoute,
-          useValue: {
-            snapshot: {
-              paramMap: convertToParamMap({
-                cloud: 'AWS',
-                tenant_id: '12345',
-              }),
-            },
-          },
-        },
       ],
     }).compileComponents();
 
-    fixture = TestBed.createComponent(CloudAccountsComponent);
+    fixture = TestBed.createComponent(TagsComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

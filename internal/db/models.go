@@ -69,6 +69,17 @@ type ScimApiKey struct {
 	UpdatedAt time.Time
 }
 
+type Tag struct {
+	ID          uuid.UUID
+	DisplayName string
+	Description string
+	Required    bool
+	Key         string
+	Overrides   pgtype.JSONB
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+}
+
 type User struct {
 	ID          uuid.UUID
 	Username    string

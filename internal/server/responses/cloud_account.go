@@ -6,20 +6,6 @@ import (
 	"github.com/suse-skyscraper/skyscraper/internal/db"
 )
 
-type CloudAccountTagsResponse struct {
-	Tags []string `json:"tags"`
-}
-
-func (rd *CloudAccountTagsResponse) Render(_ http.ResponseWriter, _ *http.Request) error {
-	return nil
-}
-
-func NewCloudAccountTagsResponse(tags []string) *CloudAccountTagsResponse {
-	return &CloudAccountTagsResponse{
-		Tags: tags,
-	}
-}
-
 type CloudAccountItemAttributes struct {
 	CloudProvider     string      `json:"cloud_provider"`
 	TenantID          string      `json:"tenant_id"`

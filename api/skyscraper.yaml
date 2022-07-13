@@ -23,11 +23,7 @@ paths:
         - bearerAuth: []
       responses:
         '200':
-          description: The current user's profile
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/User'
+          $ref: '#/components/responses/UserResponse'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '500':
@@ -50,33 +46,48 @@ paths:
           $ref: '#/components/responses/UnauthorizedError'
         '500':
           $ref: '#/components/responses/InternalError'
-  /api/v1/cloud_tenants/cloud/{cloud}/tenant/{tenant_id}/tags:
-    get:
-      description: Returns the tags for a cloud tenant
+  /api/v1/tags:
+    post:
+      description: Creates a tag
       security:
         - bearerAuth: []
-      parameters:
-        - name: cloud
-          in: path
-          description: The cloud name
-          required: true
-          schema:
-            type: string
-        - name: tenant_id
-          in: path
-          description: The tenant ID
-          required: true
-          schema:
-            type: string
+      requestBody:
+        $ref: '#/components/requestBodies/CreateTagRequest'
+      responses:
+        '201':
+          $ref: '#/components/responses/TagResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    get:
+      description: Returns the tags
+      security:
+        - bearerAuth: []
       responses:
         '200':
-          description: The tags for the tenant
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  type: string
+          $ref: '#/components/responses/TagsResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/v1/tags/{id}:
+    put:
+      description: Creates a tag
+      parameters:
+        - name: id
+          in: path
+          description: The tag ID
+          required: true
+          schema:
+            type: string
+      security:
+        - bearerAuth: []
+      requestBody:
+        $ref: '#/components/requestBodies/UpdateTagRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/TagResponse'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '500':
@@ -101,11 +112,7 @@ paths:
             type: string
       responses:
         '200':
-          description: The accounts for a cloud tenant
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CloudAccountsResponse'
+          $ref: '#/components/responses/AccountsResponse'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '500':
@@ -135,17 +142,10 @@ paths:
           schema:
             type: string
       requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AccountUpdate'
+        $ref: '#/components/requestBodies/UpdateAccountRequest'
       responses:
         '200':
-          description: The updated account
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Account'
+          $ref: '#/components/responses/AccountResponse'
         '400':
           $ref: '#/components/responses/BadRequestError'
         '401':
@@ -177,16 +177,61 @@ paths:
             type: string
       responses:
         '200':
-          description: The account for a cloud tenant
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CloudAccountResponse'
+          $ref: '#/components/responses/AccountResponse'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '500':
           $ref: '#/components/responses/InternalError'
 components:
+  requestBodies:
+    CreateTagRequest:
+      description: To update a tag
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+                properties:
+                  display_name:
+                    type: string
+                  key:
+                    type: string
+                  required:
+                    type: boolean
+                  description:
+                    type: string
+    UpdateTagRequest:
+      description: To update a tag
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+                properties:
+                  display_name:
+                    type: string
+                  key:
+                    type: string
+                  required:
+                    type: boolean
+                  description:
+                    type: string
+    UpdateAccountRequest:
+      description: The account update request body
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+                properties:
+                  tags_desired:
+                    type: object
   responses:
     BadRequestError:
       description: Bad request
@@ -194,6 +239,56 @@ components:
       description: Access token is missing or invalid
     InternalError:
       description: An unexpected internal error occurred
+    AccountsResponse:
+      description: The accounts
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Account'
+
+    AccountResponse:
+      description: The account
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                $ref: '#/components/schemas/Account'
+    UserResponse:
+      description: The user
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                $ref: '#/components/schemas/User'
+    TagResponse:
+      description: The Tag
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                $ref: '#/components/schemas/Tag'
+    TagsResponse:
+      description: The Tags
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Tag'
   securitySchemes:
     bearerAuth:
       type: http
@@ -243,25 +338,24 @@ components:
           type: string
         updated_at:
           type: string
-    AccountUpdate:
+    Tag:
       type: object
       properties:
-        tags_desired:
+        id:
+          type: string
+        type:
+          type: string
+        attributes:
           type: object
-          additionalProperties:
-            type: string
-    CloudAccountsResponse:
-      type: object
-      properties:
-        data:
-          type: array
-          items:
-            $ref: '#/components/schemas/Account'
-    CloudAccountResponse:
-      type: object
-      properties:
-        data:
-          $ref: '#/components/schemas/Account'
+          properties:
+            display_name:
+              type: string
+            description:
+              type: string
+            required:
+              type: boolean
+            key:
+              type: string
     Account:
       type: object
       properties:

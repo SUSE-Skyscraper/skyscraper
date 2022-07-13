@@ -38,6 +38,30 @@ type TestRepository struct {
 	mock.Mock
 }
 
+func (t *TestRepository) CreateTag(ctx context.Context, input db.CreateTagParams) (db.Tag, error) {
+	args := t.Called(ctx, input)
+
+	return args.Get(0).(db.Tag), args.Error(1)
+}
+
+func (t *TestRepository) UpdateTag(ctx context.Context, input db.UpdateTagParams) (db.Tag, error) {
+	args := t.Called(ctx, input)
+
+	return args.Get(0).(db.Tag), args.Error(1)
+}
+
+func (t *TestRepository) FindTag(ctx context.Context, id uuid.UUID) (db.Tag, error) {
+	args := t.Called(ctx, id)
+
+	return args.Get(0).(db.Tag), args.Error(1)
+}
+
+func (t *TestRepository) GetTags(ctx context.Context) ([]db.Tag, error) {
+	args := t.Called(ctx)
+
+	return args.Get(0).([]db.Tag), args.Error(1)
+}
+
 func (t *TestRepository) UpdateCloudAccountTagsDriftDetected(
 	ctx context.Context,
 	input db.UpdateCloudAccountTagsDriftDetectedParams,

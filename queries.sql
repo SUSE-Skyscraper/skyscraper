@@ -236,3 +236,36 @@ where ptype = 'g'
 
 -- name: TruncatePolicies :exec
 truncate policies;
+
+--------------------------------------------------------------------------------------------------------------------
+-- Tags
+--------------------------------------------------------------------------------------------------------------------
+
+-- name: GetTags :many
+select *
+from tags
+order by key;
+
+-- name: CreateTag :one
+insert into tags (display_name, key, required, description, created_at, updated_at)
+values ($1, $2, $3, $4, now(), now())
+returning *;
+
+-- name: FindTag :one
+select *
+from tags
+where id = $1;
+
+-- name: UpdateTag :exec
+update tags
+set display_name = $2,
+    key          = $3,
+    required     = $4,
+    description  = $5,
+    updated_at   = now()
+where id = $1;
+
+-- name: DeleteTag :exec
+delete
+from tags
+where id = $1;

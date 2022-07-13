@@ -23,6 +23,32 @@ type Repository struct {
 	tx           pgx.Tx
 }
 
+func (r *Repository) CreateTag(ctx context.Context, input CreateTagParams) (Tag, error) {
+	return r.db.CreateTag(ctx, input)
+}
+
+func (r *Repository) UpdateTag(ctx context.Context, input UpdateTagParams) (Tag, error) {
+	err := r.db.UpdateTag(ctx, input)
+	if err != nil {
+		return Tag{}, err
+	}
+
+	tag, err := r.db.FindTag(ctx, input.ID)
+	if err != nil {
+		return Tag{}, err
+	}
+
+	return tag, nil
+}
+
+func (r *Repository) FindTag(ctx context.Context, id uuid.UUID) (Tag, error) {
+	return r.db.FindTag(ctx, id)
+}
+
+func (r *Repository) GetTags(ctx context.Context) ([]Tag, error) {
+	return r.db.GetTags(ctx)
+}
+
 func (r *Repository) CreateCloudTenant(ctx context.Context, input CreateCloudTenantParams) error {
 	return r.db.CreateCloudTenant(ctx, input)
 }

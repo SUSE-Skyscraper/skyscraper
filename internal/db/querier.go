@@ -19,8 +19,10 @@ type Querier interface {
 	CreateGroup(ctx context.Context, displayName string) (Group, error)
 	CreateMembershipForUserAndGroup(ctx context.Context, arg CreateMembershipForUserAndGroupParams) error
 	CreateOrInsertCloudAccount(ctx context.Context, arg CreateOrInsertCloudAccountParams) (CloudAccount, error)
+	CreateTag(ctx context.Context, arg CreateTagParams) (Tag, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	DeleteGroup(ctx context.Context, id uuid.UUID) error
+	DeleteTag(ctx context.Context, id uuid.UUID) error
 	DeleteUser(ctx context.Context, id uuid.UUID) error
 	DropMembershipForGroup(ctx context.Context, groupID uuid.UUID) error
 	DropMembershipForUserAndGroup(ctx context.Context, arg DropMembershipForUserAndGroupParams) error
@@ -28,6 +30,7 @@ type Querier interface {
 	FindByUsername(ctx context.Context, username string) (User, error)
 	FindCloudAccount(ctx context.Context, id uuid.UUID) (CloudAccount, error)
 	FindCloudAccountByCloudAndTenant(ctx context.Context, arg FindCloudAccountByCloudAndTenantParams) (CloudAccount, error)
+	FindTag(ctx context.Context, id uuid.UUID) (Tag, error)
 	GetCloudTenant(ctx context.Context, arg GetCloudTenantParams) (CloudTenant, error)
 	GetCloudTenants(ctx context.Context) ([]CloudTenant, error)
 	GetGroup(ctx context.Context, id uuid.UUID) (Group, error)
@@ -48,6 +51,10 @@ type Querier interface {
 	// we use uuid v5 so we can calculate the id from a collection of values
 	//------------------------------------------------------------------------------------------------------------------
 	GetPolicies(ctx context.Context) ([]Policy, error)
+	//------------------------------------------------------------------------------------------------------------------
+	// Tags
+	//------------------------------------------------------------------------------------------------------------------
+	GetTags(ctx context.Context) ([]Tag, error)
 	GetUser(ctx context.Context, id uuid.UUID) (User, error)
 	GetUserCount(ctx context.Context) (int64, error)
 	//------------------------------------------------------------------------------------------------------------------
@@ -69,6 +76,7 @@ type Querier interface {
 	TruncatePolicies(ctx context.Context) error
 	UpdateCloudAccount(ctx context.Context, arg UpdateCloudAccountParams) error
 	UpdateCloudAccountTagsDriftDetected(ctx context.Context, arg UpdateCloudAccountTagsDriftDetectedParams) error
+	UpdateTag(ctx context.Context, arg UpdateTagParams) error
 	UpdateUser(ctx context.Context, arg UpdateUserParams) error
 }
 

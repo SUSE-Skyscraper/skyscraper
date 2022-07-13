@@ -9,8 +9,8 @@ import { FormArray, FormBuilder, FormControl, FormGroup } from '@angular/forms';
   styleUrls: ['./cloud-accounts.component.scss'],
 })
 export class CloudAccountsComponent implements OnInit {
-  private cloud = '';
-  private tenant_id = '';
+  private cloud: string | null = null;
+  private tenant_id: string | null = null;
 
   public cloudAccounts: Record<string, string>[] = [];
   public cloudTenantTags: string[] = [];
@@ -29,8 +29,13 @@ export class CloudAccountsComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.cloud = String(this.router.snapshot.paramMap.get('cloud'));
-    this.tenant_id = String(this.router.snapshot.paramMap.get('tenant_id'));
+    let cloud = this.router.snapshot.paramMap.get('cloud');
+    let tenant_id = this.router.snapshot.paramMap.get('tenant_id');
+
+    if (cloud !== null && tenant_id !== null) {
+      this.cloud = cloud;
+      this.tenant_id = tenant_id;
+    }
 
     this.getTags();
     this.searchAccounts();
@@ -41,6 +46,10 @@ export class CloudAccountsComponent implements OnInit {
     this.displayedColumns = ['name', 'id']
       .concat(this.cloudAccountTagsFormSelectedValues)
       .concat(['actions']);
+
+    if (this.cloud === null || this.tenant_id === null) {
+      this.displayedColumns.unshift('cloud', 'tenant_id');
+    }
   }
 
   get filters() {
@@ -48,7 +57,57 @@ export class CloudAccountsComponent implements OnInit {
   }
 
   public onFilterSubmit() {
+    this.searchAccounts();
+  }
+
+  public addFilter() {
+    this.filters.push(this.newFilter('', ''));
+  }
+
+  public removeFilter(i: number) {
+    this.filters.removeAt(i);
+  }
+
+  private newFilter(key: string, value: string): FormGroup {
+    return this.fb.group({
+      key: [{ value: key, disabled: false }],
+      value: [{ value: value, disabled: false }],
+    });
+  }
+
+  private getTags() {
+    this.backendService.getTags().subscribe((response) => {
+      if (response.data !== null && response.data.length !== 0) {
+        let tags: string[] = [];
+        response.data.forEach((tag) => {
+          tags.push(tag.attributes.key);
+        });
+        this.cloudTenantTags = tags;
+      }
+
+      this.initializeForm();
+    });
+  }
+
+  private initializeForm() {
+    for (let i = 0; i < this.cloudTenantTags.length; i++) {
+      if (i > 4) {
+        break;
+      }
+      this.cloudAccountTagsFormSelectedValues.push(this.cloudTenantTags[i]);
+    }
+
+    this.cloudAccountTagsForm.setValue(this.cloudAccountTagsFormSelectedValues);
+    this.updateForm();
+  }
+
+  private searchAccounts() {
     let filterMap: Map<string, string> = new Map();
+
+    if (this.cloud !== null && this.tenant_id !== null) {
+      filterMap.set('cloud', this.cloud);
+      filterMap.set('tenant_id', this.tenant_id);
+    }
 
     this.filters.controls.forEach((filter) => {
       const key = filter.value['key'];
@@ -57,12 +116,8 @@ export class CloudAccountsComponent implements OnInit {
       filterMap.set(key, value);
     });
 
-    this.searchAccounts(filterMap);
-  }
-
-  private searchAccounts(filter?: Map<string, string>) {
     this.backendService
-      .getCloudAccounts(this.cloud, this.tenant_id, filter)
+      .getCloudAccounts(filterMap)
       .subscribe((response: CloudAccountsResponse) => {
         if (response.data.length === 0) {
           this.cloudAccounts = [];
@@ -87,40 +142,5 @@ export class CloudAccountsComponent implements OnInit {
           }
         }
       });
-  }
-
-  private getTags() {
-    this.backendService
-      .getCloudTenantTags(this.cloud, this.tenant_id)
-      .subscribe((tags) => {
-        this.cloudTenantTags = tags.tags;
-        this.initializeForm();
-      });
-  }
-
-  private initializeForm() {
-    for (let i = 0; i < this.cloudTenantTags.length; i++) {
-      if (i > 4) {
-        break;
-      }
-      this.cloudAccountTagsFormSelectedValues.push(this.cloudTenantTags[i]);
-    }
-
-    this.cloudAccountTagsForm.setValue(this.cloudAccountTagsFormSelectedValues);
-    this.updateForm();
-  }
-
-  public addFilter() {
-    this.filters.push(this.newFilter('', ''));
-  }
-
-  public removeFilter(i: number) {
-    this.filters.removeAt(i);
-  }
-  private newFilter(key: string, value: string): FormGroup {
-    return this.fb.group({
-      key: [{ value: key, disabled: false }],
-      value: [{ value: value, disabled: false }],
-    });
   }
 }

@@ -28,6 +28,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatOptionModule } from '@angular/material/core';
 import { MatSelectModule } from '@angular/material/select';
+import { TagsComponent } from './tags/tags.component';
 
 @NgModule({
   declarations: [
@@ -37,6 +38,7 @@ import { MatSelectModule } from '@angular/material/select';
     CloudTenantsComponent,
     CloudAccountsComponent,
     CloudAccountComponent,
+    TagsComponent,
   ],
   imports: [
     BrowserModule,

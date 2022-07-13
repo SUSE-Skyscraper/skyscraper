@@ -31,7 +31,8 @@ func NewCmd(app *application.App) *cobra.Command {
 			scimAuthorizer := scimmiddleware.BearerAuthorizationHandler(app)
 			cloudAccountCtx := apimiddleware.CloudAccountCtx(app)
 			scimUserCtx := scimmiddleware.UserCtx(app)
-			scimGroupCtc := scimmiddleware.GroupCtx(app)
+			scimGroupCtx := scimmiddleware.GroupCtx(app)
+			tagCtx := apimiddleware.TagCtx(app)
 
 			// common middleware
 			r.Use(chimiddleware.Logger)
@@ -54,6 +55,15 @@ func NewCmd(app *application.App) *cobra.Command {
 				r.Route("/api/v1", func(r chi.Router) {
 					r.Get("/profile", server.V1Profile)
 
+					r.Route("/tags", func(r chi.Router) {
+						r.Get("/", server.V1Tags(app))
+						r.Post("/", server.V1CreateTag(app))
+						r.Route("/{id}", func(r chi.Router) {
+							r.Use(tagCtx)
+							r.Put("/", server.V1UpdateTag(app))
+						})
+					})
+
 					r.Route("/cloud_accounts", func(r chi.Router) {
 						r.Get("/", server.V1ListCloudAccounts(app))
 						r.Route("/{id}", func(r chi.Router) {
@@ -65,8 +75,6 @@ func NewCmd(app *application.App) *cobra.Command {
 					r.Route("/cloud_tenants", func(r chi.Router) {
 						r.Get("/", server.V1CloudTenants(app))
 						r.Route("/cloud/{cloud}/tenant/{tenant_id}", func(r chi.Router) {
-							r.Get("/tags", server.V1CloudTenantTags(app))
-
 							r.Route("/accounts", func(r chi.Router) {
 								r.Get("/", server.V1ListCloudAccounts(app))
 
@@ -97,7 +105,7 @@ func NewCmd(app *application.App) *cobra.Command {
 					r.Get("/Groups", scim.V2ListGroups(app))
 					r.Post("/Groups", scim.V2CreateGroup(app))
 					r.Route("/Groups/{id}", func(r chi.Router) {
-						r.Use(scimGroupCtc)
+						r.Use(scimGroupCtx)
 						r.Get("/", scim.V2GetGroup(app))
 						r.Patch("/", scim.V2PatchGroup(app))
 						r.Delete("/", scim.V2DeleteGroup(app))
