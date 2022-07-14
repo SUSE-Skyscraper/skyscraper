@@ -12,15 +12,18 @@ export class CloudAccountsComponent implements OnInit {
   private cloud: string | null = null;
   private tenant_id: string | null = null;
 
-  public cloudAccounts: Record<string, string>[] = [];
-  public cloudTenantTags: string[] = [];
-  public displayedColumns: string[] = [];
-  public cloudAccountTagsForm = new FormControl();
-  private cloudAccountTagsFormSelectedValues: string[] = [];
+  public tableDisplayedColumns: string[] = [];
+  public tableData: Record<string, string>[] = [];
 
-  public filtersForm = this.fb.group({
+  // Display Tags dynamic form
+  public displayTagsForm = new FormControl();
+  public tags: string[] = [];
+
+  // Search filter dynamic form
+  public searchFiltersForm = this.fb.group({
     filters: this.fb.array([]),
   });
+  public searchFilters: string[] = [];
 
   constructor(
     private backendService: BackendService,
@@ -41,64 +44,22 @@ export class CloudAccountsComponent implements OnInit {
     this.searchAccounts();
   }
 
-  public updateForm() {
-    this.cloudAccountTagsFormSelectedValues = this.cloudAccountTagsForm.value;
-    this.displayedColumns = ['name', 'id']
-      .concat(this.cloudAccountTagsFormSelectedValues)
-      .concat(['actions']);
-
-    if (this.cloud === null || this.tenant_id === null) {
-      this.displayedColumns.unshift('cloud', 'tenant_id');
-    }
-  }
-
-  get filters() {
-    return this.filtersForm.controls['filters'] as FormArray;
-  }
-
-  public onFilterSubmit() {
-    this.searchAccounts();
-  }
-
-  public addFilter() {
-    this.filters.push(this.newFilter('', ''));
-  }
-
-  public removeFilter(i: number) {
-    this.filters.removeAt(i);
-  }
-
-  private newFilter(key: string, value: string): FormGroup {
-    return this.fb.group({
-      key: [{ value: key, disabled: false }],
-      value: [{ value: value, disabled: false }],
-    });
-  }
-
   private getTags() {
+    let filters: string[] = ['cloud', 'tenant_id'];
+    let tags: string[] = [];
+
     this.backendService.getTags().subscribe((response) => {
       if (response.data !== null && response.data.length !== 0) {
-        let tags: string[] = [];
         response.data.forEach((tag) => {
           tags.push(tag.attributes.key);
+          filters.push(tag.attributes.key);
         });
-        this.cloudTenantTags = tags;
       }
+      this.tags = tags;
+      this.searchFilters = filters;
 
-      this.initializeForm();
+      this.initializeTagForm();
     });
-  }
-
-  private initializeForm() {
-    for (let i = 0; i < this.cloudTenantTags.length; i++) {
-      if (i > 4) {
-        break;
-      }
-      this.cloudAccountTagsFormSelectedValues.push(this.cloudTenantTags[i]);
-    }
-
-    this.cloudAccountTagsForm.setValue(this.cloudAccountTagsFormSelectedValues);
-    this.updateForm();
   }
 
   private searchAccounts() {
@@ -109,7 +70,7 @@ export class CloudAccountsComponent implements OnInit {
       filterMap.set('tenant_id', this.tenant_id);
     }
 
-    this.filters.controls.forEach((filter) => {
+    this.filterFormArray.controls.forEach((filter) => {
       const key = filter.value['key'];
       const value = filter.value['value'];
 
@@ -119,10 +80,9 @@ export class CloudAccountsComponent implements OnInit {
     this.backendService
       .getCloudAccounts(filterMap)
       .subscribe((response: CloudAccountsResponse) => {
-        if (response.data.length === 0) {
-          this.cloudAccounts = [];
-        } else {
-          let accounts = [];
+        let accounts = [];
+
+        if (response.data.length !== 0) {
           for (let account of response.data) {
             let object: Record<string, string> = {
               name: account.attributes.name,
@@ -137,10 +97,71 @@ export class CloudAccountsComponent implements OnInit {
             );
 
             accounts.push(object);
-
-            this.cloudAccounts = accounts;
           }
         }
+
+        this.tableData = accounts;
       });
+  }
+
+  //--------------------------------------------------------------------------------------------------------------------
+  // Tags Dynamic Form
+  //--------------------------------------------------------------------------------------------------------------------
+
+  public onDisplayTagsChange() {
+    this.refreshTagForm();
+  }
+
+  private initializeTagForm() {
+    let initialTags: string[] = [];
+
+    // Display the first four tags by default
+    for (let i = 0; i < this.tags.length; i++) {
+      if (i > 4) {
+        break;
+      }
+      initialTags.push(this.tags[i]);
+    }
+
+    this.displayTagsForm.setValue(initialTags);
+
+    this.refreshTagForm();
+  }
+
+  private refreshTagForm() {
+    this.tableDisplayedColumns = ['name', 'id']
+      .concat(this.displayTagsForm.value)
+      .concat(['actions']);
+
+    if (this.cloud === null || this.tenant_id === null) {
+      this.tableDisplayedColumns.unshift('cloud', 'tenant_id');
+    }
+  }
+
+  //--------------------------------------------------------------------------------------------------------------------
+  // Search Filters Dynamic Form
+  //--------------------------------------------------------------------------------------------------------------------
+
+  get filterFormArray() {
+    return this.searchFiltersForm.controls['filters'] as FormArray;
+  }
+
+  public onFilterSubmit() {
+    this.searchAccounts();
+  }
+
+  public addFilter() {
+    this.filterFormArray.push(this.newFilter('', ''));
+  }
+
+  public removeFilter(i: number) {
+    this.filterFormArray.removeAt(i);
+  }
+
+  private newFilter(key: string, value: string): FormGroup {
+    return this.fb.group({
+      key: [{ value: key, disabled: false }],
+      value: [{ value: value, disabled: false }],
+    });
   }
 }

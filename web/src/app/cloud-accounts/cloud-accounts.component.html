@@ -6,28 +6,31 @@
         <mat-form-field appearance="fill">
           <mat-label>Columns</mat-label>
           <mat-select
-            [formControl]="cloudAccountTagsForm"
+            [formControl]="displayTagsForm"
             multiple
-            (selectionChange)="updateForm()">
-            <mat-option *ngFor="let tag of cloudTenantTags" [value]="tag">
+            (selectionChange)="onDisplayTagsChange()">
+            <mat-option *ngFor="let tag of tags" [value]="tag">
               {{ tag }}
             </mat-option>
           </mat-select>
         </mat-form-field>
       </form>
 
-      <form [formGroup]="filtersForm" (ngSubmit)="onFilterSubmit()">
+      <form [formGroup]="searchFiltersForm" (ngSubmit)="onFilterSubmit()">
         <ng-container formArrayName="filters">
           <h4>Filters</h4>
 
-          <ng-container *ngFor="let filter of filters.controls; let i = index">
+          <ng-container
+            *ngFor="let filter of filterFormArray.controls; let i = index">
             <div
               [formGroupName]="i"
               class="border-slate-200 border p-2 rounded my-2">
               <mat-form-field appearance="fill">
                 <mat-select formControlName="key">
-                  <mat-option *ngFor="let tag of cloudTenantTags" [value]="tag">
-                    {{ tag }}
+                  <mat-option
+                    *ngFor="let filter of searchFilters"
+                    [value]="filter">
+                    {{ filter }}
                   </mat-option>
                 </mat-select>
               </mat-form-field>
@@ -69,8 +72,8 @@
 
   <main class="p-4">
     <h1>Accounts</h1>
-    <div *ngIf="cloudAccounts?.length; else noAccounts">
-      <table mat-table [dataSource]="cloudAccounts" class="mat-elevation-z8">
+    <div *ngIf="tableData?.length; else noAccounts">
+      <table mat-table [dataSource]="tableData" class="mat-elevation-z8">
         <ng-container matColumnDef="cloud">
           <th mat-header-cell *matHeaderCellDef>Cloud</th>
           <td mat-cell *matCellDef="let element">{{ element.cloud }}</td>
@@ -91,7 +94,7 @@
           <td mat-cell *matCellDef="let element">{{ element.name }}</td>
         </ng-container>
 
-        <div *ngFor="let tag of cloudTenantTags">
+        <div *ngFor="let tag of tags">
           <ng-container matColumnDef="{{ tag }}">
             <th mat-header-cell *matHeaderCellDef>{{ tag }}</th>
             <td mat-cell *matCellDef="let element">{{ element[tag] }}</td>
@@ -130,8 +133,8 @@
           <td mat-cell *matCellDef="let element">{{ element.updated_at }}</td>
         </ng-container>
 
-        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-        <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+        <tr mat-header-row *matHeaderRowDef="tableDisplayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: tableDisplayedColumns"></tr>
       </table>
     </div>
   </main>
