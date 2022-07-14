@@ -6,11 +6,46 @@ package db
 
 import (
 	"database/sql"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgtype"
 )
+
+type AuditResourceType string
+
+const (
+	AuditResourceTypeCloudAccount AuditResourceType = "cloud_account"
+	AuditResourceTypeTag          AuditResourceType = "tag"
+	AuditResourceTypePolicy       AuditResourceType = "policy"
+	AuditResourceTypeCloudTenant  AuditResourceType = "cloud_tenant"
+	AuditResourceTypeUser         AuditResourceType = "user"
+	AuditResourceTypeGroup        AuditResourceType = "group"
+	AuditResourceTypeScimApiKey   AuditResourceType = "scim_api_key"
+)
+
+func (e *AuditResourceType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = AuditResourceType(s)
+	case string:
+		*e = AuditResourceType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for AuditResourceType: %T", src)
+	}
+	return nil
+}
+
+type AuditLog struct {
+	ID           uuid.UUID
+	UserID       uuid.UUID
+	ResourceType AuditResourceType
+	ResourceID   uuid.UUID
+	Message      string
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
+}
 
 type CloudAccount struct {
 	ID                uuid.UUID

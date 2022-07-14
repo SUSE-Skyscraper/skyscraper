@@ -2,6 +2,7 @@ package responses
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/suse-skyscraper/skyscraper/internal/db"
 )
@@ -21,14 +22,14 @@ type CloudAccountItemAttributes struct {
 
 type CloudAccountItem struct {
 	ID         string                     `json:"id"`
-	Type       string                     `json:"type"`
+	Type       ObjectResponseType         `json:"type"`
 	Attributes CloudAccountItemAttributes `json:"attributes"`
 }
 
 func newCloudAccount(account db.CloudAccount) CloudAccountItem {
 	return CloudAccountItem{
 		ID:   account.ID.String(),
-		Type: "cloud_account",
+		Type: ObjectResponseTypeCloudAccount,
 		Attributes: CloudAccountItemAttributes{
 			CloudProvider:     account.Cloud,
 			TenantID:          account.TenantID,
@@ -38,8 +39,8 @@ func newCloudAccount(account db.CloudAccount) CloudAccountItem {
 			TagsCurrent:       account.TagsCurrent.Get(),
 			TagsDesired:       account.TagsDesired.Get(),
 			TagsDriftDetected: account.TagsDriftDetected,
-			CreatedAt:         account.CreatedAt.Format("2006-01-02 15:04:05"),
-			UpdatedAt:         account.UpdatedAt.Format("2006-01-02 15:04:05"),
+			CreatedAt:         account.CreatedAt.Format(time.RFC3339),
+			UpdatedAt:         account.UpdatedAt.Format(time.RFC3339),
 		},
 	}
 }

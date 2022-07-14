@@ -72,8 +72,15 @@ where cloud = $1
 -- name: GetUsers :many
 select *
 from users
-order by id
+order by created_at
 LIMIT $1 OFFSET $2;
+
+-- name: GetUsersById :many
+select *
+from users
+where id = ANY($1::uuid[])
+order by display_name;
+
 
 -- name: GetUser :one
 select *
@@ -269,3 +276,24 @@ where id = $1;
 delete
 from tags
 where id = $1;
+
+--------------------------------------------------------------------------------------------------------------------
+-- Audit Logs
+--------------------------------------------------------------------------------------------------------------------
+
+-- name: GetAuditLogs :many
+select *
+from audit_logs
+order by created_at desc;
+
+-- name: GetAuditLogsForTarget :many
+select audit_logs.*
+from audit_logs
+where resource_id = $1
+  and resource_type = $2
+order by created_at desc;
+
+-- name: CreateAuditLog :one
+insert into audit_logs (user_id, resource_type, resource_id, message, created_at, updated_at)
+values ($1, $2, $3, $4, now(), now())
+returning *;

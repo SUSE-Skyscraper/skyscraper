@@ -55,6 +55,8 @@ func NewCmd(app *application.App) *cobra.Command {
 				r.Route("/api/v1", func(r chi.Router) {
 					r.Get("/profile", server.V1Profile)
 
+					r.Get("/audit_logs", server.V1ListAuditLogs(app))
+
 					r.Route("/tags", func(r chi.Router) {
 						r.Get("/", server.V1Tags(app))
 						r.Post("/", server.V1CreateTag(app))

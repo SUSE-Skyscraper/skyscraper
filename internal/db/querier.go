@@ -12,6 +12,7 @@ import (
 
 type Querier interface {
 	AddPolicy(ctx context.Context, arg AddPolicyParams) error
+	CreateAuditLog(ctx context.Context, arg CreateAuditLogParams) (AuditLog, error)
 	//------------------------------------------------------------------------------------------------------------------
 	// Cloud Tenants
 	//------------------------------------------------------------------------------------------------------------------
@@ -31,6 +32,11 @@ type Querier interface {
 	FindCloudAccount(ctx context.Context, id uuid.UUID) (CloudAccount, error)
 	FindCloudAccountByCloudAndTenant(ctx context.Context, arg FindCloudAccountByCloudAndTenantParams) (CloudAccount, error)
 	FindTag(ctx context.Context, id uuid.UUID) (Tag, error)
+	//------------------------------------------------------------------------------------------------------------------
+	// Audit Logs
+	//------------------------------------------------------------------------------------------------------------------
+	GetAuditLogs(ctx context.Context) ([]AuditLog, error)
+	GetAuditLogsForTarget(ctx context.Context, arg GetAuditLogsForTargetParams) ([]AuditLog, error)
 	GetCloudTenant(ctx context.Context, arg GetCloudTenantParams) (CloudTenant, error)
 	GetCloudTenants(ctx context.Context) ([]CloudTenant, error)
 	GetGroup(ctx context.Context, id uuid.UUID) (Group, error)
@@ -61,6 +67,7 @@ type Querier interface {
 	// Users
 	//------------------------------------------------------------------------------------------------------------------
 	GetUsers(ctx context.Context, arg GetUsersParams) ([]User, error)
+	GetUsersById(ctx context.Context, dollar_1 []uuid.UUID) ([]User, error)
 	//------------------------------------------------------------------------------------------------------------------
 	// SCIM API Key
 	//------------------------------------------------------------------------------------------------------------------

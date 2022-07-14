@@ -2,6 +2,7 @@ package responses
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/suse-skyscraper/skyscraper/internal/db"
 )
@@ -30,16 +31,20 @@ func (rd *UserResponse) Render(_ http.ResponseWriter, _ *http.Request) error {
 
 func NewUserResponse(user db.User) *UserResponse {
 	return &UserResponse{
-		Data: UserItem{
-			ID:   user.ID.String(),
-			Type: "user",
-			Attributes: UserAttributes{
-				Username:  user.Username,
-				Active:    user.Active,
-				Locale:    user.Locale.String,
-				CreatedAt: user.CreatedAt.Format("2006-01-02 15:04:05"),
-				UpdatedAt: user.UpdatedAt.Format("2006-01-02 15:04:05"),
-			},
+		Data: newUserItem(user),
+	}
+}
+
+func newUserItem(user db.User) UserItem {
+	return UserItem{
+		ID:   user.ID.String(),
+		Type: "user",
+		Attributes: UserAttributes{
+			Username:  user.Username,
+			Active:    user.Active,
+			Locale:    user.Locale.String,
+			CreatedAt: user.CreatedAt.Format(time.RFC3339),
+			UpdatedAt: user.UpdatedAt.Format(time.RFC3339),
 		},
 	}
 }

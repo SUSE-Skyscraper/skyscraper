@@ -62,4 +62,8 @@ type RepositoryQueries interface {
 
 	InsertAPIKey(ctx context.Context, token string) (ScimApiKey, error)
 	FindAPIKey(ctx context.Context, token string) (ScimApiKey, error)
+
+	GetAuditLogs(ctx context.Context) ([]AuditLog, []User, error)
+	GetAuditLogsForTarget(ctx context.Context, input GetAuditLogsForTargetParams) ([]AuditLog, []User, error)
+	CreateAuditLog(ctx context.Context, input CreateAuditLogParams) (AuditLog, error)
 }

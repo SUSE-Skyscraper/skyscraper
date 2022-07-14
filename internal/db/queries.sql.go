@@ -47,6 +47,39 @@ func (q *Queries) AddPolicy(ctx context.Context, arg AddPolicyParams) error {
 	return err
 }
 
+const createAuditLog = `-- name: CreateAuditLog :one
+insert into audit_logs (user_id, resource_type, resource_id, message, created_at, updated_at)
+values ($1, $2, $3, $4, now(), now())
+returning id, user_id, resource_type, resource_id, message, created_at, updated_at
+`
+
+type CreateAuditLogParams struct {
+	UserID       uuid.UUID
+	ResourceType AuditResourceType
+	ResourceID   uuid.UUID
+	Message      string
+}
+
+func (q *Queries) CreateAuditLog(ctx context.Context, arg CreateAuditLogParams) (AuditLog, error) {
+	row := q.db.QueryRow(ctx, createAuditLog,
+		arg.UserID,
+		arg.ResourceType,
+		arg.ResourceID,
+		arg.Message,
+	)
+	var i AuditLog
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.ResourceType,
+		&i.ResourceID,
+		&i.Message,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const createCloudTenant = `-- name: CreateCloudTenant :exec
 
 insert into cloud_tenants (cloud, tenant_id, name)
@@ -407,6 +440,85 @@ func (q *Queries) FindTag(ctx context.Context, id uuid.UUID) (Tag, error) {
 	return i, err
 }
 
+const getAuditLogs = `-- name: GetAuditLogs :many
+
+select id, user_id, resource_type, resource_id, message, created_at, updated_at
+from audit_logs
+order by created_at desc
+`
+
+//------------------------------------------------------------------------------------------------------------------
+// Audit Logs
+//------------------------------------------------------------------------------------------------------------------
+func (q *Queries) GetAuditLogs(ctx context.Context) ([]AuditLog, error) {
+	rows, err := q.db.Query(ctx, getAuditLogs)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []AuditLog
+	for rows.Next() {
+		var i AuditLog
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.ResourceType,
+			&i.ResourceID,
+			&i.Message,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getAuditLogsForTarget = `-- name: GetAuditLogsForTarget :many
+select audit_logs.id, audit_logs.user_id, audit_logs.resource_type, audit_logs.resource_id, audit_logs.message, audit_logs.created_at, audit_logs.updated_at
+from audit_logs
+where resource_id = $1
+  and resource_type = $2
+order by created_at desc
+`
+
+type GetAuditLogsForTargetParams struct {
+	ResourceID   uuid.UUID
+	ResourceType AuditResourceType
+}
+
+func (q *Queries) GetAuditLogsForTarget(ctx context.Context, arg GetAuditLogsForTargetParams) ([]AuditLog, error) {
+	rows, err := q.db.Query(ctx, getAuditLogsForTarget, arg.ResourceID, arg.ResourceType)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []AuditLog
+	for rows.Next() {
+		var i AuditLog
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.ResourceType,
+			&i.ResourceID,
+			&i.Message,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getCloudTenant = `-- name: GetCloudTenant :one
 select id, cloud, tenant_id, name, active, created_at, updated_at
 from cloud_tenants
@@ -743,7 +855,7 @@ const getUsers = `-- name: GetUsers :many
 
 select id, username, external_id, name, display_name, locale, active, emails, created_at, updated_at
 from users
-order by id
+order by created_at
 LIMIT $1 OFFSET $2
 `
 
@@ -757,6 +869,44 @@ type GetUsersParams struct {
 //------------------------------------------------------------------------------------------------------------------
 func (q *Queries) GetUsers(ctx context.Context, arg GetUsersParams) ([]User, error) {
 	rows, err := q.db.Query(ctx, getUsers, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []User
+	for rows.Next() {
+		var i User
+		if err := rows.Scan(
+			&i.ID,
+			&i.Username,
+			&i.ExternalID,
+			&i.Name,
+			&i.DisplayName,
+			&i.Locale,
+			&i.Active,
+			&i.Emails,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getUsersById = `-- name: GetUsersById :many
+select id, username, external_id, name, display_name, locale, active, emails, created_at, updated_at
+from users
+where id = ANY($1::uuid[])
+order by display_name
+`
+
+func (q *Queries) GetUsersById(ctx context.Context, dollar_1 []uuid.UUID) ([]User, error) {
+	rows, err := q.db.Query(ctx, getUsersById, dollar_1)
 	if err != nil {
 		return nil, err
 	}

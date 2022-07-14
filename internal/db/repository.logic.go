@@ -23,6 +23,41 @@ type Repository struct {
 	tx           pgx.Tx
 }
 
+func (r *Repository) GetAuditLogsForTarget(
+	ctx context.Context,
+	input GetAuditLogsForTargetParams,
+) ([]AuditLog, []User, error) {
+	logs, err := r.db.GetAuditLogsForTarget(ctx, input)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	users, err := r.getUsersForLogs(ctx, logs)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return logs, users, nil
+}
+
+func (r *Repository) CreateAuditLog(ctx context.Context, input CreateAuditLogParams) (AuditLog, error) {
+	return r.db.CreateAuditLog(ctx, input)
+}
+
+func (r *Repository) GetAuditLogs(ctx context.Context) ([]AuditLog, []User, error) {
+	logs, err := r.db.GetAuditLogs(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	users, err := r.getUsersForLogs(ctx, logs)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return logs, users, nil
+}
+
 func (r *Repository) CreateTag(ctx context.Context, input CreateTagParams) (Tag, error) {
 	return r.db.CreateTag(ctx, input)
 }

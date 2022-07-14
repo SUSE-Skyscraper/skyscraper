@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { AfterViewInit, Component, OnInit, ViewChild } from '@angular/core';
 import {
   BackendService,
   CloudAccountItem,
@@ -8,6 +8,10 @@ import {
 import { ActivatedRoute } from '@angular/router';
 import { FormArray, FormBuilder, FormGroup } from '@angular/forms';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import {
+  AuditLogComponent,
+  AuditLogTableItem,
+} from '../audit-log/audit-log.component';
 
 @Component({
   selector: 'app-cloud-account',
@@ -18,7 +22,12 @@ export class CloudAccountComponent implements OnInit {
   cloudAccount: CloudAccountItem | undefined;
   cloud: string = '';
   tenant_id: string = '';
-  id: string = '';
+  account_id: string = '';
+  auditLogs: AuditLogTableItem[] = [];
+  auditLogColumns: string[] = ['user_id', 'message', 'created_at'];
+
+  @ViewChild(AuditLogComponent)
+  auditLogComponent: AuditLogComponent | undefined;
 
   form = this.fb.group({
     tags: this.fb.array([]),
@@ -54,16 +63,17 @@ export class CloudAccountComponent implements OnInit {
     });
 
     this.backendService
-      .updateCloudAccount(this.cloud, this.tenant_id, this.id, update)
+      .updateCloudAccount(this.cloud, this.tenant_id, this.account_id, update)
       .subscribe((response: CloudAccountResponse) => {
         if (response.data !== null) {
           this.cloudAccount = response.data;
-          this.refreshForm();
+          this.refreshPage();
           this.snackBar.open('Tags Updated', 'close', {
             horizontalPosition: 'center',
             verticalPosition: 'top',
             duration: 10000,
           });
+          this.auditLogComponent?.ngOnChanges();
         }
       });
   }
@@ -71,19 +81,19 @@ export class CloudAccountComponent implements OnInit {
   ngOnInit(): void {
     this.cloud = String(this.router.snapshot.paramMap.get('cloud'));
     this.tenant_id = String(this.router.snapshot.paramMap.get('tenant_id'));
-    this.id = String(this.router.snapshot.paramMap.get('id'));
+    this.account_id = String(this.router.snapshot.paramMap.get('account_id'));
 
     this.backendService
-      .getCloudAccount(this.cloud, this.tenant_id, this.id)
+      .getCloudAccount(this.cloud, this.tenant_id, this.account_id)
       .subscribe((response: CloudAccountResponse) => {
         if (response.data !== null) {
           this.cloudAccount = response.data;
         }
-        this.refreshForm();
+        this.refreshPage();
       });
   }
 
-  private refreshForm() {
+  private refreshPage() {
     if (this.cloudAccount === undefined) {
       return;
     }

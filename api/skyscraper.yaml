@@ -28,6 +28,31 @@ paths:
           $ref: '#/components/responses/UnauthorizedError'
         '500':
           $ref: '#/components/responses/InternalError'
+  /api/v1/audit_logs:
+    get:
+      description: Returns the audit logs
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: resource_id
+          description: The id of the resource to filter the audit logs by
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: resource_type
+          description: The type of the resource to filter the audit logs by
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          $ref: '#/components/responses/AuditLogsResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalError'
   /api/v1/cloud_tenants:
     get:
       description: Returns the cloud tenants
@@ -239,6 +264,21 @@ components:
       description: Access token is missing or invalid
     InternalError:
       description: An unexpected internal error occurred
+    AuditLogsResponse:
+      description: The audit logs
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AuditLog'
+              included:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Included'
     AccountsResponse:
       description: The accounts
       content:
@@ -295,6 +335,54 @@ components:
       scheme: bearer
       bearerFormat: JWT
   schemas:
+    AuditLog:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            id:
+              type: string
+            type:
+              type: string
+            attributes:
+              type: object
+              properties:
+                created_at:
+                  type: string
+                updated_at:
+                  type: string
+                user_id:
+                  type: string
+                resource_id:
+                  type: string
+                resource_type:
+                  type: string
+                message:
+                  type: string
+            relationships:
+              type: object
+              properties:
+                user:
+                  type: object
+                  properties:
+                    data:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        type:
+                          type: string
+
+    Included:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+        attributes:
+          type: object
     User:
       type: object
       properties:

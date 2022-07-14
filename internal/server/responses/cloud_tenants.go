@@ -2,6 +2,7 @@ package responses
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/suse-skyscraper/skyscraper/internal/db"
 )
@@ -17,7 +18,7 @@ type CloudTenantAttributes struct {
 
 type CloudTenantItem struct {
 	ID         string                `json:"id"`
-	Type       string                `json:"type"`
+	Type       ObjectResponseType    `json:"type"`
 	Attributes CloudTenantAttributes `json:"attributes"`
 }
 
@@ -40,14 +41,14 @@ func NewCloudTenantListResponse(tenants []db.CloudTenant) *CloudTenantsResponse 
 func newCloudTenantItem(tenant db.CloudTenant) CloudTenantItem {
 	return CloudTenantItem{
 		ID:   tenant.ID.String(),
-		Type: "cloud_tenant",
+		Type: ObjectResponseTypeCloudTenant,
 		Attributes: CloudTenantAttributes{
 			CloudProvider: tenant.Cloud,
 			TenantID:      tenant.TenantID,
 			Name:          tenant.Name,
 			Active:        tenant.Active,
-			CreatedAt:     tenant.CreatedAt.Format("2006-01-02 15:04:05"),
-			UpdatedAt:     tenant.UpdatedAt.Format("2006-01-02 15:04:05"),
+			CreatedAt:     tenant.CreatedAt.Format(time.RFC3339),
+			UpdatedAt:     tenant.UpdatedAt.Format(time.RFC3339),
 		},
 	}
 }

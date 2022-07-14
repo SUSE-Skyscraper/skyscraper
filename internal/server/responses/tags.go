@@ -2,6 +2,7 @@ package responses
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/suse-skyscraper/skyscraper/internal/db"
 )
@@ -17,9 +18,9 @@ type TagItemAttributes struct {
 }
 
 type TagItem struct {
-	ID         string            `json:"id"`
-	Type       string            `json:"type"`
-	Attributes TagItemAttributes `json:"attributes"`
+	ID         string             `json:"id"`
+	Type       ObjectResponseType `json:"type"`
+	Attributes TagItemAttributes  `json:"attributes"`
 }
 
 type TagResponse struct {
@@ -58,14 +59,14 @@ func NewTagsResponse(tags []db.Tag) *TagsResponse {
 func newTagItem(tag db.Tag) TagItem {
 	return TagItem{
 		ID:   tag.ID.String(),
-		Type: "tag",
+		Type: ObjectResponseTypeTag,
 		Attributes: TagItemAttributes{
 			DisplayName: tag.DisplayName,
 			Required:    tag.Required,
 			Description: tag.Description,
 			Key:         tag.Key,
-			CreatedAt:   tag.CreatedAt.Format("2006-01-02 15:04:05"),
-			UpdatedAt:   tag.UpdatedAt.Format("2006-01-02 15:04:05"),
+			CreatedAt:   tag.CreatedAt.Format(time.RFC3339),
+			UpdatedAt:   tag.UpdatedAt.Format(time.RFC3339),
 		},
 	}
 }

@@ -38,6 +38,27 @@ type TestRepository struct {
 	mock.Mock
 }
 
+func (t *TestRepository) GetAuditLogs(ctx context.Context) ([]db.AuditLog, []db.User, error) {
+	args := t.Called(ctx)
+
+	return args.Get(0).([]db.AuditLog), args.Get(1).([]db.User), args.Error(2)
+}
+
+func (t *TestRepository) GetAuditLogsForTarget(
+	ctx context.Context,
+	input db.GetAuditLogsForTargetParams,
+) ([]db.AuditLog, []db.User, error) {
+	args := t.Called(ctx, input)
+
+	return args.Get(0).([]db.AuditLog), args.Get(1).([]db.User), args.Error(2)
+}
+
+func (t *TestRepository) CreateAuditLog(ctx context.Context, input db.CreateAuditLogParams) (db.AuditLog, error) {
+	args := t.Called(ctx, input)
+
+	return args.Get(0).(db.AuditLog), args.Error(1)
+}
+
 func (t *TestRepository) CreateTag(ctx context.Context, input db.CreateTagParams) (db.Tag, error) {
 	args := t.Called(ctx, input)
 

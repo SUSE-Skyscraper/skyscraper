@@ -113,4 +113,10 @@
       </form>
     </aside>
   </div>
+
+  <div *ngIf="cloudAccount !== undefined">
+    <app-audit-log
+      [resource_id]="cloudAccount.id"
+      [resource_type]="'cloud_account'"></app-audit-log>
+  </div>
 </div>

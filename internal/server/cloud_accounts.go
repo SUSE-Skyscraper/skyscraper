@@ -1,6 +1,9 @@
 package server
 
 import (
+	"context"
+	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -37,19 +40,68 @@ func V1UpdateCloudTenantAccount(app *application.App) func(w http.ResponseWriter
 	natsWorker := workers.NewWorker(app)
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		cloudAccount := r.Context().Value(middleware.CloudAccount).(db.CloudAccount)
+		cloudAccount, ok := r.Context().Value(middleware.CloudAccount).(db.CloudAccount)
+		if !ok {
+			_ = render.Render(w, r, responses.ErrInternalServerError)
+			return
+		}
+
+		before, err := json.Marshal(cloudAccount)
+		if err != nil {
+			_ = render.Render(w, r, responses.ErrInternalServerError)
+			return
+		}
+
+		user, ok := r.Context().Value(middleware.User).(db.User)
+		if !ok {
+			_ = render.Render(w, r, responses.ErrInternalServerError)
+			return
+		}
 
 		var payload payloads.UpdateCloudAccountPayload
-		err := render.Bind(r, &payload)
+		err = render.Bind(r, &payload)
 		if err != nil {
 			_ = render.Render(w, r, responses.ErrInvalidRequest(err))
 			return
 		}
 
-		account, err := app.Repository.UpdateCloudAccount(r.Context(), db.UpdateCloudAccountParams{
+		repo, err := app.Repository.Begin(r.Context())
+		if err != nil {
+			_ = render.Render(w, r, responses.ErrInternalServerError)
+			return
+		}
+
+		defer func(repo db.RepositoryQueries, ctx context.Context) {
+			_ = repo.Rollback(ctx)
+		}(repo, r.Context())
+
+		account, err := repo.UpdateCloudAccount(r.Context(), db.UpdateCloudAccountParams{
 			ID:          cloudAccount.ID,
 			TagsDesired: payload.Data.GetJSON(),
 		})
+		if err != nil {
+			_ = render.Render(w, r, responses.ErrInternalServerError)
+			return
+		}
+
+		after, err := json.Marshal(account)
+		if err != nil {
+			_ = render.Render(w, r, responses.ErrInternalServerError)
+			return
+		}
+
+		_, err = repo.CreateAuditLog(r.Context(), db.CreateAuditLogParams{
+			UserID:       user.ID,
+			ResourceType: db.AuditResourceTypeCloudAccount,
+			ResourceID:   cloudAccount.ID,
+			Message:      fmt.Sprintf("Updated cloud account from %s to %s", string(before), string(after)),
+		})
+		if err != nil {
+			_ = render.Render(w, r, responses.ErrInternalServerError)
+			return
+		}
+
+		err = repo.Commit(r.Context())
 		if err != nil {
 			_ = render.Render(w, r, responses.ErrInternalServerError)
 			return

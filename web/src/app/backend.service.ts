@@ -13,6 +13,21 @@ export class BackendService {
     this.host = config.backend.host;
   }
 
+  getAuditLogs(
+    resource_id?: string,
+    resource_type?: string,
+  ): Observable<AuditLogsResponse> {
+    const url = new URL('/api/v1/audit_logs', this.host);
+    if (resource_id !== undefined) {
+      url.searchParams.append('resource_id', resource_id);
+    }
+    if (resource_type !== undefined) {
+      url.searchParams.append('resource_type', resource_type);
+    }
+
+    return this.http.get<AuditLogsResponse>(url.href);
+  }
+
   getProfile(): Observable<UserResponse> {
     const url = new URL('/api/v1/profile', this.host);
 
@@ -184,4 +199,33 @@ export interface CreateTagRequestData {
 
 export interface CreateTagRequest {
   data: CreateTagRequestData;
+}
+
+export interface AuditLogAttributes {
+  message: string;
+  user_id: string;
+  resource_type: string;
+  resource_id: string;
+  created_at: string;
+}
+
+export interface RelationshipData {
+  id: string;
+  type: string;
+}
+
+export interface Relationship {
+  data: RelationshipData;
+}
+
+export interface AuditLogItem {
+  id: string;
+  type: string;
+  attributes: AuditLogAttributes;
+  relationships: { [key: string]: Relationship };
+}
+
+export interface AuditLogsResponse {
+  data: AuditLogItem[] | null;
+  included: UserItem[] | null;
 }

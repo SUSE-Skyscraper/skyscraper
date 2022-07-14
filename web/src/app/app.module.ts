@@ -29,6 +29,7 @@ import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatOptionModule } from '@angular/material/core';
 import { MatSelectModule } from '@angular/material/select';
 import { TagsComponent } from './tags/tags.component';
+import { AuditLogComponent } from './audit-log/audit-log.component';
 
 @NgModule({
   declarations: [
@@ -39,6 +40,7 @@ import { TagsComponent } from './tags/tags.component';
     CloudAccountsComponent,
     CloudAccountComponent,
     TagsComponent,
+    AuditLogComponent,
   ],
   imports: [
     BrowserModule,
