@@ -1,4 +1,4 @@
-package scim
+package pagination
 
 import (
 	"net/http"
@@ -7,17 +7,17 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-type paginationParams struct {
+type Params struct {
 	Offset int32
 	Limit  int32
 }
 
-var defaultPaginationParams = paginationParams{
+var defaultPaginationParams = Params{
 	Offset: 0,
 	Limit:  10,
 }
 
-func paginate(r *http.Request) paginationParams {
+func Paginate(r *http.Request) Params {
 	startIndex := chi.URLParam(r, "startIndex")
 	count := chi.URLParam(r, "count")
 
@@ -43,7 +43,7 @@ func paginate(r *http.Request) paginationParams {
 		}
 	}
 
-	params := paginationParams{
+	params := Params{
 		Offset: int32(offset),
 		Limit:  int32(limit),
 	}

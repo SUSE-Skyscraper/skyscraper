@@ -8,7 +8,7 @@ servers:
 paths:
   /healthz:
     get:
-      description: Health check
+      description: Health check endpoint
       responses:
         200:
           description: OK
@@ -19,6 +19,37 @@ paths:
   /api/v1/profile:
     get:
       description: Returns the user profile
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          $ref: '#/components/responses/UserResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/v1/users:
+    get:
+      description: Returns the list of users
+      security:
+        - bearerAuth: [ ]
+      responses:
+        '200':
+          $ref: '#/components/responses/UsersResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/v1/users/{id}:
+    get:
+      description: Returns the user with the given id
+      parameters:
+        - name: id
+          in: path
+          description: The account ID
+          required: true
+          schema:
+            type: string
       security:
         - bearerAuth: []
       responses:
@@ -60,13 +91,60 @@ paths:
         - bearerAuth: []
       responses:
         '200':
-          description: The cloud tenants
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/CloudTenant'
+          $ref: '#/components/responses/CloudTenantsResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/v1/cloud_accounts:
+    get:
+      description: Returns the list of cloud accounts
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          $ref: '#/components/responses/CloudAccountsResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/v1/cloud_accounts/{id}:
+    put:
+      description: Updates an account for a cloud tenant
+      security:
+        - bearerAuth: [ ]
+      parameters:
+        - name: id
+          in: path
+          description: The account ID
+          required: true
+          schema:
+            type: string
+      requestBody:
+        $ref: '#/components/requestBodies/UpdateAccountRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/CloudAccountResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    get:
+      description: Returns the account for a cloud tenant
+      security:
+        - bearerAuth: [ ]
+      parameters:
+        - name: id
+          in: path
+          description: The account ID
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          $ref: '#/components/responses/CloudAccountResponse'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '500':
@@ -113,96 +191,6 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/TagResponse'
-        '401':
-          $ref: '#/components/responses/UnauthorizedError'
-        '500':
-          $ref: '#/components/responses/InternalError'
-  /api/v1/cloud_tenants/cloud/{cloud}/tenant/{tenant_id}/accounts:
-    get:
-      description: Returns the accounts for a cloud tenant
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: cloud
-          in: path
-          description: The cloud provider name
-          required: true
-          schema:
-            type: string
-        - name: tenant_id
-          in: path
-          description: The tenant ID
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          $ref: '#/components/responses/AccountsResponse'
-        '401':
-          $ref: '#/components/responses/UnauthorizedError'
-        '500':
-          $ref: '#/components/responses/InternalError'
-  /api/v1/cloud_tenants/cloud/{cloud}/tenant/{tenant_id}/accounts/{id}:
-    put:
-      description: Updates an account for a cloud tenant
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: cloud
-          in: path
-          description: The cloud provider name
-          required: true
-          schema:
-            type: string
-        - name: tenant_id
-          in: path
-          description: The tenant ID
-          required: true
-          schema:
-            type: string
-        - name: id
-          in: path
-          description: The account ID
-          required: true
-          schema:
-            type: string
-      requestBody:
-        $ref: '#/components/requestBodies/UpdateAccountRequest'
-      responses:
-        '200':
-          $ref: '#/components/responses/AccountResponse'
-        '400':
-          $ref: '#/components/responses/BadRequestError'
-        '401':
-          $ref: '#/components/responses/UnauthorizedError'
-        '500':
-          $ref: '#/components/responses/InternalError'
-    get:
-      description: Returns the account for a cloud tenant
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: cloud
-          in: path
-          description: The cloud provider name
-          required: true
-          schema:
-            type: string
-        - name: tenant_id
-          in: path
-          description: The tenant ID
-          required: true
-          schema:
-            type: string
-        - name: id
-          in: path
-          description: The account ID
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          $ref: '#/components/responses/AccountResponse'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '500':
@@ -264,8 +252,16 @@ components:
       description: Access token is missing or invalid
     InternalError:
       description: An unexpected internal error occurred
+    CloudTenantsResponse:
+      description: A response containing the cloud tenants
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/CloudTenant'
     AuditLogsResponse:
-      description: The audit logs
+      description: A response containing the audit logs
       content:
         application/json:
           schema:
@@ -279,8 +275,8 @@ components:
                 type: array
                 items:
                   $ref: '#/components/schemas/Included'
-    AccountsResponse:
-      description: The accounts
+    CloudAccountsResponse:
+      description: A response containing the list of accounts
       content:
         application/json:
           schema:
@@ -289,19 +285,29 @@ components:
               data:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Account'
-
-    AccountResponse:
-      description: The account
+                  $ref: '#/components/schemas/CloudAccount'
+    CloudAccountResponse:
+      description: A response containing the account
       content:
         application/json:
           schema:
             type: object
             properties:
               data:
-                $ref: '#/components/schemas/Account'
+                $ref: '#/components/schemas/CloudAccount'
+    UsersResponse:
+      description: A response containing a list of users
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
     UserResponse:
-      description: The user
+      description: A response containing a user
       content:
         application/json:
           schema:
@@ -310,7 +316,7 @@ components:
               data:
                 $ref: '#/components/schemas/User'
     TagResponse:
-      description: The Tag
+      description: A response containing a tag
       content:
         application/json:
           schema:
@@ -319,7 +325,7 @@ components:
               data:
                 $ref: '#/components/schemas/Tag'
     TagsResponse:
-      description: The Tags
+      description: A response containing a list of tags
       content:
         application/json:
           schema:
@@ -444,7 +450,7 @@ components:
               type: boolean
             key:
               type: string
-    Account:
+    CloudAccount:
       type: object
       properties:
         id:

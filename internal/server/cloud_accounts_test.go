@@ -49,7 +49,7 @@ func TestV1ListCloudAccounts(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		req, _ := http.NewRequest("GET", "/api/v1/cloud_tenants/cloud/aws/tenant/12345/accounts", nil)
+		req, _ := http.NewRequest("GET", "/api/v1/cloud_accounts", nil)
 		w := httptest.NewRecorder()
 		testApp := helpers.NewTestApp()
 
@@ -64,7 +64,7 @@ func TestV1ListCloudAccounts(t *testing.T) {
 	}
 }
 
-func TestV1UpdateCloudTenantAccount(t *testing.T) {
+func TestV1UpdateCloudAccount(t *testing.T) {
 	type PubAckFuture struct {
 		nats.PubAckFuture
 	}
@@ -111,7 +111,7 @@ func TestV1UpdateCloudTenantAccount(t *testing.T) {
 
 	for _, tc := range tests {
 		req, _ := http.NewRequest("PUT",
-			"/api/v1/cloud_tenants/cloud/aws/tenant/1234/accounts/12345",
+			"/api/v1/cloud_accounts/12345",
 			bytes.NewReader(tc.tags))
 		req.Header.Add("Content-Type", "application/json")
 		w := httptest.NewRecorder()
@@ -119,7 +119,7 @@ func TestV1UpdateCloudTenantAccount(t *testing.T) {
 
 		ctx := req.Context()
 		ctx = context.WithValue(ctx, middleware.CloudAccount, cloudAccount)
-		ctx = context.WithValue(ctx, middleware.User, db.User{})
+		ctx = context.WithValue(ctx, middleware.CurrentUser, db.User{})
 		req = req.WithContext(ctx)
 
 		testApp.Repository.On("Begin", mock.Anything).Return(testApp.Repository, tc.beginError)
@@ -129,7 +129,7 @@ func TestV1UpdateCloudTenantAccount(t *testing.T) {
 		testApp.JS.On("PublishAsync", mock.Anything, mock.Anything, mock.Anything).Return(PubAckFuture{}, tc.publishError)
 		testApp.Repository.On("Rollback", mock.Anything).Return(nil)
 
-		V1UpdateCloudTenantAccount(testApp.App)(w, req)
+		V1UpdateCloudAccount(testApp.App)(w, req)
 
 		_ = helpers.AssertOpenAPI(t, w, req)
 		assert.Equal(t, tc.statusCode, w.Result().StatusCode)
@@ -137,7 +137,7 @@ func TestV1UpdateCloudTenantAccount(t *testing.T) {
 }
 
 func TestV1GetCloudAccount(t *testing.T) {
-	req, _ := http.NewRequest("GET", "/api/v1/cloud_tenants/cloud/aws/tenant/12345/accounts/123456", nil)
+	req, _ := http.NewRequest("GET", "/api/v1/cloud_accounts/123456", nil)
 	w := httptest.NewRecorder()
 	testApp := helpers.NewTestApp()
 

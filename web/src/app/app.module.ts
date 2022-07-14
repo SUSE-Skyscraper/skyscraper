@@ -30,6 +30,8 @@ import { MatOptionModule } from '@angular/material/core';
 import { MatSelectModule } from '@angular/material/select';
 import { TagsComponent } from './tags/tags.component';
 import { AuditLogComponent } from './audit-log/audit-log.component';
+import { UsersComponent } from './users/users.component';
+import { UserComponent } from './user/user.component';
 
 @NgModule({
   declarations: [
@@ -41,6 +43,8 @@ import { AuditLogComponent } from './audit-log/audit-log.component';
     CloudAccountComponent,
     TagsComponent,
     AuditLogComponent,
+    UsersComponent,
+    UserComponent,
   ],
   imports: [
     BrowserModule,

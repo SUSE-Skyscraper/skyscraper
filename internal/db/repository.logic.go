@@ -23,6 +23,10 @@ type Repository struct {
 	tx           pgx.Tx
 }
 
+func (r *Repository) GetUsers(ctx context.Context, input GetUsersParams) ([]User, error) {
+	return r.db.GetUsers(ctx, input)
+}
+
 func (r *Repository) GetAuditLogsForTarget(
 	ctx context.Context,
 	input GetAuditLogsForTargetParams,

@@ -1,0 +1,27 @@
+<div id="content-wrapper">
+  <div *ngIf="user !== undefined">
+    <h1>{{ user.username }}</h1>
+
+    <dl>
+      <div>
+        <dd>Username:</dd>
+        <dt>{{ user.username }}</dt>
+      </div>
+
+      <div>
+        <dd>Active</dd>
+        <dt>{{ user.active }}</dt>
+      </div>
+
+      <div>
+        <dd>Created At</dd>
+        <dt>{{ user.created_at | date: 'medium' }}</dt>
+      </div>
+
+      <div>
+        <dd>Updated At</dd>
+        <dt>{{ user.updated_at | date: 'medium' }}</dt>
+      </div>
+    </dl>
+  </div>
+</div>

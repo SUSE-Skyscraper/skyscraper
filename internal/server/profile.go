@@ -10,7 +10,7 @@ import (
 )
 
 func V1Profile(w http.ResponseWriter, r *http.Request) {
-	user, ok := r.Context().Value(middleware.User).(db.User)
+	user, ok := r.Context().Value(middleware.CurrentUser).(db.User)
 	if !ok {
 		_ = render.Render(w, r, responses.ErrInternalServerError)
 		return

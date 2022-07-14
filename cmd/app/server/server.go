@@ -33,6 +33,7 @@ func NewCmd(app *application.App) *cobra.Command {
 			scimUserCtx := scimmiddleware.UserCtx(app)
 			scimGroupCtx := scimmiddleware.GroupCtx(app)
 			tagCtx := apimiddleware.TagCtx(app)
+			userCtx := apimiddleware.UserCtx(app)
 
 			// common middleware
 			r.Use(chimiddleware.Logger)
@@ -66,27 +67,24 @@ func NewCmd(app *application.App) *cobra.Command {
 						})
 					})
 
+					r.Route("/users", func(r chi.Router) {
+						r.Get("/", server.V1Users(app))
+						r.Route("/{id}", func(r chi.Router) {
+							r.Use(userCtx)
+							r.Get("/", server.V1User(app))
+						})
+					})
+
 					r.Route("/cloud_accounts", func(r chi.Router) {
 						r.Get("/", server.V1ListCloudAccounts(app))
 						r.Route("/{id}", func(r chi.Router) {
 							r.Use(cloudAccountCtx)
 							r.Get("/", server.V1GetCloudAccount(app))
-							r.Put("/", server.V1UpdateCloudTenantAccount(app))
+							r.Put("/", server.V1UpdateCloudAccount(app))
 						})
 					})
 					r.Route("/cloud_tenants", func(r chi.Router) {
-						r.Get("/", server.V1CloudTenants(app))
-						r.Route("/cloud/{cloud}/tenant/{tenant_id}", func(r chi.Router) {
-							r.Route("/accounts", func(r chi.Router) {
-								r.Get("/", server.V1ListCloudAccounts(app))
-
-								r.Route("/{account_id}", func(r chi.Router) {
-									r.Use(cloudAccountCtx)
-									r.Get("/", server.V1GetCloudAccount(app))
-									r.Put("/", server.V1UpdateCloudTenantAccount(app))
-								})
-							})
-						})
+						r.Get("/", server.V1ListCloudTenants(app))
 					})
 				})
 			})

@@ -85,6 +85,7 @@ export class CloudAccountsComponent implements OnInit {
         if (response.data.length !== 0) {
           for (let account of response.data) {
             let object: Record<string, string> = {
+              id: account.id,
               name: account.attributes.name,
               cloud: account.attributes.cloud_provider,
               tenant_id: account.attributes.tenant_id,
@@ -129,9 +130,9 @@ export class CloudAccountsComponent implements OnInit {
   }
 
   private refreshTagForm() {
-    this.tableDisplayedColumns = ['name', 'id']
-      .concat(this.displayTagsForm.value)
-      .concat(['actions']);
+    this.tableDisplayedColumns = ['name', 'id'].concat(
+      this.displayTagsForm.value,
+    );
 
     if (this.cloud === null || this.tenant_id === null) {
       this.tableDisplayedColumns.unshift('cloud', 'tenant_id');

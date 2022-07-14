@@ -8,7 +8,7 @@ import (
 	"github.com/suse-skyscraper/skyscraper/internal/server/responses"
 )
 
-func V1CloudTenants(app *application.App) func(w http.ResponseWriter, r *http.Request) {
+func V1ListCloudTenants(app *application.App) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		cloudTenants, err := app.Repository.GetCloudTenants(r.Context())
 		if err != nil {
