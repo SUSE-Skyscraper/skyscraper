@@ -1,0 +1,23 @@
+:host {
+  @apply flex-grow p-4;
+}
+
+dl {
+  @apply w-full;
+  @apply pt-4;
+}
+
+dl div {
+  display: flex;
+  @apply py-2;
+}
+
+dl dd {
+  flex: 0 1 25%;
+  @apply font-bold;
+}
+
+dl dt {
+  flex: 0 1 75%;
+  order: 2;
+}

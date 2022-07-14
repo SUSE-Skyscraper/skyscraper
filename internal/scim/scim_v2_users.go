@@ -8,6 +8,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/suse-skyscraper/skyscraper/internal/application"
 	"github.com/suse-skyscraper/skyscraper/internal/db"
+	pagination2 "github.com/suse-skyscraper/skyscraper/internal/pagination"
 	filters2 "github.com/suse-skyscraper/skyscraper/internal/scim/filters"
 	"github.com/suse-skyscraper/skyscraper/internal/scim/middleware"
 	"github.com/suse-skyscraper/skyscraper/internal/scim/payloads"
@@ -23,7 +24,7 @@ func V2ListUsers(app *application.App) func(w http.ResponseWriter, r *http.Reque
 			return
 		}
 
-		pagination := paginate(r)
+		pagination := pagination2.Paginate(r)
 		totalCount, users, err := app.Repository.GetScimUsers(r.Context(), db.GetScimUsersInput{
 			Filters: filters,
 			Offset:  pagination.Offset,

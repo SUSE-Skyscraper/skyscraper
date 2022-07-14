@@ -11,6 +11,7 @@
     >
     <a mat-button *ngIf="isAuthenticated" routerLink="/tags">Tags</a>
     <a mat-button *ngIf="isAuthenticated" routerLink="/audit_log">Audit Log</a>
+    <a mat-button *ngIf="isAuthenticated" routerLink="/users">Users</a>
 
     <span class="example-spacer"></span>
     <div *ngIf="isAuthenticated && this.profile !== undefined; else loggedOut">

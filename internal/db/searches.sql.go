@@ -7,7 +7,7 @@ import (
 )
 
 const baseSearchCloudAccounts = `
-select cloud, tenant_id, account_id, name, active, tags_current, tags_desired,tags_drift_detected, created_at,
+select id, cloud, tenant_id, account_id, name, active, tags_current, tags_desired,tags_drift_detected, created_at,
 updated_at
 from cloud_accounts
 where
@@ -69,6 +69,7 @@ func (s *Searches) SearchCloudAccounts(ctx context.Context, input SearchCloudAcc
 	for rows.Next() {
 		var account CloudAccount
 		err := rows.Scan(
+			&account.ID,
 			&account.Cloud,
 			&account.TenantID,
 			&account.AccountID,

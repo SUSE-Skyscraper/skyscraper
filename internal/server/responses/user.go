@@ -35,6 +35,25 @@ func NewUserResponse(user db.User) *UserResponse {
 	}
 }
 
+type UsersResponse struct {
+	Data []UserItem `json:"data"`
+}
+
+func (rd *UsersResponse) Render(_ http.ResponseWriter, _ *http.Request) error {
+	return nil
+}
+
+func NewUsersResponse(users []db.User) *UsersResponse {
+	list := make([]UserItem, len(users))
+	for i, user := range users {
+		list[i] = newUserItem(user)
+	}
+
+	return &UsersResponse{
+		Data: list,
+	}
+}
+
 func newUserItem(user db.User) UserItem {
 	return UserItem{
 		ID:   user.ID.String(),

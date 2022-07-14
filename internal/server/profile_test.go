@@ -24,7 +24,7 @@ func TestV1Profile(t *testing.T) {
 	req, _ := http.NewRequest("GET", "/api/v1/profile", nil)
 	req.Header.Set("Content-Type", "application/json")
 	ctx := req.Context()
-	ctx = context.WithValue(ctx, middleware.User, user)
+	ctx = context.WithValue(ctx, middleware.CurrentUser, user)
 	req = req.WithContext(ctx)
 
 	w := httptest.NewRecorder()

@@ -38,6 +38,12 @@ type TestRepository struct {
 	mock.Mock
 }
 
+func (t *TestRepository) GetUsers(ctx context.Context, input db.GetUsersParams) ([]db.User, error) {
+	args := t.Called(ctx, input)
+
+	return args.Get(0).([]db.User), args.Error(1)
+}
+
 func (t *TestRepository) GetAuditLogs(ctx context.Context) ([]db.AuditLog, []db.User, error) {
 	args := t.Called(ctx)
 

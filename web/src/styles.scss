@@ -21,3 +21,12 @@ app-root {
 
 html, body { height: 100%; }
 body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
+
+#content-wrapper {
+  max-width: 72rem;
+  margin: 0 auto;
+}
+
+a {
+  @apply font-bold text-blue-500;
+}

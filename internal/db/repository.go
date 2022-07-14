@@ -49,6 +49,7 @@ type RepositoryQueries interface {
 
 	FindUser(ctx context.Context, id string) (User, error)
 	FindUserByUsername(ctx context.Context, username string) (User, error)
+	GetUsers(ctx context.Context, input GetUsersParams) ([]User, error)
 	GetScimUsers(ctx context.Context, input GetScimUsersInput) (int64, []User, error)
 	CreateUser(ctx context.Context, input CreateUserParams) (User, error)
 	DeleteUser(ctx context.Context, id uuid.UUID) error

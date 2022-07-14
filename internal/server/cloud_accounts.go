@@ -18,7 +18,7 @@ import (
 
 func V1ListCloudAccounts(app *application.App) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		filters := getCloudAccountFilters(r)
+		filters := parseAccountSearchFilters(r)
 
 		for key, value := range r.URL.Query() {
 			filters[key] = value[0]
@@ -36,7 +36,7 @@ func V1ListCloudAccounts(app *application.App) func(w http.ResponseWriter, r *ht
 	}
 }
 
-func V1UpdateCloudTenantAccount(app *application.App) func(w http.ResponseWriter, r *http.Request) {
+func V1UpdateCloudAccount(app *application.App) func(w http.ResponseWriter, r *http.Request) {
 	natsWorker := workers.NewWorker(app)
 
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -52,7 +52,7 @@ func V1UpdateCloudTenantAccount(app *application.App) func(w http.ResponseWriter
 			return
 		}
 
-		user, ok := r.Context().Value(middleware.User).(db.User)
+		user, ok := r.Context().Value(middleware.CurrentUser).(db.User)
 		if !ok {
 			_ = render.Render(w, r, responses.ErrInternalServerError)
 			return
@@ -128,7 +128,7 @@ func V1GetCloudAccount(_ *application.App) func(w http.ResponseWriter, r *http.R
 	}
 }
 
-func getCloudAccountFilters(r *http.Request) map[string]interface{} {
+func parseAccountSearchFilters(r *http.Request) map[string]interface{} {
 	cloudTenantID := chi.URLParam(r, "tenant_id")
 	cloudProvider := chi.URLParam(r, "cloud")
 

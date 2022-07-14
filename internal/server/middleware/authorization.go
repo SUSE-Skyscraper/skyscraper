@@ -38,7 +38,7 @@ func OktaAuthorizationHandler(app *application.App) func(next http.Handler) http
 				_ = render.Render(w, r, responses.ErrInternalServerError)
 				return
 			}
-			ctx := context.WithValue(r.Context(), User, user)
+			ctx := context.WithValue(r.Context(), CurrentUser, user)
 
 			r = r.WithContext(ctx)
 

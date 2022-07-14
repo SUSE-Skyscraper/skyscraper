@@ -3,7 +3,8 @@ package middleware
 type key int
 
 const (
-	User key = iota
+	CurrentUser key = iota
 	CloudAccount
 	Tag
+	User
 )

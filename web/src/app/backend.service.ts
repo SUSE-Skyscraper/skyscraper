@@ -34,6 +34,18 @@ export class BackendService {
     return this.http.get<UserResponse>(url.href);
   }
 
+  getUser(id: string): Observable<UserResponse> {
+    const url = new URL(`/api/v1/users/${id}`, this.host);
+
+    return this.http.get<UserResponse>(url.href);
+  }
+
+  getUsers(): Observable<UsersResponse> {
+    const url = new URL('/api/v1/users', this.host);
+
+    return this.http.get<UsersResponse>(url.href);
+  }
+
   getTags(): Observable<TagsResponse> {
     const url = new URL(`/api/v1/tags`, this.host);
 
@@ -58,28 +70,16 @@ export class BackendService {
     return this.http.get<CloudTenantsResponse>(url.href);
   }
 
-  getCloudAccount(
-    cloud: string,
-    tenantId: string,
-    accountId: string,
-  ): Observable<CloudAccountResponse> {
-    const url = new URL(
-      `/api/v1/cloud_tenants/cloud/${cloud}/tenant/${tenantId}/accounts/${accountId}`,
-      this.host,
-    );
+  getCloudAccount(id: string): Observable<CloudAccountResponse> {
+    const url = new URL(`/api/v1/cloud_accounts/${id}`, this.host);
     return this.http.get<CloudAccountResponse>(url.href);
   }
 
   updateCloudAccount(
-    cloud: string,
-    tenantId: string,
-    accountId: string,
+    id: string,
     update: UpdateCloudAccountRequest,
   ): Observable<CloudAccountResponse> {
-    const url = new URL(
-      `/api/v1/cloud_tenants/cloud/${cloud}/tenant/${tenantId}/accounts/${accountId}`,
-      this.host,
-    );
+    const url = new URL(`/api/v1/cloud_accounts/${id}`, this.host);
     return this.http.put<CloudAccountResponse>(url.href, update);
   }
 
@@ -98,6 +98,9 @@ export class BackendService {
 
 export interface UserAttributes {
   username: string;
+  created_at: string;
+  updated_at: string;
+  active: boolean;
 }
 
 export interface UserItem {
@@ -108,6 +111,10 @@ export interface UserItem {
 
 export interface UserResponse {
   data: UserItem;
+}
+
+export interface UsersResponse {
+  data: UserItem[];
 }
 
 export interface CloudTenantItem {

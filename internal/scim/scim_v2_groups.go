@@ -6,6 +6,7 @@ import (
 	"github.com/go-chi/render"
 	"github.com/suse-skyscraper/skyscraper/internal/application"
 	"github.com/suse-skyscraper/skyscraper/internal/db"
+	pagination2 "github.com/suse-skyscraper/skyscraper/internal/pagination"
 	"github.com/suse-skyscraper/skyscraper/internal/scim/middleware"
 	"github.com/suse-skyscraper/skyscraper/internal/scim/patcher"
 	"github.com/suse-skyscraper/skyscraper/internal/scim/payloads"
@@ -14,7 +15,7 @@ import (
 
 func V2ListGroups(app *application.App) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		pagination := paginate(r)
+		pagination := pagination2.Paginate(r)
 
 		totalCount, groups, err := app.Repository.GetGroups(r.Context(), db.GetGroupsParams{
 			Offset: pagination.Offset,
