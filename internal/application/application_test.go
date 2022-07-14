@@ -18,9 +18,6 @@ func TestApp_Start(t *testing.T) {
 
 	err = app.Start(ctx)
 	assert.Nil(t, err)
-
-	err = app.postgresPool.Ping(ctx)
-	assert.Nil(t, err)
 }
 
 func TestApp_Start_MissingConfig(t *testing.T) {

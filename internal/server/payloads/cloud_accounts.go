@@ -7,26 +7,29 @@ import (
 	"github.com/pkg/errors"
 )
 
-type UpdateCloudAccountPayload struct {
+type UpdateCloudAccountPayloadData struct {
 	TagsDesired map[string]string `json:"tags_desired"`
 	json        pgtype.JSONB
 }
+type UpdateCloudAccountPayload struct {
+	Data UpdateCloudAccountPayloadData `json:"data"`
+}
 
 func (u *UpdateCloudAccountPayload) Bind(_ *http.Request) error {
-	if u.TagsDesired == nil {
+	if u.Data.TagsDesired == nil {
 		return errors.Errorf("tags_desired is required")
 	}
 
 	jsonTags := pgtype.JSONB{}
-	err := jsonTags.Set(u.TagsDesired)
+	err := jsonTags.Set(u.Data.TagsDesired)
 	if err != nil {
 		return err
 	}
-	u.json = jsonTags
+	u.Data.json = jsonTags
 
 	return nil
 }
 
-func (u *UpdateCloudAccountPayload) GetJSON() pgtype.JSONB {
+func (u *UpdateCloudAccountPayloadData) GetJSON() pgtype.JSONB {
 	return u.json
 }

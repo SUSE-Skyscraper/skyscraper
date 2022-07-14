@@ -23,11 +23,32 @@ paths:
         - bearerAuth: []
       responses:
         '200':
-          description: The current user's profile
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Profile'
+          $ref: '#/components/responses/UserResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/v1/audit_logs:
+    get:
+      description: Returns the audit logs
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: resource_id
+          description: The id of the resource to filter the audit logs by
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: resource_type
+          description: The type of the resource to filter the audit logs by
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          $ref: '#/components/responses/AuditLogsResponse'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '500':
@@ -46,6 +67,52 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/CloudTenant'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/v1/tags:
+    post:
+      description: Creates a tag
+      security:
+        - bearerAuth: []
+      requestBody:
+        $ref: '#/components/requestBodies/CreateTagRequest'
+      responses:
+        '201':
+          $ref: '#/components/responses/TagResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    get:
+      description: Returns the tags
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          $ref: '#/components/responses/TagsResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/v1/tags/{id}:
+    put:
+      description: Creates a tag
+      parameters:
+        - name: id
+          in: path
+          description: The tag ID
+          required: true
+          schema:
+            type: string
+      security:
+        - bearerAuth: []
+      requestBody:
+        $ref: '#/components/requestBodies/UpdateTagRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/TagResponse'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '500':
@@ -70,13 +137,7 @@ paths:
             type: string
       responses:
         '200':
-          description: The accounts for a cloud tenant
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Account'
+          $ref: '#/components/responses/AccountsResponse'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '500':
@@ -106,17 +167,10 @@ paths:
           schema:
             type: string
       requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AccountUpdate'
+        $ref: '#/components/requestBodies/UpdateAccountRequest'
       responses:
         '200':
-          description: The updated account
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Account'
+          $ref: '#/components/responses/AccountResponse'
         '400':
           $ref: '#/components/responses/BadRequestError'
         '401':
@@ -148,16 +202,61 @@ paths:
             type: string
       responses:
         '200':
-          description: The account for a cloud tenant
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Account'
+          $ref: '#/components/responses/AccountResponse'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '500':
           $ref: '#/components/responses/InternalError'
 components:
+  requestBodies:
+    CreateTagRequest:
+      description: To update a tag
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+                properties:
+                  display_name:
+                    type: string
+                  key:
+                    type: string
+                  required:
+                    type: boolean
+                  description:
+                    type: string
+    UpdateTagRequest:
+      description: To update a tag
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+                properties:
+                  display_name:
+                    type: string
+                  key:
+                    type: string
+                  required:
+                    type: boolean
+                  description:
+                    type: string
+    UpdateAccountRequest:
+      description: The account update request body
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+                properties:
+                  tags_desired:
+                    type: object
   responses:
     BadRequestError:
       description: Bad request
@@ -165,19 +264,153 @@ components:
       description: Access token is missing or invalid
     InternalError:
       description: An unexpected internal error occurred
+    AuditLogsResponse:
+      description: The audit logs
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AuditLog'
+              included:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Included'
+    AccountsResponse:
+      description: The accounts
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Account'
+
+    AccountResponse:
+      description: The account
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                $ref: '#/components/schemas/Account'
+    UserResponse:
+      description: The user
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                $ref: '#/components/schemas/User'
+    TagResponse:
+      description: The Tag
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                $ref: '#/components/schemas/Tag'
+    TagsResponse:
+      description: The Tags
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Tag'
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
       bearerFormat: JWT
   schemas:
-    Profile:
+    AuditLog:
       type: object
       properties:
-        email:
+        data:
+          type: object
+          properties:
+            id:
+              type: string
+            type:
+              type: string
+            attributes:
+              type: object
+              properties:
+                created_at:
+                  type: string
+                updated_at:
+                  type: string
+                user_id:
+                  type: string
+                resource_id:
+                  type: string
+                resource_type:
+                  type: string
+                message:
+                  type: string
+            relationships:
+              type: object
+              properties:
+                user:
+                  type: object
+                  properties:
+                    data:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        type:
+                          type: string
+
+    Included:
+      type: object
+      properties:
+        id:
           type: string
-      required:
-        - email
+        type:
+          type: string
+        attributes:
+          type: object
+    User:
+      type: object
+      properties:
+        data:
+          type: object
+          required:
+            - id
+            - type
+          properties:
+            id:
+              type: string
+            type:
+              type: string
+            attributes:
+              type: object
+              required:
+                - username
+              properties:
+                username:
+                  type: string
+                locale:
+                  type: string
+                active:
+                  type: boolean
+                created_at:
+                  type: string
+                updated_at:
+                  type: string
     CloudTenant:
       type: object
       properties:
@@ -193,39 +426,57 @@ components:
           type: string
         updated_at:
           type: string
-    AccountUpdate:
+    Tag:
       type: object
       properties:
-        tags_desired:
+        id:
+          type: string
+        type:
+          type: string
+        attributes:
           type: object
-          additionalProperties:
-            type: string
+          properties:
+            display_name:
+              type: string
+            description:
+              type: string
+            required:
+              type: boolean
+            key:
+              type: string
     Account:
       type: object
       properties:
-        cloud_provider:
+        id:
           type: string
-        tenant_id:
+        type:
           type: string
-        account_id:
-          type: string
-        name:
-          type: string
-        tags_current:
+        attributes:
           type: object
-          additionalProperties:
-            type: string
-        tags_desired:
-          type: object
-          additionalProperties:
-            type: string
-        tags_drift_detected:
-          type: boolean
-        active:
-          type: boolean
-        created_at:
-          type: string
-        updated_at:
-          type: string
+          properties:
+            cloud_provider:
+              type: string
+            tenant_id:
+              type: string
+            account_id:
+              type: string
+            name:
+              type: string
+            tags_current:
+              type: object
+              additionalProperties:
+                type: string
+            tags_desired:
+              type: object
+              additionalProperties:
+                type: string
+            tags_drift_detected:
+              type: boolean
+            active:
+              type: boolean
+            created_at:
+              type: string
+            updated_at:
+              type: string
 security:
   - bearerAuth: []

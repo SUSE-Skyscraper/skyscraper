@@ -5,12 +5,50 @@
 package db
 
 import (
+	"database/sql"
+	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgtype"
 )
 
+type AuditResourceType string
+
+const (
+	AuditResourceTypeCloudAccount AuditResourceType = "cloud_account"
+	AuditResourceTypeTag          AuditResourceType = "tag"
+	AuditResourceTypePolicy       AuditResourceType = "policy"
+	AuditResourceTypeCloudTenant  AuditResourceType = "cloud_tenant"
+	AuditResourceTypeUser         AuditResourceType = "user"
+	AuditResourceTypeGroup        AuditResourceType = "group"
+	AuditResourceTypeScimApiKey   AuditResourceType = "scim_api_key"
+)
+
+func (e *AuditResourceType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = AuditResourceType(s)
+	case string:
+		*e = AuditResourceType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for AuditResourceType: %T", src)
+	}
+	return nil
+}
+
+type AuditLog struct {
+	ID           uuid.UUID
+	UserID       uuid.UUID
+	ResourceType AuditResourceType
+	ResourceID   uuid.UUID
+	Message      string
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
+}
+
 type CloudAccount struct {
+	ID                uuid.UUID
 	Cloud             string
 	TenantID          string
 	AccountID         string
@@ -24,10 +62,68 @@ type CloudAccount struct {
 }
 
 type CloudTenant struct {
+	ID        uuid.UUID
 	Cloud     string
 	TenantID  string
 	Name      string
 	Active    bool
 	CreatedAt time.Time
 	UpdatedAt time.Time
+}
+
+type Group struct {
+	ID          uuid.UUID
+	DisplayName string
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+}
+
+type GroupMember struct {
+	ID        int32
+	GroupID   uuid.UUID
+	UserID    uuid.UUID
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
+type Policy struct {
+	ID    uuid.UUID
+	Ptype string
+	V0    string
+	V1    string
+	V2    sql.NullString
+	V3    sql.NullString
+	V4    sql.NullString
+	V5    sql.NullString
+}
+
+type ScimApiKey struct {
+	ID        uuid.UUID
+	Token     string
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
+type Tag struct {
+	ID          uuid.UUID
+	DisplayName string
+	Description string
+	Required    bool
+	Key         string
+	Overrides   pgtype.JSONB
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+}
+
+type User struct {
+	ID          uuid.UUID
+	Username    string
+	ExternalID  sql.NullString
+	Name        pgtype.JSONB
+	DisplayName sql.NullString
+	Locale      sql.NullString
+	Active      bool
+	Emails      pgtype.JSONB
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
 }

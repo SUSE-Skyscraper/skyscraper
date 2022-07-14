@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/suse-skyscraper/skyscraper/cmd/app/cloudsync"
 	"github.com/suse-skyscraper/skyscraper/cmd/app/migrate"
+	"github.com/suse-skyscraper/skyscraper/cmd/app/scim"
 	"github.com/suse-skyscraper/skyscraper/cmd/app/server"
 	"github.com/suse-skyscraper/skyscraper/cmd/app/worker"
 	"github.com/suse-skyscraper/skyscraper/internal/application"
@@ -40,6 +41,7 @@ func main() {
 	rootCmd.AddCommand(cloudsync.NewCmd(app))
 	rootCmd.AddCommand(migrate.NewCmd(app))
 	rootCmd.AddCommand(worker.NewCmd(app))
+	rootCmd.AddCommand(scim.NewCmd(app))
 
 	err = rootCmd.Execute()
 	if err != nil {

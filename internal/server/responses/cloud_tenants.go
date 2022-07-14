@@ -2,38 +2,53 @@ package responses
 
 import (
 	"net/http"
+	"time"
 
-	"github.com/go-chi/render"
 	"github.com/suse-skyscraper/skyscraper/internal/db"
 )
 
-type CloudTenantResponse struct {
-	CloudProvider string `json:"cloud_provider"`
+type CloudTenantAttributes struct {
 	TenantID      string `json:"tenant_id"`
+	CloudProvider string `json:"cloud_provider"`
 	Name          string `json:"name"`
 	Active        bool   `json:"active"`
 	CreatedAt     string `json:"created_at"`
 	UpdatedAt     string `json:"updated_at"`
 }
 
-func (rd *CloudTenantResponse) Render(_ http.ResponseWriter, _ *http.Request) error {
-	return nil
-}
-func NewCloudTenantResponse(tenant db.CloudTenant) *CloudTenantResponse {
-	return &CloudTenantResponse{
-		CloudProvider: tenant.Cloud,
-		TenantID:      tenant.TenantID,
-		Name:          tenant.Name,
-		Active:        tenant.Active,
-		CreatedAt:     tenant.CreatedAt.Format("2006-01-02 15:04:05"),
-		UpdatedAt:     tenant.UpdatedAt.Format("2006-01-02 15:04:05"),
-	}
+type CloudTenantItem struct {
+	ID         string                `json:"id"`
+	Type       ObjectResponseType    `json:"type"`
+	Attributes CloudTenantAttributes `json:"attributes"`
 }
 
-func NewCloudTenantListResponse(tenants []db.CloudTenant) []render.Renderer {
-	var list []render.Renderer
-	for _, tenant := range tenants {
-		list = append(list, NewCloudTenantResponse(tenant))
+type CloudTenantsResponse struct {
+	Data []CloudTenantItem `json:"data"`
+}
+
+func (rd *CloudTenantsResponse) Render(_ http.ResponseWriter, _ *http.Request) error {
+	return nil
+}
+
+func NewCloudTenantListResponse(tenants []db.CloudTenant) *CloudTenantsResponse {
+	list := make([]CloudTenantItem, len(tenants))
+	for i, tenant := range tenants {
+		list[i] = newCloudTenantItem(tenant)
 	}
-	return list
+	return &CloudTenantsResponse{Data: list}
+}
+
+func newCloudTenantItem(tenant db.CloudTenant) CloudTenantItem {
+	return CloudTenantItem{
+		ID:   tenant.ID.String(),
+		Type: ObjectResponseTypeCloudTenant,
+		Attributes: CloudTenantAttributes{
+			CloudProvider: tenant.Cloud,
+			TenantID:      tenant.TenantID,
+			Name:          tenant.Name,
+			Active:        tenant.Active,
+			CreatedAt:     tenant.CreatedAt.Format(time.RFC3339),
+			UpdatedAt:     tenant.UpdatedAt.Format(time.RFC3339),
+		},
+	}
 }

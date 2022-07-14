@@ -6,6 +6,25 @@ import (
 	"github.com/go-chi/render"
 )
 
+type ObjectResponseType string
+
+const (
+	ObjectResponseTypeUser         ObjectResponseType = "user"
+	ObjectResponseTypeAuditLog     ObjectResponseType = "audit_log"
+	ObjectResponseTypeCloudAccount ObjectResponseType = "cloud_account"
+	ObjectResponseTypeCloudTenant  ObjectResponseType = "cloud_tenant"
+	ObjectResponseTypeTag          ObjectResponseType = "tag"
+)
+
+type RelationshipData struct {
+	ID   string `json:"id"`
+	Type string `json:"type"`
+}
+
+type Relationship struct {
+	RelationshipData RelationshipData `json:"data"`
+}
+
 var ErrNotFound = &ErrResponse{HTTPStatusCode: 404, StatusText: "Resource not found."}
 var ErrInternalServerError = &ErrResponse{HTTPStatusCode: 500, StatusText: "internal error"}
 

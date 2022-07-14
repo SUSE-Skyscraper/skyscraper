@@ -4,6 +4,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/casbin/casbin/v2"
+	"github.com/casbin/casbin/v2/model"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/nats-io/nats.go"
 	"github.com/suse-skyscraper/skyscraper/internal/db"
@@ -11,10 +13,11 @@ import (
 
 type App struct {
 	Config       Config
-	DB           db.Querier
+	Enforcer     *casbin.Enforcer
 	JS           nats.JetStreamContext
-	postgresPool *pgxpool.Pool
+	Repository   db.RepositoryQueries
 	natsConn     *nats.Conn
+	postgresPool *pgxpool.Pool
 }
 
 func NewApp(configDir string) (*App, error) {
@@ -33,7 +36,7 @@ func (a *App) Start(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	a.DB = database
+	a.Repository = db.NewRepository(pool, database)
 	a.postgresPool = pool
 
 	js, nc, err := setupNats(ctx, a.Config)
@@ -42,6 +45,16 @@ func (a *App) Start(ctx context.Context) error {
 	}
 	a.JS = js
 	a.natsConn = nc
+
+	return nil
+}
+
+func (a *App) StartEnforcer() error {
+	e, err := setupEnforcer(a)
+	if err != nil {
+		return err
+	}
+	a.Enforcer = e
 
 	return nil
 }
@@ -89,4 +102,36 @@ func setupNats(_ context.Context, conf Config) (nats.JetStreamContext, *nats.Con
 	}
 
 	return js, nc, nil
+}
+
+func setupEnforcer(app *App) (*casbin.Enforcer, error) {
+	text :=
+		`
+[request_definition]
+r = sub, obj, act
+
+[policy_definition]
+p = sub, obj, act
+
+[role_definition]
+g = _, _
+
+[policy_effect]
+e = some(where (p.eft == allow))
+
+[matchers]
+m = (r.sub == "*" || g(r.sub, p.sub)) && keyMatch(r.obj, p.obj) && regexMatch(r.act, p.act)
+`
+	m, err := model.NewModelFromString(text)
+	if err != nil {
+		return nil, err
+	}
+
+	adapter := NewAdapter(app)
+	e, err := casbin.NewEnforcer(m, adapter)
+	if err != nil {
+		return nil, err
+	}
+
+	return e, nil
 }

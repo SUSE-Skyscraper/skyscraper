@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { BackendService, CloudTenant } from '../backend.service';
+import { BackendService, CloudTenantItem } from '../backend.service';
 
 @Component({
   selector: 'app-cloud-tenants',
@@ -7,7 +7,7 @@ import { BackendService, CloudTenant } from '../backend.service';
   styleUrls: ['./cloud-tenants.component.scss'],
 })
 export class CloudTenantsComponent implements OnInit {
-  public cloudTenants: CloudTenant[] = [];
+  public cloudTenants: CloudTenantItem[] = [];
   public displayedColumns: string[] = [
     'cloud_provider',
     'tenant_id',
@@ -22,7 +22,7 @@ export class CloudTenantsComponent implements OnInit {
 
   ngOnInit(): void {
     this.backendService.getCloudTenants().subscribe((tenants) => {
-      this.cloudTenants = tenants;
+      this.cloudTenants = tenants.data;
     });
   }
 }

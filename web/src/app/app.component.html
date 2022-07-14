@@ -3,14 +3,19 @@
 <mat-toolbar color="primary" id="navbar">
   <mat-toolbar-row>
     <span>SUSE Skyscraper</span>
+    <a mat-button *ngIf="isAuthenticated" routerLink="/cloud_accounts"
+      >Cloud Accounts</a
+    >
     <a mat-button *ngIf="isAuthenticated" routerLink="/cloud_tenants"
       >Cloud Tenants</a
     >
+    <a mat-button *ngIf="isAuthenticated" routerLink="/tags">Tags</a>
+    <a mat-button *ngIf="isAuthenticated" routerLink="/audit_log">Audit Log</a>
 
     <span class="example-spacer"></span>
     <div *ngIf="isAuthenticated && this.profile !== undefined; else loggedOut">
       <a mat-button [matMenuTriggerFor]="userNav"
-        ><mat-icon>person</mat-icon>{{ this.profile.email }}</a
+        ><mat-icon>person</mat-icon>{{ this.profile.attributes.username }}</a
       >
       <mat-menu #userNav>
         <a mat-menu-item *ngIf="isAuthenticated" (click)="logout()">Logout</a>
@@ -21,7 +26,5 @@
 </mat-toolbar>
 
 <div id="mainContent">
-  <div id="mainContentWrapper">
-    <router-outlet></router-outlet>
-  </div>
+  <router-outlet></router-outlet>
 </div>

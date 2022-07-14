@@ -1,103 +1,122 @@
-<div *ngIf="cloudAccount !== undefined" class="account-display">
-  <div class="main">
-    <h1>Account: {{ cloudAccount.name }}</h1>
+<div id="cloud-account-wrapper">
+  <div *ngIf="cloudAccount !== undefined" id="account-display">
+    <main>
+      <h1>Account: {{ cloudAccount.attributes.name }}</h1>
 
-    <div class="account-toolbar">
-      <div
-        class="inline-block bg-red-500 rounded p-2 text-white mr-2"
-        *ngIf="cloudAccount.tags_drift_detected">
-        Drift Detected
-      </div>
-      <div
-        class="inline-block bg-gray-500 rounded p-2 text-white mr-2"
-        *ngIf="!cloudAccount.active">
-        Inactive Account
-      </div>
-    </div>
-
-    <dl>
-      <div>
-        <dd>Cloud</dd>
-        <dt>{{ cloudAccount.cloud_provider }}</dt>
+      <div class="account-toolbar">
+        <div
+          class="inline-block bg-red-500 rounded p-2 text-white mr-2"
+          *ngIf="cloudAccount.attributes.tags_drift_detected">
+          Drift Detected
+        </div>
+        <div
+          class="inline-block bg-gray-500 rounded p-2 text-white mr-2"
+          *ngIf="!cloudAccount.attributes.active">
+          Inactive Account
+        </div>
       </div>
 
-      <div>
-        <dd>Tenant</dd>
-        <dt>{{ cloudAccount.tenant_id }}</dt>
-      </div>
+      <dl>
+        <div>
+          <dd>Cloud</dd>
+          <dt>{{ cloudAccount.attributes.cloud_provider }}</dt>
+        </div>
 
-      <div>
-        <dd>Account ID</dd>
-        <dt>{{ cloudAccount.account_id }}</dt>
-      </div>
+        <div>
+          <dd>Tenant</dd>
+          <dt>{{ cloudAccount.attributes.tenant_id }}</dt>
+        </div>
 
-      <div>
-        <dd>Current Tags</dd>
-        <dt>
-          <ul>
-            <li *ngFor="let tag of cloudAccount.tags_current | keyvalue">
-              {{ tag.key }}: {{ tag.value }}
-            </li>
-          </ul>
-        </dt>
-      </div>
+        <div>
+          <dd>Account ID</dd>
+          <dt>{{ cloudAccount.attributes.account_id }}</dt>
+        </div>
 
-      <div>
-        <dd>Desired Tags</dd>
-        <dt>
-          <ul>
-            <li *ngFor="let tag of cloudAccount.tags_desired | keyvalue">
-              {{ tag.key }}: {{ tag.value }}
-            </li>
-          </ul>
-        </dt>
-      </div>
-    </dl>
-  </div>
+        <div>
+          <dd>Current Tags</dd>
+          <dt>
+            <ul>
+              <li
+                *ngFor="
+                  let tag of cloudAccount.attributes.tags_current | keyvalue
+                ">
+                {{ tag.key }}: {{ tag.value }}
+              </li>
+            </ul>
+          </dt>
+        </div>
 
-  <div class="aside">
-    <h2>Edit Account:</h2>
-    <form [formGroup]="form" (ngSubmit)="onSubmit()">
-      <ng-container formArrayName="tags">
-        <h3>Tags</h3>
+        <div>
+          <dd>Desired Tags</dd>
+          <dt>
+            <ul>
+              <li
+                *ngFor="
+                  let tag of cloudAccount.attributes.tags_desired | keyvalue
+                ">
+                {{ tag.key }}: {{ tag.value }}
+              </li>
+            </ul>
+          </dt>
+        </div>
+      </dl>
+    </main>
 
-        <ng-container *ngFor="let tagForm of tags.controls; let i = index">
-          <div [formGroupName]="i" class="flex flex-wrap">
-            <mat-form-field class="w-1/3 px-2">
-              <input matInput formControlName="key" placeholder="Tag Key" />
-            </mat-form-field>
-            <mat-form-field class="w-1/3 px-2">
-              <input matInput formControlName="value" placeholder="Tag Value" />
-            </mat-form-field>
+    <aside>
+      <h2>Edit Account:</h2>
+      <form [formGroup]="form" (ngSubmit)="onSubmit()">
+        <ng-container formArrayName="tags">
+          <h3>Tags</h3>
+
+          <ng-container *ngFor="let tagForm of tags.controls; let i = index">
+            <div [formGroupName]="i" class="flex flex-wrap">
+              <mat-form-field class="w-1/3 px-2">
+                <input matInput formControlName="key" placeholder="Tag Key" />
+              </mat-form-field>
+              <mat-form-field class="w-1/3 px-2">
+                <input
+                  matInput
+                  formControlName="value"
+                  placeholder="Tag Value" />
+              </mat-form-field>
+              <div class="w-1/3 px-2">
+                <button
+                  type="button"
+                  mat-raised-button
+                  color="warn"
+                  (click)="removeTag(i)">
+                  Remove Tag
+                </button>
+              </div>
+            </div>
+          </ng-container>
+          <div class="flex flex-wrap">
+            <div class="w-1/3">&nbsp;</div>
+            <div class="w-1/3">&nbsp;</div>
             <div class="w-1/3 px-2">
               <button
                 type="button"
                 mat-raised-button
-                color="warn"
-                (click)="removeTag(i)">
-                Remove Tag
+                color="accent"
+                (click)="addTag()">
+                Add Tag
               </button>
             </div>
           </div>
         </ng-container>
-        <div class="flex flex-wrap">
-          <div class="w-1/3">&nbsp;</div>
-          <div class="w-1/3">&nbsp;</div>
-          <div class="w-1/3 px-2">
-            <button
-              type="button"
-              mat-raised-button
-              color="accent"
-              (click)="addTag()">
-              Add Tag
-            </button>
-          </div>
-        </div>
-      </ng-container>
 
-      <p class="pt-5">
-        <button type="submit" mat-raised-button color="primary">Submit</button>
-      </p>
-    </form>
+        <p class="pt-5">
+          <button type="submit" mat-raised-button color="primary">
+            Submit
+          </button>
+        </p>
+      </form>
+    </aside>
+  </div>
+
+  <div *ngIf="cloudAccount !== undefined">
+    <app-audit-log
+      [resource_id]="cloudAccount.id"
+      [resource_type]="'cloud_account'"></app-audit-log>
   </div>
 </div>

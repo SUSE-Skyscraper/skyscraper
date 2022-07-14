@@ -1,12 +1,17 @@
-import { Component, OnInit } from '@angular/core';
+import { AfterViewInit, Component, OnInit, ViewChild } from '@angular/core';
 import {
   BackendService,
-  CloudAccount,
-  UpdateCloudAccount,
+  CloudAccountItem,
+  CloudAccountResponse,
+  UpdateCloudAccountRequest,
 } from '../backend.service';
 import { ActivatedRoute } from '@angular/router';
 import { FormArray, FormBuilder, FormGroup } from '@angular/forms';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import {
+  AuditLogComponent,
+  AuditLogTableItem,
+} from '../audit-log/audit-log.component';
 
 @Component({
   selector: 'app-cloud-account',
@@ -14,10 +19,15 @@ import { MatSnackBar } from '@angular/material/snack-bar';
   styleUrls: ['./cloud-account.component.scss'],
 })
 export class CloudAccountComponent implements OnInit {
-  cloudAccount: CloudAccount | undefined;
+  cloudAccount: CloudAccountItem | undefined;
   cloud: string = '';
   tenant_id: string = '';
-  id: string = '';
+  account_id: string = '';
+  auditLogs: AuditLogTableItem[] = [];
+  auditLogColumns: string[] = ['user_id', 'message', 'created_at'];
+
+  @ViewChild(AuditLogComponent)
+  auditLogComponent: AuditLogComponent | undefined;
 
   form = this.fb.group({
     tags: this.fb.array([]),
@@ -42,49 +52,58 @@ export class CloudAccountComponent implements OnInit {
   }
 
   onSubmit() {
-    let update: UpdateCloudAccount = {
-      tags_desired: {},
+    let update: UpdateCloudAccountRequest = {
+      data: {
+        tags_desired: {},
+      },
     };
     this.tags.controls.forEach((tag) => {
       const key = tag.value['key'];
-      update.tags_desired[key] = tag.value['value'];
+      update.data.tags_desired[key] = tag.value['value'];
     });
 
     this.backendService
-      .updateCloudAccount(this.cloud, this.tenant_id, this.id, update)
-      .subscribe((cloudAccount: CloudAccount) => {
-        this.cloudAccount = cloudAccount;
-        this.refreshForm();
-        this.snackBar.open('Tags Updated', 'close', {
-          horizontalPosition: 'center',
-          verticalPosition: 'top',
-          duration: 10000,
-        });
+      .updateCloudAccount(this.cloud, this.tenant_id, this.account_id, update)
+      .subscribe((response: CloudAccountResponse) => {
+        if (response.data !== null) {
+          this.cloudAccount = response.data;
+          this.refreshPage();
+          this.snackBar.open('Tags Updated', 'close', {
+            horizontalPosition: 'center',
+            verticalPosition: 'top',
+            duration: 10000,
+          });
+          this.auditLogComponent?.ngOnChanges();
+        }
       });
   }
 
   ngOnInit(): void {
     this.cloud = String(this.router.snapshot.paramMap.get('cloud'));
     this.tenant_id = String(this.router.snapshot.paramMap.get('tenant_id'));
-    this.id = String(this.router.snapshot.paramMap.get('id'));
+    this.account_id = String(this.router.snapshot.paramMap.get('account_id'));
 
     this.backendService
-      .getCloudAccount(this.cloud, this.tenant_id, this.id)
-      .subscribe((cloudAccount: CloudAccount) => {
-        this.cloudAccount = cloudAccount;
-        this.refreshForm();
+      .getCloudAccount(this.cloud, this.tenant_id, this.account_id)
+      .subscribe((response: CloudAccountResponse) => {
+        if (response.data !== null) {
+          this.cloudAccount = response.data;
+        }
+        this.refreshPage();
       });
   }
 
-  private refreshForm() {
+  private refreshPage() {
     if (this.cloudAccount === undefined) {
       return;
     }
     this.tags.clear();
 
-    Object.entries(this.cloudAccount.tags_desired).forEach(([key, value]) => {
-      this.tags.push(this.newTag(key, value));
-    });
+    Object.entries(this.cloudAccount.attributes.tags_desired).forEach(
+      ([key, value]) => {
+        this.tags.push(this.newTag(key, value));
+      },
+    );
   }
 
   addTag() {

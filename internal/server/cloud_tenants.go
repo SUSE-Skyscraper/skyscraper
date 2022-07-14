@@ -10,16 +10,12 @@ import (
 
 func V1CloudTenants(app *application.App) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		cloudTenants, err := app.DB.GetCloudTenants(r.Context())
+		cloudTenants, err := app.Repository.GetCloudTenants(r.Context())
 		if err != nil {
 			_ = render.Render(w, r, responses.ErrInternalServerError)
 			return
 		}
 
-		err = render.RenderList(w, r, responses.NewCloudTenantListResponse(cloudTenants))
-		if err != nil {
-			_ = render.Render(w, r, responses.ErrRender(err))
-			return
-		}
+		_ = render.Render(w, r, responses.NewCloudTenantListResponse(cloudTenants))
 	}
 }

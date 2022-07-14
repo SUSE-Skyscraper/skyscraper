@@ -13,58 +13,104 @@ export class BackendService {
     this.host = config.backend.host;
   }
 
-  getProfile(): Observable<Profile> {
-    const url = new URL('/api/v1/profile', this.host);
-    return this.http.get<Profile>(url.href);
+  getAuditLogs(
+    resource_id?: string,
+    resource_type?: string,
+  ): Observable<AuditLogsResponse> {
+    const url = new URL('/api/v1/audit_logs', this.host);
+    if (resource_id !== undefined) {
+      url.searchParams.append('resource_id', resource_id);
+    }
+    if (resource_type !== undefined) {
+      url.searchParams.append('resource_type', resource_type);
+    }
+
+    return this.http.get<AuditLogsResponse>(url.href);
   }
 
-  getCloudTenants(): Observable<CloudTenant[]> {
+  getProfile(): Observable<UserResponse> {
+    const url = new URL('/api/v1/profile', this.host);
+
+    return this.http.get<UserResponse>(url.href);
+  }
+
+  getTags(): Observable<TagsResponse> {
+    const url = new URL(`/api/v1/tags`, this.host);
+
+    return this.http.get<TagsResponse>(url.href);
+  }
+
+  updateTag(id: string, update: UpdateTagRequest): Observable<TagsResponse> {
+    const url = new URL(`/api/v1/tags/${id}`, this.host);
+
+    return this.http.put<TagResponse>(url.href, update);
+  }
+
+  createTag(update: CreateTagRequest): Observable<TagsResponse> {
+    const url = new URL(`/api/v1/tags`, this.host);
+
+    return this.http.post<TagResponse>(url.href, update);
+  }
+
+  getCloudTenants(): Observable<CloudTenantsResponse> {
     const url = new URL('/api/v1/cloud_tenants', this.host);
-    return this.http.get<CloudTenant[]>(url.href);
+
+    return this.http.get<CloudTenantsResponse>(url.href);
   }
 
   getCloudAccount(
     cloud: string,
     tenantId: string,
     accountId: string,
-  ): Observable<CloudAccount> {
+  ): Observable<CloudAccountResponse> {
     const url = new URL(
       `/api/v1/cloud_tenants/cloud/${cloud}/tenant/${tenantId}/accounts/${accountId}`,
       this.host,
     );
-    return this.http.get<CloudAccount>(url.href);
+    return this.http.get<CloudAccountResponse>(url.href);
   }
 
   updateCloudAccount(
     cloud: string,
     tenantId: string,
     accountId: string,
-    update: UpdateCloudAccount,
-  ): Observable<CloudAccount> {
+    update: UpdateCloudAccountRequest,
+  ): Observable<CloudAccountResponse> {
     const url = new URL(
       `/api/v1/cloud_tenants/cloud/${cloud}/tenant/${tenantId}/accounts/${accountId}`,
       this.host,
     );
-    return this.http.put<CloudAccount>(url.href, update);
+    return this.http.put<CloudAccountResponse>(url.href, update);
   }
 
   getCloudAccounts(
-    cloud: string,
-    tenantId: string,
-  ): Observable<CloudAccount[]> {
-    const url = new URL(
-      `/api/v1/cloud_tenants/cloud/${cloud}/tenant/${tenantId}/accounts`,
-      this.host,
-    );
-    return this.http.get<CloudAccount[]>(url.href);
+    filter: Map<string, string>,
+  ): Observable<CloudAccountsResponse> {
+    const url = new URL(`/api/v1/cloud_accounts`, this.host);
+    if (filter !== undefined) {
+      filter.forEach((value, key) => {
+        url.searchParams.append(key, value);
+      });
+    }
+    return this.http.get<CloudAccountsResponse>(url.href);
   }
 }
 
-export interface Profile {
-  email: string;
+export interface UserAttributes {
+  username: string;
 }
 
-export interface CloudTenant {
+export interface UserItem {
+  id: string;
+  type: string;
+  attributes: UserAttributes;
+}
+
+export interface UserResponse {
+  data: UserItem;
+}
+
+export interface CloudTenantItem {
   cloud_provider: string;
   tenant_id: string;
   name: string;
@@ -73,7 +119,25 @@ export interface CloudTenant {
   updated_at: string;
 }
 
-export interface CloudAccount {
+export interface CloudTenantsResponse {
+  data: CloudTenantItem[];
+}
+
+export interface CloudAccountResponse {
+  data: CloudAccountItem | null;
+}
+
+export interface CloudAccountsResponse {
+  data: CloudAccountItem[];
+}
+
+export interface CloudAccountItem {
+  id: string;
+  type: string;
+  attributes: CloudAccountAttributes;
+}
+
+export interface CloudAccountAttributes {
   cloud_provider: string;
   tenant_id: string;
   account_id: string;
@@ -86,6 +150,82 @@ export interface CloudAccount {
   updated_at: string;
 }
 
-export interface UpdateCloudAccount {
+export interface UpdateCloudAccountRequestData {
   tags_desired: { [key: string]: string };
+}
+
+export interface UpdateCloudAccountRequest {
+  data: UpdateCloudAccountRequestData;
+}
+
+export interface TagItemAttributes {
+  display_name: string;
+  required: boolean;
+  description: string;
+  key: string;
+}
+
+export interface TagItem {
+  id: string;
+  type: string;
+  attributes: TagItemAttributes;
+}
+
+export interface TagsResponse {
+  data: TagItem[] | null;
+}
+
+export interface TagResponse {
+  data: TagItem[] | null;
+}
+
+export interface UpdateTagRequestData {
+  display_name: string;
+  key: string;
+  required: boolean;
+  description: string;
+}
+
+export interface UpdateTagRequest {
+  data: UpdateTagRequestData;
+}
+
+export interface CreateTagRequestData {
+  display_name: string;
+  key: string;
+  required: boolean;
+  description: string;
+}
+
+export interface CreateTagRequest {
+  data: CreateTagRequestData;
+}
+
+export interface AuditLogAttributes {
+  message: string;
+  user_id: string;
+  resource_type: string;
+  resource_id: string;
+  created_at: string;
+}
+
+export interface RelationshipData {
+  id: string;
+  type: string;
+}
+
+export interface Relationship {
+  data: RelationshipData;
+}
+
+export interface AuditLogItem {
+  id: string;
+  type: string;
+  attributes: AuditLogAttributes;
+  relationships: { [key: string]: Relationship };
+}
+
+export interface AuditLogsResponse {
+  data: AuditLogItem[] | null;
+  included: UserItem[] | null;
 }

@@ -7,9 +7,78 @@ package db
 
 import (
 	"context"
+	"database/sql"
+	"time"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgtype"
 )
+
+const addPolicy = `-- name: AddPolicy :exec
+insert into policies (id, ptype, v0, v1, v2, v3, v4, v5)
+values (uuid_generate_v5('6ba7b812-9dad-11d1-80b4-00c04fd430c8',
+                         concat($1::text, $2::text, $3::text, $4::text,
+                                $5::text, $6::text, $7::text)), $1::text,
+        $2::text, $3::text, $4::text, $5::text, $6::text,
+        $7::text)
+on conflict do nothing
+`
+
+type AddPolicyParams struct {
+	Ptype string
+	V0    string
+	V1    string
+	V2    string
+	V3    string
+	V4    string
+	V5    string
+}
+
+func (q *Queries) AddPolicy(ctx context.Context, arg AddPolicyParams) error {
+	_, err := q.db.Exec(ctx, addPolicy,
+		arg.Ptype,
+		arg.V0,
+		arg.V1,
+		arg.V2,
+		arg.V3,
+		arg.V4,
+		arg.V5,
+	)
+	return err
+}
+
+const createAuditLog = `-- name: CreateAuditLog :one
+insert into audit_logs (user_id, resource_type, resource_id, message, created_at, updated_at)
+values ($1, $2, $3, $4, now(), now())
+returning id, user_id, resource_type, resource_id, message, created_at, updated_at
+`
+
+type CreateAuditLogParams struct {
+	UserID       uuid.UUID
+	ResourceType AuditResourceType
+	ResourceID   uuid.UUID
+	Message      string
+}
+
+func (q *Queries) CreateAuditLog(ctx context.Context, arg CreateAuditLogParams) (AuditLog, error) {
+	row := q.db.QueryRow(ctx, createAuditLog,
+		arg.UserID,
+		arg.ResourceType,
+		arg.ResourceID,
+		arg.Message,
+	)
+	var i AuditLog
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.ResourceType,
+		&i.ResourceID,
+		&i.Message,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
 
 const createCloudTenant = `-- name: CreateCloudTenant :exec
 
@@ -33,15 +102,48 @@ func (q *Queries) CreateCloudTenant(ctx context.Context, arg CreateCloudTenantPa
 	return err
 }
 
-const createOrInsertCloudAccount = `-- name: CreateOrInsertCloudAccount :one
+const createGroup = `-- name: CreateGroup :one
+insert into groups (display_name, created_at, updated_at)
+values ($1, now(), now())
+returning id, display_name, created_at, updated_at
+`
 
+func (q *Queries) CreateGroup(ctx context.Context, displayName string) (Group, error) {
+	row := q.db.QueryRow(ctx, createGroup, displayName)
+	var i Group
+	err := row.Scan(
+		&i.ID,
+		&i.DisplayName,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const createMembershipForUserAndGroup = `-- name: CreateMembershipForUserAndGroup :exec
+insert into group_members (user_id, group_id, created_at, updated_at)
+values ($1, $2, now(), now())
+on conflict (user_id, group_id) do update set updated_at = now()
+`
+
+type CreateMembershipForUserAndGroupParams struct {
+	UserID  uuid.UUID
+	GroupID uuid.UUID
+}
+
+func (q *Queries) CreateMembershipForUserAndGroup(ctx context.Context, arg CreateMembershipForUserAndGroupParams) error {
+	_, err := q.db.Exec(ctx, createMembershipForUserAndGroup, arg.UserID, arg.GroupID)
+	return err
+}
+
+const createOrInsertCloudAccount = `-- name: CreateOrInsertCloudAccount :one
 insert into cloud_accounts (cloud, tenant_id, account_id, name, tags_current, tags_desired)
 VALUES ($1, $2, $3, $4, $5, $6)
 ON CONFLICT (cloud, tenant_id, account_id)
     DO UPDATE SET name         = $4,
                   tags_current = $5,
                   updated_at   = now()
-returning cloud, tenant_id, account_id, name, active, tags_current, tags_desired, tags_drift_detected, created_at, updated_at
+returning id, cloud, tenant_id, account_id, name, active, tags_current, tags_desired, tags_drift_detected, created_at, updated_at
 `
 
 type CreateOrInsertCloudAccountParams struct {
@@ -53,9 +155,6 @@ type CreateOrInsertCloudAccountParams struct {
 	TagsDesired pgtype.JSONB
 }
 
-//------------------------------------------------------------------------------------------------------------------
-// Cloud Account Metadata
-//------------------------------------------------------------------------------------------------------------------
 func (q *Queries) CreateOrInsertCloudAccount(ctx context.Context, arg CreateOrInsertCloudAccountParams) (CloudAccount, error) {
 	row := q.db.QueryRow(ctx, createOrInsertCloudAccount,
 		arg.Cloud,
@@ -67,6 +166,7 @@ func (q *Queries) CreateOrInsertCloudAccount(ctx context.Context, arg CreateOrIn
 	)
 	var i CloudAccount
 	err := row.Scan(
+		&i.ID,
 		&i.Cloud,
 		&i.TenantID,
 		&i.AccountID,
@@ -81,24 +181,229 @@ func (q *Queries) CreateOrInsertCloudAccount(ctx context.Context, arg CreateOrIn
 	return i, err
 }
 
-const getCloudAccount = `-- name: GetCloudAccount :one
-select cloud, tenant_id, account_id, name, active, tags_current, tags_desired, tags_drift_detected, created_at, updated_at
+const createTag = `-- name: CreateTag :one
+insert into tags (display_name, key, required, description, created_at, updated_at)
+values ($1, $2, $3, $4, now(), now())
+returning id, display_name, description, required, key, overrides, created_at, updated_at
+`
+
+type CreateTagParams struct {
+	DisplayName string
+	Key         string
+	Required    bool
+	Description string
+}
+
+func (q *Queries) CreateTag(ctx context.Context, arg CreateTagParams) (Tag, error) {
+	row := q.db.QueryRow(ctx, createTag,
+		arg.DisplayName,
+		arg.Key,
+		arg.Required,
+		arg.Description,
+	)
+	var i Tag
+	err := row.Scan(
+		&i.ID,
+		&i.DisplayName,
+		&i.Description,
+		&i.Required,
+		&i.Key,
+		&i.Overrides,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const createUser = `-- name: CreateUser :one
+insert into users (username, name, display_name, emails, active, locale, external_id, created_at, updated_at)
+values ($1, $2, $3, $4, $5, $6, $7, now(), now())
+returning id, username, external_id, name, display_name, locale, active, emails, created_at, updated_at
+`
+
+type CreateUserParams struct {
+	Username    string
+	Name        pgtype.JSONB
+	DisplayName sql.NullString
+	Emails      pgtype.JSONB
+	Active      bool
+	Locale      sql.NullString
+	ExternalID  sql.NullString
+}
+
+func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
+	row := q.db.QueryRow(ctx, createUser,
+		arg.Username,
+		arg.Name,
+		arg.DisplayName,
+		arg.Emails,
+		arg.Active,
+		arg.Locale,
+		arg.ExternalID,
+	)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.ExternalID,
+		&i.Name,
+		&i.DisplayName,
+		&i.Locale,
+		&i.Active,
+		&i.Emails,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const deleteGroup = `-- name: DeleteGroup :exec
+delete
+from groups
+where id = $1
+`
+
+func (q *Queries) DeleteGroup(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteGroup, id)
+	return err
+}
+
+const deleteTag = `-- name: DeleteTag :exec
+delete
+from tags
+where id = $1
+`
+
+func (q *Queries) DeleteTag(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteTag, id)
+	return err
+}
+
+const deleteUser = `-- name: DeleteUser :exec
+delete
+from users
+where id = $1
+`
+
+func (q *Queries) DeleteUser(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteUser, id)
+	return err
+}
+
+const dropMembershipForGroup = `-- name: DropMembershipForGroup :exec
+delete
+from group_members
+where group_id = $1
+`
+
+func (q *Queries) DropMembershipForGroup(ctx context.Context, groupID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, dropMembershipForGroup, groupID)
+	return err
+}
+
+const dropMembershipForUserAndGroup = `-- name: DropMembershipForUserAndGroup :exec
+delete
+from group_members
+where user_id = $1
+  and group_id = $2
+`
+
+type DropMembershipForUserAndGroupParams struct {
+	UserID  uuid.UUID
+	GroupID uuid.UUID
+}
+
+func (q *Queries) DropMembershipForUserAndGroup(ctx context.Context, arg DropMembershipForUserAndGroupParams) error {
+	_, err := q.db.Exec(ctx, dropMembershipForUserAndGroup, arg.UserID, arg.GroupID)
+	return err
+}
+
+const findAPIKey = `-- name: FindAPIKey :one
+select id, token, created_at, updated_at
+from scim_api_keys
+where token = $1
+`
+
+func (q *Queries) FindAPIKey(ctx context.Context, token string) (ScimApiKey, error) {
+	row := q.db.QueryRow(ctx, findAPIKey, token)
+	var i ScimApiKey
+	err := row.Scan(
+		&i.ID,
+		&i.Token,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const findByUsername = `-- name: FindByUsername :one
+select id, username, external_id, name, display_name, locale, active, emails, created_at, updated_at
+from users
+where username = $1
+`
+
+func (q *Queries) FindByUsername(ctx context.Context, username string) (User, error) {
+	row := q.db.QueryRow(ctx, findByUsername, username)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.ExternalID,
+		&i.Name,
+		&i.DisplayName,
+		&i.Locale,
+		&i.Active,
+		&i.Emails,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const findCloudAccount = `-- name: FindCloudAccount :one
+select id, cloud, tenant_id, account_id, name, active, tags_current, tags_desired, tags_drift_detected, created_at, updated_at
+from cloud_accounts
+where id = $1
+`
+
+func (q *Queries) FindCloudAccount(ctx context.Context, id uuid.UUID) (CloudAccount, error) {
+	row := q.db.QueryRow(ctx, findCloudAccount, id)
+	var i CloudAccount
+	err := row.Scan(
+		&i.ID,
+		&i.Cloud,
+		&i.TenantID,
+		&i.AccountID,
+		&i.Name,
+		&i.Active,
+		&i.TagsCurrent,
+		&i.TagsDesired,
+		&i.TagsDriftDetected,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const findCloudAccountByCloudAndTenant = `-- name: FindCloudAccountByCloudAndTenant :one
+select id, cloud, tenant_id, account_id, name, active, tags_current, tags_desired, tags_drift_detected, created_at, updated_at
 from cloud_accounts
 where cloud = $1
   and tenant_id = $2
   and account_id = $3
 `
 
-type GetCloudAccountParams struct {
+type FindCloudAccountByCloudAndTenantParams struct {
 	Cloud     string
 	TenantID  string
 	AccountID string
 }
 
-func (q *Queries) GetCloudAccount(ctx context.Context, arg GetCloudAccountParams) (CloudAccount, error) {
-	row := q.db.QueryRow(ctx, getCloudAccount, arg.Cloud, arg.TenantID, arg.AccountID)
+func (q *Queries) FindCloudAccountByCloudAndTenant(ctx context.Context, arg FindCloudAccountByCloudAndTenantParams) (CloudAccount, error) {
+	row := q.db.QueryRow(ctx, findCloudAccountByCloudAndTenant, arg.Cloud, arg.TenantID, arg.AccountID)
 	var i CloudAccount
 	err := row.Scan(
+		&i.ID,
 		&i.Cloud,
 		&i.TenantID,
 		&i.AccountID,
@@ -113,30 +418,53 @@ func (q *Queries) GetCloudAccount(ctx context.Context, arg GetCloudAccountParams
 	return i, err
 }
 
-const getCloudAllAccounts = `-- name: GetCloudAllAccounts :many
-select cloud, tenant_id, account_id, name, active, tags_current, tags_desired, tags_drift_detected, created_at, updated_at
-from cloud_accounts
-order by cloud, tenant_id, account_id
+const findTag = `-- name: FindTag :one
+select id, display_name, description, required, key, overrides, created_at, updated_at
+from tags
+where id = $1
 `
 
-func (q *Queries) GetCloudAllAccounts(ctx context.Context) ([]CloudAccount, error) {
-	rows, err := q.db.Query(ctx, getCloudAllAccounts)
+func (q *Queries) FindTag(ctx context.Context, id uuid.UUID) (Tag, error) {
+	row := q.db.QueryRow(ctx, findTag, id)
+	var i Tag
+	err := row.Scan(
+		&i.ID,
+		&i.DisplayName,
+		&i.Description,
+		&i.Required,
+		&i.Key,
+		&i.Overrides,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getAuditLogs = `-- name: GetAuditLogs :many
+
+select id, user_id, resource_type, resource_id, message, created_at, updated_at
+from audit_logs
+order by created_at desc
+`
+
+//------------------------------------------------------------------------------------------------------------------
+// Audit Logs
+//------------------------------------------------------------------------------------------------------------------
+func (q *Queries) GetAuditLogs(ctx context.Context) ([]AuditLog, error) {
+	rows, err := q.db.Query(ctx, getAuditLogs)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []CloudAccount
+	var items []AuditLog
 	for rows.Next() {
-		var i CloudAccount
+		var i AuditLog
 		if err := rows.Scan(
-			&i.Cloud,
-			&i.TenantID,
-			&i.AccountID,
-			&i.Name,
-			&i.Active,
-			&i.TagsCurrent,
-			&i.TagsDesired,
-			&i.TagsDriftDetected,
+			&i.ID,
+			&i.UserID,
+			&i.ResourceType,
+			&i.ResourceID,
+			&i.Message,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -150,75 +478,34 @@ func (q *Queries) GetCloudAllAccounts(ctx context.Context) ([]CloudAccount, erro
 	return items, nil
 }
 
-const getCloudAllAccountsForCloud = `-- name: GetCloudAllAccountsForCloud :many
-select cloud, tenant_id, account_id, name, active, tags_current, tags_desired, tags_drift_detected, created_at, updated_at
-from cloud_accounts
-where cloud = $1
-order by tenant_id, account_id
+const getAuditLogsForTarget = `-- name: GetAuditLogsForTarget :many
+select audit_logs.id, audit_logs.user_id, audit_logs.resource_type, audit_logs.resource_id, audit_logs.message, audit_logs.created_at, audit_logs.updated_at
+from audit_logs
+where resource_id = $1
+  and resource_type = $2
+order by created_at desc
 `
 
-func (q *Queries) GetCloudAllAccountsForCloud(ctx context.Context, cloud string) ([]CloudAccount, error) {
-	rows, err := q.db.Query(ctx, getCloudAllAccountsForCloud, cloud)
+type GetAuditLogsForTargetParams struct {
+	ResourceID   uuid.UUID
+	ResourceType AuditResourceType
+}
+
+func (q *Queries) GetAuditLogsForTarget(ctx context.Context, arg GetAuditLogsForTargetParams) ([]AuditLog, error) {
+	rows, err := q.db.Query(ctx, getAuditLogsForTarget, arg.ResourceID, arg.ResourceType)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []CloudAccount
+	var items []AuditLog
 	for rows.Next() {
-		var i CloudAccount
+		var i AuditLog
 		if err := rows.Scan(
-			&i.Cloud,
-			&i.TenantID,
-			&i.AccountID,
-			&i.Name,
-			&i.Active,
-			&i.TagsCurrent,
-			&i.TagsDesired,
-			&i.TagsDriftDetected,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const getCloudAllAccountsForCloudAndTenant = `-- name: GetCloudAllAccountsForCloudAndTenant :many
-select cloud, tenant_id, account_id, name, active, tags_current, tags_desired, tags_drift_detected, created_at, updated_at
-from cloud_accounts
-where cloud = $1
-  and tenant_id = $2
-order by account_id
-`
-
-type GetCloudAllAccountsForCloudAndTenantParams struct {
-	Cloud    string
-	TenantID string
-}
-
-func (q *Queries) GetCloudAllAccountsForCloudAndTenant(ctx context.Context, arg GetCloudAllAccountsForCloudAndTenantParams) ([]CloudAccount, error) {
-	rows, err := q.db.Query(ctx, getCloudAllAccountsForCloudAndTenant, arg.Cloud, arg.TenantID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []CloudAccount
-	for rows.Next() {
-		var i CloudAccount
-		if err := rows.Scan(
-			&i.Cloud,
-			&i.TenantID,
-			&i.AccountID,
-			&i.Name,
-			&i.Active,
-			&i.TagsCurrent,
-			&i.TagsDesired,
-			&i.TagsDriftDetected,
+			&i.ID,
+			&i.UserID,
+			&i.ResourceType,
+			&i.ResourceID,
+			&i.Message,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -233,7 +520,7 @@ func (q *Queries) GetCloudAllAccountsForCloudAndTenant(ctx context.Context, arg 
 }
 
 const getCloudTenant = `-- name: GetCloudTenant :one
-select cloud, tenant_id, name, active, created_at, updated_at
+select id, cloud, tenant_id, name, active, created_at, updated_at
 from cloud_tenants
 where cloud = $1
   and tenant_id = $2
@@ -248,6 +535,7 @@ func (q *Queries) GetCloudTenant(ctx context.Context, arg GetCloudTenantParams) 
 	row := q.db.QueryRow(ctx, getCloudTenant, arg.Cloud, arg.TenantID)
 	var i CloudTenant
 	err := row.Scan(
+		&i.ID,
 		&i.Cloud,
 		&i.TenantID,
 		&i.Name,
@@ -259,7 +547,7 @@ func (q *Queries) GetCloudTenant(ctx context.Context, arg GetCloudTenantParams) 
 }
 
 const getCloudTenants = `-- name: GetCloudTenants :many
-select cloud, tenant_id, name, active, created_at, updated_at
+select id, cloud, tenant_id, name, active, created_at, updated_at
 from cloud_tenants
 order by cloud, tenant_id
 `
@@ -274,6 +562,7 @@ func (q *Queries) GetCloudTenants(ctx context.Context) ([]CloudTenant, error) {
 	for rows.Next() {
 		var i CloudTenant
 		if err := rows.Scan(
+			&i.ID,
 			&i.Cloud,
 			&i.TenantID,
 			&i.Name,
@@ -291,29 +580,534 @@ func (q *Queries) GetCloudTenants(ctx context.Context) ([]CloudTenant, error) {
 	return items, nil
 }
 
-const updateCloudAccount = `-- name: UpdateCloudAccount :exec
-update cloud_accounts
-set tags_desired = $4,
+const getGroup = `-- name: GetGroup :one
+select id, display_name, created_at, updated_at
+from groups
+where id = $1
+`
+
+func (q *Queries) GetGroup(ctx context.Context, id uuid.UUID) (Group, error) {
+	row := q.db.QueryRow(ctx, getGroup, id)
+	var i Group
+	err := row.Scan(
+		&i.ID,
+		&i.DisplayName,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getGroupCount = `-- name: GetGroupCount :one
+select count(*)
+from groups
+`
+
+func (q *Queries) GetGroupCount(ctx context.Context) (int64, error) {
+	row := q.db.QueryRow(ctx, getGroupCount)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const getGroupMembership = `-- name: GetGroupMembership :many
+
+select group_members.id, group_members.group_id, group_members.user_id, group_members.created_at, group_members.updated_at, users.username as username
+from group_members
+         left join users on users.id = group_members.user_id
+where group_members.group_id = $1
+`
+
+type GetGroupMembershipRow struct {
+	ID        int32
+	GroupID   uuid.UUID
+	UserID    uuid.UUID
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	Username  sql.NullString
+}
+
+//------------------------------------------------------------------------------------------------------------------
+// Membership
+//------------------------------------------------------------------------------------------------------------------
+func (q *Queries) GetGroupMembership(ctx context.Context, groupID uuid.UUID) ([]GetGroupMembershipRow, error) {
+	rows, err := q.db.Query(ctx, getGroupMembership, groupID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetGroupMembershipRow
+	for rows.Next() {
+		var i GetGroupMembershipRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.GroupID,
+			&i.UserID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.Username,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getGroupMembershipForUser = `-- name: GetGroupMembershipForUser :one
+select group_members.id, group_members.group_id, group_members.user_id, group_members.created_at, group_members.updated_at, users.username as username
+from group_members
+         left join users on users.id = group_members.user_id
+where group_members.group_id = $1
+  and group_members.user_id = $2
+`
+
+type GetGroupMembershipForUserParams struct {
+	GroupID uuid.UUID
+	UserID  uuid.UUID
+}
+
+type GetGroupMembershipForUserRow struct {
+	ID        int32
+	GroupID   uuid.UUID
+	UserID    uuid.UUID
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	Username  sql.NullString
+}
+
+func (q *Queries) GetGroupMembershipForUser(ctx context.Context, arg GetGroupMembershipForUserParams) (GetGroupMembershipForUserRow, error) {
+	row := q.db.QueryRow(ctx, getGroupMembershipForUser, arg.GroupID, arg.UserID)
+	var i GetGroupMembershipForUserRow
+	err := row.Scan(
+		&i.ID,
+		&i.GroupID,
+		&i.UserID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Username,
+	)
+	return i, err
+}
+
+const getGroups = `-- name: GetGroups :many
+
+select id, display_name, created_at, updated_at
+from groups
+order by id
+LIMIT $1 OFFSET $2
+`
+
+type GetGroupsParams struct {
+	Limit  int32
+	Offset int32
+}
+
+//------------------------------------------------------------------------------------------------------------------
+// Groups
+//------------------------------------------------------------------------------------------------------------------
+func (q *Queries) GetGroups(ctx context.Context, arg GetGroupsParams) ([]Group, error) {
+	rows, err := q.db.Query(ctx, getGroups, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Group
+	for rows.Next() {
+		var i Group
+		if err := rows.Scan(
+			&i.ID,
+			&i.DisplayName,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getPolicies = `-- name: GetPolicies :many
+
+select id, ptype, v0, v1, v2, v3, v4, v5
+from policies
+order by id
+`
+
+//------------------------------------------------------------------------------------------------------------------
+// Policies
+//
+// 6ba7b812-9dad-11d1-80b4-00c04fd430c8 is NameSpace_OID as specified in rfc4122 (https://tools.ietf.org/html/rfc4122)
+// we use uuid v5 so we can calculate the id from a collection of values
+//------------------------------------------------------------------------------------------------------------------
+func (q *Queries) GetPolicies(ctx context.Context) ([]Policy, error) {
+	rows, err := q.db.Query(ctx, getPolicies)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Policy
+	for rows.Next() {
+		var i Policy
+		if err := rows.Scan(
+			&i.ID,
+			&i.Ptype,
+			&i.V0,
+			&i.V1,
+			&i.V2,
+			&i.V3,
+			&i.V4,
+			&i.V5,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getTags = `-- name: GetTags :many
+
+select id, display_name, description, required, key, overrides, created_at, updated_at
+from tags
+order by key
+`
+
+//------------------------------------------------------------------------------------------------------------------
+// Tags
+//------------------------------------------------------------------------------------------------------------------
+func (q *Queries) GetTags(ctx context.Context) ([]Tag, error) {
+	rows, err := q.db.Query(ctx, getTags)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Tag
+	for rows.Next() {
+		var i Tag
+		if err := rows.Scan(
+			&i.ID,
+			&i.DisplayName,
+			&i.Description,
+			&i.Required,
+			&i.Key,
+			&i.Overrides,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getUser = `-- name: GetUser :one
+select id, username, external_id, name, display_name, locale, active, emails, created_at, updated_at
+from users
+where id = $1
+`
+
+func (q *Queries) GetUser(ctx context.Context, id uuid.UUID) (User, error) {
+	row := q.db.QueryRow(ctx, getUser, id)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.ExternalID,
+		&i.Name,
+		&i.DisplayName,
+		&i.Locale,
+		&i.Active,
+		&i.Emails,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getUserCount = `-- name: GetUserCount :one
+select count(*)
+from users
+`
+
+func (q *Queries) GetUserCount(ctx context.Context) (int64, error) {
+	row := q.db.QueryRow(ctx, getUserCount)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const getUsers = `-- name: GetUsers :many
+
+select id, username, external_id, name, display_name, locale, active, emails, created_at, updated_at
+from users
+order by created_at
+LIMIT $1 OFFSET $2
+`
+
+type GetUsersParams struct {
+	Limit  int32
+	Offset int32
+}
+
+//------------------------------------------------------------------------------------------------------------------
+// Users
+//------------------------------------------------------------------------------------------------------------------
+func (q *Queries) GetUsers(ctx context.Context, arg GetUsersParams) ([]User, error) {
+	rows, err := q.db.Query(ctx, getUsers, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []User
+	for rows.Next() {
+		var i User
+		if err := rows.Scan(
+			&i.ID,
+			&i.Username,
+			&i.ExternalID,
+			&i.Name,
+			&i.DisplayName,
+			&i.Locale,
+			&i.Active,
+			&i.Emails,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getUsersById = `-- name: GetUsersById :many
+select id, username, external_id, name, display_name, locale, active, emails, created_at, updated_at
+from users
+where id = ANY($1::uuid[])
+order by display_name
+`
+
+func (q *Queries) GetUsersById(ctx context.Context, dollar_1 []uuid.UUID) ([]User, error) {
+	rows, err := q.db.Query(ctx, getUsersById, dollar_1)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []User
+	for rows.Next() {
+		var i User
+		if err := rows.Scan(
+			&i.ID,
+			&i.Username,
+			&i.ExternalID,
+			&i.Name,
+			&i.DisplayName,
+			&i.Locale,
+			&i.Active,
+			&i.Emails,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const insertAPIKey = `-- name: InsertAPIKey :one
+
+insert into scim_api_keys (token, created_at, updated_at)
+values ($1, now(), now())
+returning id, token, created_at, updated_at
+`
+
+//------------------------------------------------------------------------------------------------------------------
+// SCIM API Key
+//------------------------------------------------------------------------------------------------------------------
+func (q *Queries) InsertAPIKey(ctx context.Context, token string) (ScimApiKey, error) {
+	row := q.db.QueryRow(ctx, insertAPIKey, token)
+	var i ScimApiKey
+	err := row.Scan(
+		&i.ID,
+		&i.Token,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const patchGroupDisplayName = `-- name: PatchGroupDisplayName :exec
+update groups
+set display_name = $2,
     updated_at   = now()
+where id = $1
+`
+
+type PatchGroupDisplayNameParams struct {
+	ID          uuid.UUID
+	DisplayName string
+}
+
+func (q *Queries) PatchGroupDisplayName(ctx context.Context, arg PatchGroupDisplayNameParams) error {
+	_, err := q.db.Exec(ctx, patchGroupDisplayName, arg.ID, arg.DisplayName)
+	return err
+}
+
+const patchUser = `-- name: PatchUser :exec
+update users
+set active     = $2,
+    updated_at = now()
+where id = $1
+`
+
+type PatchUserParams struct {
+	ID     uuid.UUID
+	Active bool
+}
+
+func (q *Queries) PatchUser(ctx context.Context, arg PatchUserParams) error {
+	_, err := q.db.Exec(ctx, patchUser, arg.ID, arg.Active)
+	return err
+}
+
+const removePoliciesForGroup = `-- name: RemovePoliciesForGroup :exec
+delete
+from policies
+where ptype = 'g'
+  and v1 = $1
+`
+
+func (q *Queries) RemovePoliciesForGroup(ctx context.Context, v1 string) error {
+	_, err := q.db.Exec(ctx, removePoliciesForGroup, v1)
+	return err
+}
+
+const removePolicy = `-- name: RemovePolicy :exec
+delete
+from policies
+where id = uuid_generate_v5('6ba7b812-9dad-11d1-80b4-00c04fd430c8',
+                            concat($1, $2, $3, $4, $5,
+                                   $6, $7))
+`
+
+type RemovePolicyParams struct {
+	Ptype interface{}
+	V0    interface{}
+	V1    interface{}
+	V2    interface{}
+	V3    interface{}
+	V4    interface{}
+	V5    interface{}
+}
+
+func (q *Queries) RemovePolicy(ctx context.Context, arg RemovePolicyParams) error {
+	_, err := q.db.Exec(ctx, removePolicy,
+		arg.Ptype,
+		arg.V0,
+		arg.V1,
+		arg.V2,
+		arg.V3,
+		arg.V4,
+		arg.V5,
+	)
+	return err
+}
+
+const searchTag = `-- name: SearchTag :many
+
+select id, cloud, tenant_id, account_id, name, active, tags_current, tags_desired, tags_drift_detected, created_at, updated_at
+from cloud_accounts
 where cloud = $1
   and tenant_id = $2
-  and account_id = $3
+  and tags_current ->> $3 = sqcl.arg(tag_value)
+`
+
+type SearchTagParams struct {
+	Cloud    string
+	TenantID string
+	TagKey   pgtype.JSONB
+}
+
+//------------------------------------------------------------------------------------------------------------------
+// Cloud Account Metadata
+//------------------------------------------------------------------------------------------------------------------
+func (q *Queries) SearchTag(ctx context.Context, arg SearchTagParams) ([]CloudAccount, error) {
+	rows, err := q.db.Query(ctx, searchTag, arg.Cloud, arg.TenantID, arg.TagKey)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []CloudAccount
+	for rows.Next() {
+		var i CloudAccount
+		if err := rows.Scan(
+			&i.ID,
+			&i.Cloud,
+			&i.TenantID,
+			&i.AccountID,
+			&i.Name,
+			&i.Active,
+			&i.TagsCurrent,
+			&i.TagsDesired,
+			&i.TagsDriftDetected,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const truncatePolicies = `-- name: TruncatePolicies :exec
+truncate policies
+`
+
+func (q *Queries) TruncatePolicies(ctx context.Context) error {
+	_, err := q.db.Exec(ctx, truncatePolicies)
+	return err
+}
+
+const updateCloudAccount = `-- name: UpdateCloudAccount :exec
+update cloud_accounts
+set tags_desired = $2,
+    updated_at   = now()
+where id = $1
 `
 
 type UpdateCloudAccountParams struct {
-	Cloud       string
-	TenantID    string
-	AccountID   string
+	ID          uuid.UUID
 	TagsDesired pgtype.JSONB
 }
 
 func (q *Queries) UpdateCloudAccount(ctx context.Context, arg UpdateCloudAccountParams) error {
-	_, err := q.db.Exec(ctx, updateCloudAccount,
-		arg.Cloud,
-		arg.TenantID,
-		arg.AccountID,
-		arg.TagsDesired,
-	)
+	_, err := q.db.Exec(ctx, updateCloudAccount, arg.ID, arg.TagsDesired)
 	return err
 }
 
@@ -339,6 +1133,73 @@ func (q *Queries) UpdateCloudAccountTagsDriftDetected(ctx context.Context, arg U
 		arg.Cloud,
 		arg.TenantID,
 		arg.AccountID,
+	)
+	return err
+}
+
+const updateTag = `-- name: UpdateTag :exec
+update tags
+set display_name = $2,
+    key          = $3,
+    required     = $4,
+    description  = $5,
+    updated_at   = now()
+where id = $1
+`
+
+type UpdateTagParams struct {
+	ID          uuid.UUID
+	DisplayName string
+	Key         string
+	Required    bool
+	Description string
+}
+
+func (q *Queries) UpdateTag(ctx context.Context, arg UpdateTagParams) error {
+	_, err := q.db.Exec(ctx, updateTag,
+		arg.ID,
+		arg.DisplayName,
+		arg.Key,
+		arg.Required,
+		arg.Description,
+	)
+	return err
+}
+
+const updateUser = `-- name: UpdateUser :exec
+update users
+set username     =$2,
+    name         = $3,
+    display_name = $4,
+    emails       = $5,
+    active       = $6,
+    external_id  = $7,
+    locale       = $8,
+    updated_at   = now()
+where id = $1
+`
+
+type UpdateUserParams struct {
+	ID          uuid.UUID
+	Username    string
+	Name        pgtype.JSONB
+	DisplayName sql.NullString
+	Emails      pgtype.JSONB
+	Active      bool
+	ExternalID  sql.NullString
+	Locale      sql.NullString
+}
+
+func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) error {
+	_, err := q.db.Exec(ctx, updateUser,
+		arg.ID,
+		arg.Username,
+		arg.Name,
+		arg.DisplayName,
+		arg.Emails,
+		arg.Active,
+		arg.ExternalID,
+		arg.Locale,
 	)
 	return err
 }

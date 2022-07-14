@@ -1,0 +1,57 @@
+<div id="tags-wrapper">
+  <h1 class="text-3xl font-bold pt-5">Tags</h1>
+
+  <div *ngFor="let tag of tags" class="py-2">
+    <form (submit)="onTagsUpdateSubmit(tag)">
+      <mat-form-field appearance="fill" class="px-2">
+        <mat-label>Display Name</mat-label>
+        <input
+          matInput
+          type="text"
+          placeholder="Display Name"
+          [(ngModel)]="tag.attributes.display_name"
+          name="display_name" />
+      </mat-form-field>
+      <mat-form-field appearance="fill" class="px-2">
+        <mat-label>Key</mat-label>
+        <input
+          matInput
+          type="text"
+          placeholder="Key"
+          [(ngModel)]="tag.attributes.key"
+          name="key" />
+      </mat-form-field>
+      <mat-form-field appearance="fill" class="px-2">
+        <mat-label>Description</mat-label>
+        <input
+          matInput
+          type="text"
+          placeholder="Description"
+          [(ngModel)]="tag.attributes.description"
+          name="description" />
+      </mat-form-field>
+
+      <div class="px-2 inline-block">
+        <button mat-raised-button color="accent" type="submit">Update</button>
+      </div>
+    </form>
+  </div>
+
+  <form [formGroup]="newTagForm" (ngSubmit)="onTagsCreateSubmit()">
+    <mat-form-field appearance="fill" class="px-2">
+      <mat-label>Display Name</mat-label>
+      <input matInput type="text" formControlName="display_name" />
+    </mat-form-field>
+    <mat-form-field appearance="fill" class="px-2">
+      <mat-label>Key</mat-label>
+      <input matInput type="text" formControlName="key" />
+    </mat-form-field>
+    <mat-form-field appearance="fill" class="px-2">
+      <mat-label>Description</mat-label>
+      <input matInput type="text" formControlName="description" />
+    </mat-form-field>
+    <div class="px-2 inline-block">
+      <button mat-raised-button color="primary" type="submit">Create</button>
+    </div>
+  </form>
+</div>
