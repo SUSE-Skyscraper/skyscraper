@@ -167,7 +167,6 @@ export interface UpdateCloudAccountRequest {
 
 export interface TagItemAttributes {
   display_name: string;
-  required: boolean;
   description: string;
   key: string;
 }
@@ -189,7 +188,6 @@ export interface TagResponse {
 export interface UpdateTagRequestData {
   display_name: string;
   key: string;
-  required: boolean;
   description: string;
 }
 

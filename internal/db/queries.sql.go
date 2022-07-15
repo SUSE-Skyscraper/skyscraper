@@ -182,33 +182,25 @@ func (q *Queries) CreateOrInsertCloudAccount(ctx context.Context, arg CreateOrIn
 }
 
 const createTag = `-- name: CreateTag :one
-insert into tags (display_name, key, required, description, created_at, updated_at)
-values ($1, $2, $3, $4, now(), now())
-returning id, display_name, description, required, key, overrides, created_at, updated_at
+insert into tags (display_name, key, description, created_at, updated_at)
+values ($1, $2, $3, now(), now())
+returning id, display_name, description, key, created_at, updated_at
 `
 
 type CreateTagParams struct {
 	DisplayName string
 	Key         string
-	Required    bool
 	Description string
 }
 
 func (q *Queries) CreateTag(ctx context.Context, arg CreateTagParams) (Tag, error) {
-	row := q.db.QueryRow(ctx, createTag,
-		arg.DisplayName,
-		arg.Key,
-		arg.Required,
-		arg.Description,
-	)
+	row := q.db.QueryRow(ctx, createTag, arg.DisplayName, arg.Key, arg.Description)
 	var i Tag
 	err := row.Scan(
 		&i.ID,
 		&i.DisplayName,
 		&i.Description,
-		&i.Required,
 		&i.Key,
-		&i.Overrides,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -419,7 +411,7 @@ func (q *Queries) FindCloudAccountByCloudAndTenant(ctx context.Context, arg Find
 }
 
 const findTag = `-- name: FindTag :one
-select id, display_name, description, required, key, overrides, created_at, updated_at
+select id, display_name, description, key, created_at, updated_at
 from tags
 where id = $1
 `
@@ -431,9 +423,7 @@ func (q *Queries) FindTag(ctx context.Context, id uuid.UUID) (Tag, error) {
 		&i.ID,
 		&i.DisplayName,
 		&i.Description,
-		&i.Required,
 		&i.Key,
-		&i.Overrides,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -778,7 +768,7 @@ func (q *Queries) GetPolicies(ctx context.Context) ([]Policy, error) {
 
 const getTags = `-- name: GetTags :many
 
-select id, display_name, description, required, key, overrides, created_at, updated_at
+select id, display_name, description, key, created_at, updated_at
 from tags
 order by key
 `
@@ -799,9 +789,7 @@ func (q *Queries) GetTags(ctx context.Context) ([]Tag, error) {
 			&i.ID,
 			&i.DisplayName,
 			&i.Description,
-			&i.Required,
 			&i.Key,
-			&i.Overrides,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -1141,8 +1129,7 @@ const updateTag = `-- name: UpdateTag :exec
 update tags
 set display_name = $2,
     key          = $3,
-    required     = $4,
-    description  = $5,
+    description  = $4,
     updated_at   = now()
 where id = $1
 `
@@ -1151,7 +1138,6 @@ type UpdateTagParams struct {
 	ID          uuid.UUID
 	DisplayName string
 	Key         string
-	Required    bool
 	Description string
 }
 
@@ -1160,7 +1146,6 @@ func (q *Queries) UpdateTag(ctx context.Context, arg UpdateTagParams) error {
 		arg.ID,
 		arg.DisplayName,
 		arg.Key,
-		arg.Required,
 		arg.Description,
 	)
 	return err

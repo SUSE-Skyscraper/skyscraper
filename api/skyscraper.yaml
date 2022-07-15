@@ -446,8 +446,6 @@ components:
               type: string
             description:
               type: string
-            required:
-              type: boolean
             key:
               type: string
     CloudAccount:

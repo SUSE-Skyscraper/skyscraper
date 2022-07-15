@@ -8,13 +8,11 @@ import (
 )
 
 type TagItemAttributes struct {
-	DisplayName string                 `json:"display_name"`
-	Required    bool                   `json:"required"`
-	Description string                 `json:"description"`
-	Key         string                 `json:"key"`
-	Overrides   map[string]interface{} `json:"overrides"`
-	CreatedAt   string                 `json:"created_at"`
-	UpdatedAt   string                 `json:"updated_at"`
+	DisplayName string `json:"display_name"`
+	Description string `json:"description"`
+	Key         string `json:"key"`
+	CreatedAt   string `json:"created_at"`
+	UpdatedAt   string `json:"updated_at"`
 }
 
 type TagItem struct {
@@ -62,7 +60,6 @@ func newTagItem(tag db.Tag) TagItem {
 		Type: ObjectResponseTypeTag,
 		Attributes: TagItemAttributes{
 			DisplayName: tag.DisplayName,
-			Required:    tag.Required,
 			Description: tag.Description,
 			Key:         tag.Key,
 			CreatedAt:   tag.CreatedAt.Format(time.RFC3339),

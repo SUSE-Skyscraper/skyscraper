@@ -254,8 +254,8 @@ from tags
 order by key;
 
 -- name: CreateTag :one
-insert into tags (display_name, key, required, description, created_at, updated_at)
-values ($1, $2, $3, $4, now(), now())
+insert into tags (display_name, key, description, created_at, updated_at)
+values ($1, $2, $3, now(), now())
 returning *;
 
 -- name: FindTag :one
@@ -267,8 +267,7 @@ where id = $1;
 update tags
 set display_name = $2,
     key          = $3,
-    required     = $4,
-    description  = $5,
+    description  = $4,
     updated_at   = now()
 where id = $1;
 
