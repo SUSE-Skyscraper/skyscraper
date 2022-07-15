@@ -87,6 +87,23 @@
                   {{ tagForm.get('value')?.getError('serverMessage') }}
                 </mat-error>
               </mat-form-field>
+              <div
+                *ngIf="
+                  specifiedTags.get(tagForm.value['key']) !== undefined &&
+                  specifiedTags.get(tagForm.value['key'])?.attributes
+                    ?.description !== ''
+                ">
+                <button
+                  mat-icon-button
+                  matTooltip="{{
+                    specifiedTags.get(tagForm.value['key'])?.attributes
+                      ?.description ?? ''
+                  }}"
+                  type="button">
+                  <mat-icon>help</mat-icon>
+                </button>
+              </div>
+
               <div class="w-1/3 p-2">
                 <div
                   *ngIf="specifiedTags.get(tagForm.value['key']) === undefined">
