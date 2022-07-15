@@ -34,6 +34,8 @@ export class TagFormValidator implements Validator {
       };
 
       tags.controls.forEach((tag) => {
+        tag.get('value')?.setErrors(null);
+
         const key = tag.value['key'];
 
         if (key !== undefined && key !== null && key !== '') {
@@ -50,6 +52,8 @@ export class TagFormValidator implements Validator {
             });
           }
         });
+
+        control.markAllAsTouched();
       });
     });
     return null;

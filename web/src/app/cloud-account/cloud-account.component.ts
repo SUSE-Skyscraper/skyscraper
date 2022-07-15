@@ -131,12 +131,9 @@ export class CloudAccountComponent implements OnInit {
   }
 
   private newTag(key: string, value: string): FormGroup {
-    return this.fb.group(
-      {
-        key: [{ value: key, disabled: false }],
-        value: [{ value: value, disabled: false }],
-      },
-      { updateOn: 'blur' },
-    );
+    return this.fb.group({
+      key: [{ value: key, disabled: false }],
+      value: [{ value: value, disabled: false }],
+    });
   }
 }
