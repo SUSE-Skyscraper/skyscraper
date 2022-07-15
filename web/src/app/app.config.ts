@@ -3,6 +3,7 @@ import { environment } from '../environments/environment';
 export default {
   backend: {
     host: environment.backendServer,
+    validator: environment.validatorServer,
   },
   oidc: {
     clientId: environment.oktaClientId,

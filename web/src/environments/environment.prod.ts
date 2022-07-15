@@ -3,4 +3,5 @@ export const environment = {
   oktaIssuer: '',
   oktaClientId: '',
   backendServer: '',
+  validatorServer: '',
 };

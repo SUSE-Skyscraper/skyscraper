@@ -64,29 +64,40 @@
 
     <aside>
       <h2>Edit Account:</h2>
-      <form [formGroup]="form" (ngSubmit)="onSubmit()">
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" appTagFormValidator>
         <ng-container formArrayName="tags">
           <h3>Tags</h3>
 
           <ng-container *ngFor="let tagForm of tags.controls; let i = index">
             <div [formGroupName]="i" class="flex flex-wrap">
-              <mat-form-field class="w-1/3 px-2">
-                <input matInput formControlName="key" placeholder="Tag Key" />
+              <mat-form-field class="w-1/3 p-2">
+                <input
+                  matInput
+                  formControlName="key"
+                  placeholder="Tag Key"
+                  [readonly]="tagForm.value['key'] !== undefined" />
               </mat-form-field>
-              <mat-form-field class="w-1/3 px-2">
+              <mat-form-field class="w-1/3 p-2">
                 <input
                   matInput
                   formControlName="value"
                   placeholder="Tag Value" />
+                <mat-error
+                  *ngIf="tagForm.get('value')?.hasError('serverMessage')">
+                  {{ tagForm.get('value')?.getError('serverMessage') }}
+                </mat-error>
               </mat-form-field>
-              <div class="w-1/3 px-2">
-                <button
-                  type="button"
-                  mat-raised-button
-                  color="warn"
-                  (click)="removeTag(i)">
-                  Remove Tag
-                </button>
+              <div class="w-1/3 p-2">
+                <div
+                  *ngIf="specifiedTags.get(tagForm.value['key']) === undefined">
+                  <button
+                    type="button"
+                    mat-raised-button
+                    color="warn"
+                    (click)="removeTag(i)">
+                    Remove Tag
+                  </button>
+                </div>
               </div>
             </div>
           </ng-container>
@@ -105,11 +116,18 @@
           </div>
         </ng-container>
 
-        <p class="pt-5">
-          <button type="submit" mat-raised-button color="primary">
+        <div class="pt-5">
+          <button
+            type="submit"
+            mat-raised-button
+            color="primary"
+            [disabled]="!form.valid">
             Submit
           </button>
-        </p>
+          <div *ngIf="!form.valid" class="py-2">
+            <mat-error>The supplied information is invalid.</mat-error>
+          </div>
+        </div>
       </form>
     </aside>
   </div>

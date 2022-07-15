@@ -73,9 +73,9 @@ $toolbar-palette: (
   )
 );
 
-$general-primary: mat.define-palette($general-palette, 500, 100, 900);
-$general-accent: mat.define-palette($general-palette, A500, A100, A900);
-$general-warn: mat.define-palette($red-palette, 100, 500, 900);
+$general-primary: mat.define-palette($general-palette, 500, 500, 500);
+$general-accent: mat.define-palette($general-palette, A500, A500, A500);
+$general-warn: mat.define-palette($red-palette, 500, 500, 900);
 
 $general-theme: mat.define-light-theme((
   color: (
