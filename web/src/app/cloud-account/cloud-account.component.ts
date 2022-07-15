@@ -3,6 +3,8 @@ import {
   BackendService,
   CloudAccountItem,
   CloudAccountResponse,
+  TagItem,
+  TagsResponse,
   UpdateCloudAccountRequest,
 } from '../backend.service';
 import { ActivatedRoute } from '@angular/router';
@@ -18,11 +20,12 @@ import { AuditLogComponent } from '../audit-log/audit-log.component';
 export class CloudAccountComponent implements OnInit {
   cloudAccount: CloudAccountItem | undefined;
   id: string = '';
+  public specifiedTags: Map<string, TagItem> = new Map();
 
   @ViewChild(AuditLogComponent)
   auditLogComponent: AuditLogComponent | undefined;
 
-  form = this.fb.group({
+  form: FormGroup = this.fb.group({
     tags: this.fb.array([]),
   });
 
@@ -41,22 +44,45 @@ export class CloudAccountComponent implements OnInit {
       .subscribe((response: CloudAccountResponse) => {
         if (response.data !== null) {
           this.cloudAccount = response.data;
+
+          this.getTags();
         }
-        this.refreshPage();
       });
+  }
+
+  private getTags(): void {
+    this.backendService.getTags().subscribe((response: TagsResponse) => {
+      if (response.data !== undefined && response.data !== null) {
+        response.data.forEach((tag) => {
+          this.specifiedTags.set(tag.attributes.key, tag);
+
+          this.refreshPage();
+        });
+      }
+    });
   }
 
   private refreshPage() {
     if (this.cloudAccount === undefined) {
       return;
     }
-    this.tags.clear();
+    this.tags.clear({ emitEvent: false });
 
+    let usedTags = new Map<string, boolean>();
     Object.entries(this.cloudAccount.attributes.tags_desired).forEach(
       ([key, value]) => {
-        this.tags.push(this.newTag(key, value));
+        this.tags.push(this.newTag(key, value), { emitEvent: false });
+        usedTags.set(key, true);
       },
     );
+
+    this.specifiedTags.forEach((tag) => {
+      if (!usedTags.has(tag.attributes.key)) {
+        this.tags.push(this.newTag(tag.attributes.key, ''), {
+          emitEvent: false,
+        });
+      }
+    });
   }
 
   //--------------------------------------------------------------------------------------------------------------------
@@ -71,7 +97,9 @@ export class CloudAccountComponent implements OnInit {
     };
     this.tags.controls.forEach((tag) => {
       const key = tag.value['key'];
-      update.data.tags_desired[key] = tag.value['value'];
+      if (key !== '') {
+        update.data.tags_desired[key] = tag.value['value'];
+      }
     });
 
     this.backendService
@@ -95,17 +123,20 @@ export class CloudAccountComponent implements OnInit {
   }
 
   public addTag() {
-    this.tags.push(this.newTag('', ''));
+    this.tags.push(this.newTag('', ''), { emitEvent: false });
   }
 
   public removeTag(i: number) {
-    this.tags.removeAt(i);
+    this.tags.removeAt(i, { emitEvent: false });
   }
 
   private newTag(key: string, value: string): FormGroup {
-    return this.fb.group({
-      key: [{ value: key, disabled: false }],
-      value: [{ value: value, disabled: false }],
-    });
+    return this.fb.group(
+      {
+        key: [{ value: key, disabled: false }],
+        value: [{ value: value, disabled: false }],
+      },
+      { updateOn: 'blur' },
+    );
   }
 }

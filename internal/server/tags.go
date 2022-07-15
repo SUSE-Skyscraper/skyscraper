@@ -43,7 +43,6 @@ func V1UpdateTag(app *application.App) func(w http.ResponseWriter, r *http.Reque
 			DisplayName: payload.Data.DisplayName,
 			Description: payload.Data.Description,
 			Key:         payload.Data.Key,
-			Required:    payload.Data.Required,
 		})
 		if err != nil {
 			_ = render.Render(w, r, responses.ErrInternalServerError)
@@ -67,7 +66,6 @@ func V1CreateTag(app *application.App) func(w http.ResponseWriter, r *http.Reque
 			DisplayName: payload.Data.DisplayName,
 			Description: payload.Data.Description,
 			Key:         payload.Data.Key,
-			Required:    payload.Data.Required,
 		})
 		if err != nil {
 			_ = render.Render(w, r, responses.ErrInternalServerError)

@@ -55,7 +55,6 @@ export class TagsComponent implements OnInit {
       data: {
         display_name: tag.attributes.display_name,
         key: tag.attributes.key,
-        required: false,
         description: tag.attributes.description,
       },
     };

@@ -32,6 +32,8 @@ import { TagsComponent } from './tags/tags.component';
 import { AuditLogComponent } from './audit-log/audit-log.component';
 import { UsersComponent } from './users/users.component';
 import { UserComponent } from './user/user.component';
+import { TagFormValidator } from './tag.validator';
+import { MatTooltipModule } from '@angular/material/tooltip';
 
 @NgModule({
   declarations: [
@@ -45,6 +47,7 @@ import { UserComponent } from './user/user.component';
     AuditLogComponent,
     UsersComponent,
     UserComponent,
+    TagFormValidator,
   ],
   imports: [
     BrowserModule,
@@ -67,6 +70,7 @@ import { UserComponent } from './user/user.component';
     MatOptionModule,
     MatSelectModule,
     FormsModule,
+    MatTooltipModule,
   ],
   providers: [
     {
