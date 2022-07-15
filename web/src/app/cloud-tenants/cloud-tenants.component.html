@@ -27,14 +27,12 @@
       <ng-container matColumnDef="accounts">
         <th mat-header-cell *matHeaderCellDef>Accounts</th>
         <td mat-cell *matCellDef="let element">
-          <button
-            mat-raised-button
-            color="primary"
+          <a
             routerLink="/cloud_tenants/cloud/{{
               element.attributes.cloud_provider
             }}/tenant/{{ element.attributes.tenant_id }}/accounts">
-            See Accounts
-          </button>
+            Accounts
+          </a>
         </td>
       </ng-container>
 
