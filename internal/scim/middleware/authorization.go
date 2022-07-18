@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-chi/render"
 	"github.com/jackc/pgx/v4"
+	"github.com/suse-skyscraper/skyscraper/internal/apikeys"
 	"github.com/suse-skyscraper/skyscraper/internal/application"
 	"github.com/suse-skyscraper/skyscraper/internal/server/responses"
 )
@@ -22,13 +23,22 @@ func BearerAuthorizationHandler(app *application.App) func(next http.Handler) ht
 			}
 
 			token := authHeader[1]
-			_, err := app.Repository.FindAPIKey(r.Context(), token)
+			apiKey, err := app.Repository.FindScimAPIKey(r.Context())
 			if err != nil && err == pgx.ErrNoRows {
 				w.WriteHeader(http.StatusUnauthorized)
 				_, _ = fmt.Fprintf(w, "Not Authorized")
 				return
 			} else if err != nil {
 				_ = render.Render(w, r, responses.ErrInternalServerError)
+				return
+			}
+			match, err := apikeys.VerifyAPIKey(token, apiKey.Encodedhash)
+			if err != nil {
+				_ = render.Render(w, r, responses.ErrInternalServerError)
+				return
+			} else if !match {
+				w.WriteHeader(http.StatusUnauthorized)
+				_, _ = fmt.Fprintf(w, "Not Authorized")
 				return
 			}
 

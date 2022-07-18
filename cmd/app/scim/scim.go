@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/suse-skyscraper/skyscraper/internal/apikeys"
 	"github.com/suse-skyscraper/skyscraper/internal/application"
+	"github.com/suse-skyscraper/skyscraper/internal/db"
 )
 
 func NewCmd(app *application.App) *cobra.Command {
@@ -17,12 +18,33 @@ func NewCmd(app *application.App) *cobra.Command {
 	generateAPIKeyCmd := &cobra.Command{
 		Use: "gen-api-key",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			token, err := apikeys.GenerateRandomStringURLSafe(32)
+			hash, token, err := apikeys.GenerateAPIKey()
 			if err != nil {
 				return err
 			}
 
-			_, err = app.Repository.InsertAPIKey(context.Background(), token)
+			ctx := context.Background()
+
+			repo, err := app.Repository.Begin(ctx)
+			if err != nil {
+				return err
+			}
+
+			defer func(repo db.RepositoryQueries, ctx context.Context) {
+				_ = repo.Rollback(ctx)
+			}(repo, ctx)
+
+			err = repo.DeleteScimAPIKey(ctx)
+			if err != nil {
+				return err
+			}
+
+			_, err = repo.InsertScimAPIKey(context.Background(), hash)
+			if err != nil {
+				return err
+			}
+
+			err = repo.Commit(ctx)
 			if err != nil {
 				return err
 			}

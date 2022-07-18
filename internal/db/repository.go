@@ -61,8 +61,9 @@ type RepositoryQueries interface {
 	CreatePolicy(ctx context.Context, input AddPolicyParams) error
 	RemovePolicy(ctx context.Context, input RemovePolicyParams) error
 
-	InsertAPIKey(ctx context.Context, token string) (ScimApiKey, error)
-	FindAPIKey(ctx context.Context, token string) (ScimApiKey, error)
+	InsertScimAPIKey(ctx context.Context, encodedHash string) (ApiKey, error)
+	DeleteScimAPIKey(ctx context.Context) error
+	FindScimAPIKey(ctx context.Context) (ApiKey, error)
 
 	GetAuditLogs(ctx context.Context) ([]AuditLog, []User, error)
 	GetAuditLogsForTarget(ctx context.Context, input GetAuditLogsForTargetParams) ([]AuditLog, []User, error)

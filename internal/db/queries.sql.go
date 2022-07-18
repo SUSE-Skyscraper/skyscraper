@@ -249,6 +249,17 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 	return i, err
 }
 
+const deleteAPIKey = `-- name: DeleteAPIKey :exec
+delete
+from api_keys
+where id = $1
+`
+
+func (q *Queries) DeleteAPIKey(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteAPIKey, id)
+	return err
+}
+
 const deleteGroup = `-- name: DeleteGroup :exec
 delete
 from groups
@@ -257,6 +268,17 @@ where id = $1
 
 func (q *Queries) DeleteGroup(ctx context.Context, id uuid.UUID) error {
 	_, err := q.db.Exec(ctx, deleteGroup, id)
+	return err
+}
+
+const deleteScimAPIKey = `-- name: DeleteScimAPIKey :exec
+delete
+from scim_api_keys
+where domain = 'default'
+`
+
+func (q *Queries) DeleteScimAPIKey(ctx context.Context) error {
+	_, err := q.db.Exec(ctx, deleteScimAPIKey)
 	return err
 }
 
@@ -308,24 +330,6 @@ type DropMembershipForUserAndGroupParams struct {
 func (q *Queries) DropMembershipForUserAndGroup(ctx context.Context, arg DropMembershipForUserAndGroupParams) error {
 	_, err := q.db.Exec(ctx, dropMembershipForUserAndGroup, arg.UserID, arg.GroupID)
 	return err
-}
-
-const findAPIKey = `-- name: FindAPIKey :one
-select id, token, created_at, updated_at
-from scim_api_keys
-where token = $1
-`
-
-func (q *Queries) FindAPIKey(ctx context.Context, token string) (ScimApiKey, error) {
-	row := q.db.QueryRow(ctx, findAPIKey, token)
-	var i ScimApiKey
-	err := row.Scan(
-		&i.ID,
-		&i.Token,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
 }
 
 const findByUsername = `-- name: FindByUsername :one
@@ -404,6 +408,25 @@ func (q *Queries) FindCloudAccountByCloudAndTenant(ctx context.Context, arg Find
 		&i.TagsCurrent,
 		&i.TagsDesired,
 		&i.TagsDriftDetected,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const findScimAPIKey = `-- name: FindScimAPIKey :one
+select api_keys.id, api_keys.encodedhash, api_keys.created_at, api_keys.updated_at
+from api_keys
+         left join scim_api_keys on scim_api_keys.api_key_id = api_keys.id
+where scim_api_keys.domain = 'default'
+`
+
+func (q *Queries) FindScimAPIKey(ctx context.Context) (ApiKey, error) {
+	row := q.db.QueryRow(ctx, findScimAPIKey)
+	var i ApiKey
+	err := row.Scan(
+		&i.ID,
+		&i.Encodedhash,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -889,7 +912,7 @@ func (q *Queries) GetUsers(ctx context.Context, arg GetUsersParams) ([]User, err
 const getUsersById = `-- name: GetUsersById :many
 select id, username, external_id, name, display_name, locale, active, emails, created_at, updated_at
 from users
-where id = ANY($1::uuid[])
+where id = ANY ($1::uuid[])
 order by display_name
 `
 
@@ -926,20 +949,39 @@ func (q *Queries) GetUsersById(ctx context.Context, dollar_1 []uuid.UUID) ([]Use
 
 const insertAPIKey = `-- name: InsertAPIKey :one
 
-insert into scim_api_keys (token, created_at, updated_at)
+insert into api_keys (encodedhash, created_at, updated_at)
 values ($1, now(), now())
-returning id, token, created_at, updated_at
+returning id, encodedhash, created_at, updated_at
 `
 
 //------------------------------------------------------------------------------------------------------------------
 // SCIM API Key
 //------------------------------------------------------------------------------------------------------------------
-func (q *Queries) InsertAPIKey(ctx context.Context, token string) (ScimApiKey, error) {
-	row := q.db.QueryRow(ctx, insertAPIKey, token)
+func (q *Queries) InsertAPIKey(ctx context.Context, encodedhash string) (ApiKey, error) {
+	row := q.db.QueryRow(ctx, insertAPIKey, encodedhash)
+	var i ApiKey
+	err := row.Scan(
+		&i.ID,
+		&i.Encodedhash,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const insertScimAPIKey = `-- name: InsertScimAPIKey :one
+insert into scim_api_keys (api_key_id, domain, created_at, updated_at)
+values ($1, 'default', now(), now())
+returning id, domain, api_key_id, created_at, updated_at
+`
+
+func (q *Queries) InsertScimAPIKey(ctx context.Context, apiKeyID uuid.UUID) (ScimApiKey, error) {
+	row := q.db.QueryRow(ctx, insertScimAPIKey, apiKeyID)
 	var i ScimApiKey
 	err := row.Scan(
 		&i.ID,
-		&i.Token,
+		&i.Domain,
+		&i.ApiKeyID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)

@@ -37,6 +37,13 @@ func (e *AuditResourceType) Scan(src interface{}) error {
 	return nil
 }
 
+type ApiKey struct {
+	ID          uuid.UUID
+	Encodedhash string
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+}
+
 type AuditLog struct {
 	ID           uuid.UUID
 	UserID       uuid.UUID
@@ -99,7 +106,8 @@ type Policy struct {
 
 type ScimApiKey struct {
 	ID        uuid.UUID
-	Token     string
+	Domain    string
+	ApiKeyID  uuid.UUID
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
