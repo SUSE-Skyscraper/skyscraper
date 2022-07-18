@@ -106,12 +106,38 @@ func (r *Repository) CreateOrInsertCloudAccount(
 	return r.db.CreateOrInsertCloudAccount(ctx, input)
 }
 
-func (r *Repository) FindAPIKey(ctx context.Context, token string) (ScimApiKey, error) {
-	return r.db.FindAPIKey(ctx, token)
+func (r *Repository) FindScimAPIKey(ctx context.Context) (ApiKey, error) {
+	return r.db.FindScimAPIKey(ctx)
 }
 
-func (r *Repository) InsertAPIKey(ctx context.Context, token string) (ScimApiKey, error) {
-	return r.db.InsertAPIKey(ctx, token)
+func (r *Repository) DeleteScimAPIKey(ctx context.Context) error {
+	apiKey, err := r.FindScimAPIKey(ctx)
+	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		return err
+	}
+
+	if apiKey.ID != uuid.Nil {
+		err = r.db.DeleteAPIKey(ctx, apiKey.ID)
+		if err != nil {
+			return err
+		}
+	}
+
+	return r.db.DeleteScimAPIKey(ctx)
+}
+
+func (r *Repository) InsertScimAPIKey(ctx context.Context, encodedHash string) (ApiKey, error) {
+	apiKey, err := r.db.InsertAPIKey(ctx, encodedHash)
+	if err != nil {
+		return ApiKey{}, err
+	}
+
+	_, err = r.db.InsertScimAPIKey(ctx, apiKey.ID)
+	if err != nil {
+		return ApiKey{}, err
+	}
+
+	return apiKey, nil
 }
 
 func (r *Repository) RemovePolicy(ctx context.Context, input RemovePolicyParams) error {

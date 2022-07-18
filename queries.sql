@@ -78,7 +78,7 @@ LIMIT $1 OFFSET $2;
 -- name: GetUsersById :many
 select *
 from users
-where id = ANY($1::uuid[])
+where id = ANY ($1::uuid[])
 order by display_name;
 
 
@@ -176,7 +176,6 @@ from group_members
 where group_members.group_id = $1
   and group_members.user_id = $2;
 
-
 -- name: DropMembershipForGroup :exec
 delete
 from group_members
@@ -198,14 +197,30 @@ on conflict (user_id, group_id) do update set updated_at = now();;
 --------------------------------------------------------------------------------------------------------------------
 
 -- name: InsertAPIKey :one
-insert into scim_api_keys (token, created_at, updated_at)
+insert into api_keys (encodedhash, created_at, updated_at)
 values ($1, now(), now())
 returning *;
 
--- name: FindAPIKey :one
-select *
+-- name: InsertScimAPIKey :one
+insert into scim_api_keys (api_key_id, domain, created_at, updated_at)
+values ($1, 'default', now(), now())
+returning *;
+
+-- name: DeleteAPIKey :exec
+delete
+from api_keys
+where id = $1;
+
+-- name: DeleteScimAPIKey :exec
+delete
 from scim_api_keys
-where token = $1;
+where domain = 'default';
+
+-- name: FindScimAPIKey :one
+select api_keys.*
+from api_keys
+         left join scim_api_keys on scim_api_keys.api_key_id = api_keys.id
+where scim_api_keys.domain = 'default';
 
 --------------------------------------------------------------------------------------------------------------------
 -- Policies

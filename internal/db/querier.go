@@ -22,15 +22,17 @@ type Querier interface {
 	CreateOrInsertCloudAccount(ctx context.Context, arg CreateOrInsertCloudAccountParams) (CloudAccount, error)
 	CreateTag(ctx context.Context, arg CreateTagParams) (Tag, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
+	DeleteAPIKey(ctx context.Context, id uuid.UUID) error
 	DeleteGroup(ctx context.Context, id uuid.UUID) error
+	DeleteScimAPIKey(ctx context.Context) error
 	DeleteTag(ctx context.Context, id uuid.UUID) error
 	DeleteUser(ctx context.Context, id uuid.UUID) error
 	DropMembershipForGroup(ctx context.Context, groupID uuid.UUID) error
 	DropMembershipForUserAndGroup(ctx context.Context, arg DropMembershipForUserAndGroupParams) error
-	FindAPIKey(ctx context.Context, token string) (ScimApiKey, error)
 	FindByUsername(ctx context.Context, username string) (User, error)
 	FindCloudAccount(ctx context.Context, id uuid.UUID) (CloudAccount, error)
 	FindCloudAccountByCloudAndTenant(ctx context.Context, arg FindCloudAccountByCloudAndTenantParams) (CloudAccount, error)
+	FindScimAPIKey(ctx context.Context) (ApiKey, error)
 	FindTag(ctx context.Context, id uuid.UUID) (Tag, error)
 	//------------------------------------------------------------------------------------------------------------------
 	// Audit Logs
@@ -71,7 +73,8 @@ type Querier interface {
 	//------------------------------------------------------------------------------------------------------------------
 	// SCIM API Key
 	//------------------------------------------------------------------------------------------------------------------
-	InsertAPIKey(ctx context.Context, token string) (ScimApiKey, error)
+	InsertAPIKey(ctx context.Context, encodedhash string) (ApiKey, error)
+	InsertScimAPIKey(ctx context.Context, apiKeyID uuid.UUID) (ScimApiKey, error)
 	PatchGroupDisplayName(ctx context.Context, arg PatchGroupDisplayNameParams) error
 	PatchUser(ctx context.Context, arg PatchUserParams) error
 	RemovePoliciesForGroup(ctx context.Context, v1 string) error

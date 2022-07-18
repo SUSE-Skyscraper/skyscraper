@@ -38,6 +38,24 @@ type TestRepository struct {
 	mock.Mock
 }
 
+func (t *TestRepository) InsertScimAPIKey(ctx context.Context, encodedHash string) (db.ApiKey, error) {
+	args := t.Called(ctx, encodedHash)
+
+	return args.Get(0).(db.ApiKey), args.Error(1)
+}
+
+func (t *TestRepository) DeleteScimAPIKey(ctx context.Context) error {
+	args := t.Called(ctx)
+
+	return args.Error(0)
+}
+
+func (t *TestRepository) FindScimAPIKey(ctx context.Context) (db.ApiKey, error) {
+	args := t.Called(ctx)
+
+	return args.Get(0).(db.ApiKey), args.Error(1)
+}
+
 func (t *TestRepository) GetUsers(ctx context.Context, input db.GetUsersParams) ([]db.User, error) {
 	args := t.Called(ctx, input)
 
@@ -165,18 +183,6 @@ func (t *TestRepository) RemovePolicy(ctx context.Context, input db.RemovePolicy
 	args := t.Called(ctx, input)
 
 	return args.Error(0)
-}
-
-func (t *TestRepository) InsertAPIKey(ctx context.Context, token string) (db.ScimApiKey, error) {
-	args := t.Called(ctx, token)
-
-	return args.Get(0).(db.ScimApiKey), args.Error(1)
-}
-
-func (t *TestRepository) FindAPIKey(ctx context.Context, token string) (db.ScimApiKey, error) {
-	args := t.Called(ctx, token)
-
-	return args.Get(0).(db.ScimApiKey), args.Error(1)
 }
 
 func (t *TestRepository) Begin(ctx context.Context) (db.RepositoryQueries, error) {

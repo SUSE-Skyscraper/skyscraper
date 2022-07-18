@@ -44,16 +44,27 @@ create table group_members
     unique (group_id, user_id)
 );
 
+create table api_keys
+(
+    id          uuid                  default uuid_generate_v4() not null primary key,
+    encodedHash varchar(255) not null unique,
+    created_at  timestamp    not null default now(),
+    updated_at  timestamp    not null default now()
+);
+
 create table scim_api_keys
 (
     id         uuid                  default uuid_generate_v4() not null primary key,
-    token      varchar(255) not null unique,
+    domain     varchar(255) not null unique,
+    api_key_id uuid         not null,
     created_at timestamp    not null default now(),
-    updated_at timestamp    not null default now()
+    updated_at timestamp    not null default now(),
+    FOREIGN KEY (api_key_id) references api_keys (id) on delete cascade
 );
 
 -- +goose Down
 drop table scim_api_keys;
+drop table api_keys;
 drop table group_members;
 drop table groups;
 drop table users;
