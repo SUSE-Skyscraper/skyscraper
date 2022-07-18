@@ -18,7 +18,8 @@ func NewCmd(app *application.App) *cobra.Command {
 	generateAPIKeyCmd := &cobra.Command{
 		Use: "gen-api-key",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			hash, token, err := apikeys.GenerateAPIKey()
+			apiKeyGenerator := apikeys.New(app.Config.Argon2Config.MemoryCost, app.Config.Argon2Config.TimeCost, app.Config.Argon2Config.Parallelism)
+			hash, token, err := apiKeyGenerator.GenerateAPIKey()
 			if err != nil {
 				return err
 			}

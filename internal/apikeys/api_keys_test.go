@@ -8,7 +8,8 @@ import (
 )
 
 func TestGenerateAPIKey(t *testing.T) {
-	apiKey, hash, err := GenerateAPIKey()
+	generator := New(64*1024, 1, 4)
+	apiKey, hash, err := generator.GenerateAPIKey()
 	assert.Nil(t, err)
 	assert.NotEqualf(t, "", apiKey, "apiKey should not be empty")
 	assert.NotEqualf(t, "", hash, "hash should not be empty")
@@ -87,13 +88,13 @@ func TestDecodeEncodedHash(t *testing.T) {
 			expectedHash, err := base64.RawStdEncoding.Strict().DecodeString(tc.hashExpected)
 			assert.Nil(t, err)
 
-			exptectedSalt, err := base64.RawStdEncoding.Strict().DecodeString(tc.saltExpected)
+			expectedSalt, err := base64.RawStdEncoding.Strict().DecodeString(tc.saltExpected)
 			assert.Nil(t, err)
 
 			assert.Equal(t, tc.memExpected, mem)
 			assert.Equal(t, tc.timeExpected, time)
 			assert.Equal(t, tc.parallelExpected, p)
-			assert.Equal(t, exptectedSalt, salt)
+			assert.Equal(t, expectedSalt, salt)
 			assert.Equal(t, expectedHash, hash)
 		}
 	}
