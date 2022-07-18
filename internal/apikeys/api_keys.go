@@ -11,13 +11,24 @@ import (
 	"golang.org/x/crypto/argon2"
 )
 
-const argon2Memory = 64 * 1024
-const argon2Time = 1
-const argon2Threads = 2
 const argon2KeyLength = 32
 
-func GenerateAPIKey() (string, string, error) {
-	apiKeyBytes, err := generateRandomBytes(64)
+type Generator struct {
+	Memory      uint32
+	Time        uint32
+	Parallelism uint8
+}
+
+func New(memory uint32, time uint32, parallelism uint8) Generator {
+	return Generator{
+		Memory:      memory,
+		Time:        time,
+		Parallelism: parallelism,
+	}
+}
+
+func (g *Generator) GenerateAPIKey() (string, string, error) {
+	apiKeyBytes, err := generateRandomBytes(32)
 	if err != nil {
 		return "", "", err
 	}
@@ -28,12 +39,12 @@ func GenerateAPIKey() (string, string, error) {
 		return "", "", err
 	}
 
-	hash := argon2.IDKey([]byte(apiKey), saltBytes, argon2Time, argon2Memory, argon2Threads, argon2KeyLength)
+	hash := argon2.IDKey([]byte(apiKey), saltBytes, g.Time, g.Memory, g.Parallelism, argon2KeyLength)
 	b64Salt := base64.RawStdEncoding.EncodeToString(saltBytes)
 	b64Hash := base64.RawStdEncoding.EncodeToString(hash)
 
-	encodedHash := fmt.Sprintf("$argon2id$v=%d$m=%d,t=%d,p=%d$%s$%s", argon2.Version, argon2Memory, argon2Time,
-		argon2Threads, b64Salt, b64Hash)
+	encodedHash := fmt.Sprintf("$argon2id$v=%d$m=%d,t=%d,p=%d$%s$%s", argon2.Version, g.Memory, g.Time,
+		g.Parallelism, b64Salt, b64Hash)
 
 	return encodedHash, apiKey, nil
 }
