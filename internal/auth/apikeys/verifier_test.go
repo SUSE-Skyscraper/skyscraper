@@ -7,14 +7,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestGenerateAPIKey(t *testing.T) {
-	generator := New(64*1024, 1, 4)
-	apiKey, hash, err := generator.GenerateAPIKey()
-	assert.Nil(t, err)
-	assert.NotEqualf(t, "", apiKey, "apiKey should not be empty")
-	assert.NotEqualf(t, "", hash, "hash should not be empty")
-}
-
 func TestVerifyApiKey(t *testing.T) {
 	tc := []struct {
 		apiKey        string
@@ -43,7 +35,7 @@ func TestVerifyApiKey(t *testing.T) {
 	}
 
 	for _, tc := range tc {
-		result, err := VerifyAPIKey(tc.apiKey, tc.hash)
+		result, err := CompareArgon2Hash(tc.apiKey, tc.hash)
 		if tc.expectedError {
 			assert.NotNil(t, err)
 		} else {
@@ -53,7 +45,7 @@ func TestVerifyApiKey(t *testing.T) {
 	}
 }
 
-func TestDecodeEncodedHash(t *testing.T) {
+func TestDecodeArgon2Hash(t *testing.T) {
 	tc := []struct {
 		encoded          string
 		memExpected      uint32
@@ -78,7 +70,7 @@ func TestDecodeEncodedHash(t *testing.T) {
 	}
 
 	for _, tc := range tc {
-		mem, time, p, salt, hash, err := decodeEncodedHash(tc.encoded)
+		mem, time, p, salt, hash, err := DecodeArgon2Hash(tc.encoded)
 
 		if tc.errorExpected {
 			assert.NotNil(t, err)

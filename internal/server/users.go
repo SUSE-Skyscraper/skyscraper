@@ -29,7 +29,7 @@ func V1Users(app *application.App) func(w http.ResponseWriter, r *http.Request) 
 
 func V1User(_ *application.App) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		user, ok := r.Context().Value(middleware.User).(db.User)
+		user, ok := r.Context().Value(middleware.ContextUser).(db.User)
 		if !ok {
 			_ = render.Render(w, r, responses.ErrInternalServerError)
 			return

@@ -35,7 +35,7 @@ func CloudAccountCtx(app *application.App) func(next http.Handler) http.Handler 
 				_ = render.Render(w, r, responses.ErrInternalServerError)
 				return
 			}
-			ctx := context.WithValue(r.Context(), CloudAccount, cloudAccount)
+			ctx := context.WithValue(r.Context(), ContextCloudAccount, cloudAccount)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}

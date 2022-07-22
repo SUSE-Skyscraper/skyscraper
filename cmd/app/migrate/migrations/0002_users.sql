@@ -48,6 +48,9 @@ create table api_keys
 (
     id          uuid                  default uuid_generate_v4() not null primary key,
     encodedHash varchar(255) not null unique,
+    owner       varchar(255) not null,
+    description varchar(255) null,
+    system      boolean      not null default false,
     created_at  timestamp    not null default now(),
     updated_at  timestamp    not null default now()
 );

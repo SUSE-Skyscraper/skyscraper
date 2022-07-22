@@ -6,16 +6,23 @@ import (
 	"github.com/google/uuid"
 )
 
-func (r *Repository) getUsersForLogs(ctx context.Context, logs []AuditLog) ([]User, error) {
+func (r *Repository) getCallersForLogs(ctx context.Context, logs []AuditLog) ([]any, error) {
 	checker := make(map[uuid.UUID]bool)
 	var userIds []uuid.UUID
+	var apiKeyIds []uuid.UUID
 
 	for _, log := range logs {
-		if checker[log.UserID] {
+		if checker[log.CallerID] {
 			continue
 		}
-		checker[log.UserID] = true
-		userIds = append(userIds, log.UserID)
+		checker[log.CallerID] = true
+		switch log.CallerType {
+		case CallerTypeUser:
+			userIds = append(userIds, log.CallerID)
+		case CallerTypeApiKey:
+			apiKeyIds = append(apiKeyIds, log.CallerID)
+		}
+		userIds = append(userIds, log.CallerID)
 	}
 
 	users, err := r.db.GetUsersById(ctx, userIds)
@@ -23,5 +30,20 @@ func (r *Repository) getUsersForLogs(ctx context.Context, logs []AuditLog) ([]Us
 		return nil, err
 	}
 
-	return users, err
+	apiKeys, err := r.db.FindAPIKeysById(ctx, apiKeyIds)
+	if err != nil {
+		return nil, err
+	}
+
+	userCount := len(users)
+	apiKeyCount := len(apiKeys)
+	callers := make([]any, userCount+apiKeyCount)
+	for i, user := range users {
+		callers[i] = user
+	}
+	for i, apiKey := range apiKeys {
+		callers[i+userCount] = apiKey
+	}
+
+	return callers, err
 }

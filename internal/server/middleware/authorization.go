@@ -4,42 +4,37 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/go-chi/render"
-	jwtverifier "github.com/okta/okta-jwt-verifier-golang"
 	"github.com/suse-skyscraper/skyscraper/internal/application"
+	"github.com/suse-skyscraper/skyscraper/internal/auth"
+	"github.com/suse-skyscraper/skyscraper/internal/auth/apikeys"
+	"github.com/suse-skyscraper/skyscraper/internal/auth/jwt"
 	"github.com/suse-skyscraper/skyscraper/internal/server/responses"
 )
 
-func OktaAuthorizationHandler(app *application.App) func(next http.Handler) http.Handler {
-	jwtVerifier := NewJwtVerifier(app.Config.Okta.Issuer, app.Config.Okta.ClientID)
+func AuthorizationHandler(app *application.App) func(next http.Handler) http.Handler {
+	authorizer := newAuthorizer(app)
+
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			authHeader := strings.Split(r.Header.Get("Authorization"), "Bearer ")
-			if len(authHeader) != 2 {
-				w.WriteHeader(http.StatusUnauthorized)
-				_, _ = fmt.Fprintf(w, "Not Authorized: authorization header malformed")
-				return
+			headers := authHeaders{
+				Authorization: r.Header.Get("Authorization"),
+				APIKeyID:      r.Header.Get("X-API-Key"),
+				APIKeySecret:  r.Header.Get("X-API-Secret"),
 			}
 
-			jwtToken := authHeader[1]
-			claims, err := jwtVerifier.verifier.VerifyIdToken(jwtToken)
+			caller, match, err := authorizer.authorize(r.Context(), headers)
 			if err != nil {
+				_ = render.Render(w, r, responses.ErrInternalServerError)
+				return
+			} else if !match {
 				w.WriteHeader(http.StatusUnauthorized)
 				_, _ = fmt.Fprintf(w, "Not Authorized")
 				return
 			}
 
-			username := claims.Claims["sub"].(string)
-
-			user, err := app.Repository.FindUserByUsername(r.Context(), username)
-			if err != nil {
-				_ = render.Render(w, r, responses.ErrInternalServerError)
-				return
-			}
-			ctx := context.WithValue(r.Context(), CurrentUser, user)
-
+			ctx := context.WithValue(r.Context(), ContextCaller, caller)
 			r = r.WithContext(ctx)
 
 			next.ServeHTTP(w, r)
@@ -47,27 +42,32 @@ func OktaAuthorizationHandler(app *application.App) func(next http.Handler) http
 	}
 }
 
-type verifier interface {
-	VerifyIdToken(jwt string) (*jwtverifier.Jwt, error)
+type authHeaders struct {
+	Authorization string `json:"authorization"`
+	APIKeyID      string `json:"api_key_id"`
+	APIKeySecret  string `json:"api_key_secret"`
 }
 
-type JwtVerifier struct {
-	verifier verifier
+type apiAuthorizer struct {
+	jwtVerifier jwt.Verifier
+	apiVerifier apikeys.Verifier
 }
 
-func NewJwtVerifier(oktaIssuer string, oktaClientID string) JwtVerifier {
-	toValidate := map[string]string{}
-	toValidate["aud"] = "api://default"
-	toValidate["cid"] = oktaClientID
+func newAuthorizer(app *application.App) apiAuthorizer {
+	jwtVerifier := jwt.NewVerifier(app)
+	apiVerifier := apikeys.NewVerifier(app)
 
-	jwtVerifierSetup := jwtverifier.JwtVerifier{
-		Issuer:           oktaIssuer,
-		ClaimsToValidate: toValidate,
+	return apiAuthorizer{jwtVerifier, apiVerifier}
+}
+
+func (a *apiAuthorizer) authorize(ctx context.Context, headers authHeaders) (auth.Caller, bool, error) {
+	if headers.Authorization != "" {
+		return a.jwtVerifier.Verify(ctx, headers.Authorization)
 	}
 
-	v := jwtVerifierSetup.New()
-
-	return JwtVerifier{
-		verifier: v,
+	if headers.APIKeyID != "" && headers.APIKeySecret != "" {
+		return a.apiVerifier.Verify(ctx, headers.APIKeyID, headers.APIKeySecret)
 	}
+
+	return auth.Caller{}, false, nil
 }

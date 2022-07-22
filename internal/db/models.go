@@ -37,16 +37,39 @@ func (e *AuditResourceType) Scan(src interface{}) error {
 	return nil
 }
 
+type CallerType string
+
+const (
+	CallerTypeUser   CallerType = "user"
+	CallerTypeApiKey CallerType = "api_key"
+)
+
+func (e *CallerType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = CallerType(s)
+	case string:
+		*e = CallerType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for CallerType: %T", src)
+	}
+	return nil
+}
+
 type ApiKey struct {
 	ID          uuid.UUID
 	Encodedhash string
+	Owner       string
+	Description sql.NullString
+	System      bool
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 }
 
 type AuditLog struct {
 	ID           uuid.UUID
-	UserID       uuid.UUID
+	CallerID     uuid.UUID
+	CallerType   CallerType
 	ResourceType AuditResourceType
 	ResourceID   uuid.UUID
 	Message      string
