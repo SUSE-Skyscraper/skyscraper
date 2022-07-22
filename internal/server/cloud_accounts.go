@@ -2,15 +2,13 @@ package server
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
 	"github.com/suse-skyscraper/skyscraper/internal/application"
-	"github.com/suse-skyscraper/skyscraper/internal/auth"
 	"github.com/suse-skyscraper/skyscraper/internal/db"
+	"github.com/suse-skyscraper/skyscraper/internal/server/auditors"
 	"github.com/suse-skyscraper/skyscraper/internal/server/middleware"
 	"github.com/suse-skyscraper/skyscraper/internal/server/payloads"
 	"github.com/suse-skyscraper/skyscraper/internal/server/responses"
@@ -41,41 +39,37 @@ func V1UpdateCloudAccount(app *application.App) func(w http.ResponseWriter, r *h
 	natsWorker := workers.NewWorker(app)
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		cloudAccount, ok := r.Context().Value(middleware.ContextCloudAccount).(db.CloudAccount)
-		if !ok {
-			_ = render.Render(w, r, responses.ErrInternalServerError)
-			return
-		}
-
-		before, err := json.Marshal(cloudAccount)
-		if err != nil {
-			_ = render.Render(w, r, responses.ErrInternalServerError)
-			return
-		}
-
-		caller, ok := r.Context().Value(middleware.ContextCaller).(auth.Caller)
-		if !ok {
-			_ = render.Render(w, r, responses.ErrInternalServerError)
-			return
-		}
-
+		// Bind the payload
 		var payload payloads.UpdateCloudAccountPayload
-		err = render.Bind(r, &payload)
+		err := render.Bind(r, &payload)
 		if err != nil {
 			_ = render.Render(w, r, responses.ErrInvalidRequest(err))
 			return
 		}
 
+		// Begin a database transaction
 		repo, err := app.Repository.Begin(r.Context())
 		if err != nil {
 			_ = render.Render(w, r, responses.ErrInternalServerError)
 			return
 		}
 
+		// If any error occurs, rollback the transaction
 		defer func(repo db.RepositoryQueries, ctx context.Context) {
 			_ = repo.Rollback(ctx)
 		}(repo, r.Context())
 
+		// create an auditor within our transaction
+		auditor := auditors.NewAuditor(repo)
+
+		// Get the cloud account that we're changing
+		cloudAccount, ok := r.Context().Value(middleware.ContextCloudAccount).(db.CloudAccount)
+		if !ok {
+			_ = render.Render(w, r, responses.ErrInternalServerError)
+			return
+		}
+
+		// Update the cloud account
 		account, err := repo.UpdateCloudAccount(r.Context(), db.UpdateCloudAccountParams{
 			ID:          cloudAccount.ID,
 			TagsDesired: payload.Data.GetJSON(),
@@ -85,44 +79,27 @@ func V1UpdateCloudAccount(app *application.App) func(w http.ResponseWriter, r *h
 			return
 		}
 
-		after, err := json.Marshal(account)
+		// Audit the change
+		err = auditor.Audit(r.Context(), db.AuditResourceTypeCloudAccount, account.ID, payload)
 		if err != nil {
 			_ = render.Render(w, r, responses.ErrInternalServerError)
 			return
 		}
 
-		callerType, err := caller.GetDBType()
-		if err != nil {
-			_ = render.Render(w, r, responses.ErrInternalServerError)
-			return
-		}
-
-		_, err = repo.CreateAuditLog(r.Context(), db.CreateAuditLogParams{
-			CallerID:     caller.ID,
-			CallerType:   callerType,
-			ResourceType: db.AuditResourceTypeCloudAccount,
-			ResourceID:   cloudAccount.ID,
-			Message:      fmt.Sprintf("Updated cloud account from %s to %s", string(before), string(after)),
-		})
-		if err != nil {
-			_ = render.Render(w, r, responses.ErrInternalServerError)
-			return
-		}
-
+		// Commit the transaction
 		err = repo.Commit(r.Context())
 		if err != nil {
 			_ = render.Render(w, r, responses.ErrInternalServerError)
 			return
 		}
 
-		err = natsWorker.PublishTagChange(workers.ChangeTagsPayload{
+		// Publish the change to the NATS queue.
+		// If this fails, we don't care because it can be retried later.
+		// It's more important that we update the account.
+		_ = natsWorker.PublishTagChange(workers.ChangeTagsPayload{
 			ID:          account.ID.String(),
 			AccountName: account.Name,
 		})
-		if err != nil {
-			_ = render.Render(w, r, responses.ErrInternalServerError)
-			return
-		}
 
 		_ = render.Render(w, r, responses.NewCloudAccountResponse(account))
 	}
@@ -130,7 +107,11 @@ func V1UpdateCloudAccount(app *application.App) func(w http.ResponseWriter, r *h
 
 func V1GetCloudAccount(_ *application.App) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		cloudTenantAccount := r.Context().Value(middleware.ContextCloudAccount).(db.CloudAccount)
+		cloudTenantAccount, ok := r.Context().Value(middleware.ContextCloudAccount).(db.CloudAccount)
+		if !ok {
+			_ = render.Render(w, r, responses.ErrInternalServerError)
+			return
+		}
 
 		_ = render.Render(w, r, responses.NewCloudAccountResponse(cloudTenantAccount))
 	}

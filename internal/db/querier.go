@@ -36,6 +36,7 @@ type Querier interface {
 	FindCloudAccountByCloudAndTenant(ctx context.Context, arg FindCloudAccountByCloudAndTenantParams) (CloudAccount, error)
 	FindScimAPIKey(ctx context.Context) (ApiKey, error)
 	FindTag(ctx context.Context, id uuid.UUID) (Tag, error)
+	GetAPIKeys(ctx context.Context) ([]ApiKey, error)
 	//------------------------------------------------------------------------------------------------------------------
 	// Audit Logs
 	//------------------------------------------------------------------------------------------------------------------

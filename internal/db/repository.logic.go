@@ -24,6 +24,14 @@ type Repository struct {
 	tx           pgx.Tx
 }
 
+func (r *Repository) CreateAPIKey(ctx context.Context, input InsertAPIKeyParams) (ApiKey, error) {
+	return r.db.InsertAPIKey(ctx, input)
+}
+
+func (r *Repository) GetAPIKeys(ctx context.Context) ([]ApiKey, error) {
+	return r.db.GetAPIKeys(ctx)
+}
+
 func (r *Repository) GetUsers(ctx context.Context, input GetUsersParams) ([]User, error) {
 	return r.db.GetUsers(ctx, input)
 }

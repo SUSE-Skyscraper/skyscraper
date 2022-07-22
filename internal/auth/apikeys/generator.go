@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"fmt"
 
+	"github.com/suse-skyscraper/skyscraper/internal/application"
 	"golang.org/x/crypto/argon2"
 )
 
@@ -16,11 +17,11 @@ type Generator struct {
 	Parallelism uint8
 }
 
-func NewGenerator(memory uint32, time uint32, parallelism uint8) Generator {
+func NewGenerator(app *application.App) Generator {
 	return Generator{
-		Memory:      memory,
-		Time:        time,
-		Parallelism: parallelism,
+		Memory:      app.Config.Argon2Config.MemoryCost,
+		Time:        app.Config.Argon2Config.TimeCost,
+		Parallelism: app.Config.Argon2Config.Parallelism,
 	}
 }
 

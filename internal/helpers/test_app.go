@@ -38,6 +38,18 @@ type TestRepository struct {
 	mock.Mock
 }
 
+func (t *TestRepository) GetAPIKeys(ctx context.Context) ([]db.ApiKey, error) {
+	args := t.Called(ctx)
+
+	return args.Get(0).([]db.ApiKey), args.Error(1)
+}
+
+func (t *TestRepository) CreateAPIKey(ctx context.Context, input db.InsertAPIKeyParams) (db.ApiKey, error) {
+	args := t.Called(ctx, input)
+
+	return args.Get(0).(db.ApiKey), args.Error(1)
+}
+
 func (t *TestRepository) FindAPIKey(ctx context.Context, id uuid.UUID) (db.ApiKey, error) {
 	args := t.Called(ctx, id)
 

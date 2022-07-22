@@ -231,6 +231,11 @@ from api_keys
          left join scim_api_keys on scim_api_keys.api_key_id = api_keys.id
 where scim_api_keys.domain = 'default' and api_keys.system = true;
 
+-- name: GetAPIKeys :many
+select *
+from api_keys
+where system = false;
+
 --------------------------------------------------------------------------------------------------------------------
 -- Policies
 --

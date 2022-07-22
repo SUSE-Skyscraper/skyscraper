@@ -30,6 +30,7 @@ func NewCmd(app *application.App) *cobra.Command {
 			enforcerHandler := apimiddleware.EnforcerHandler(app)
 			tagCtx := apimiddleware.TagCtx(app)
 			userCtx := apimiddleware.UserCtx(app)
+			apiKeyCtx := apimiddleware.APIKeyCtx(app)
 
 			scimAuthorizer := scimmiddleware.BearerAuthorizationHandler(app)
 			cloudAccountCtx := apimiddleware.CloudAccountCtx(app)
@@ -58,6 +59,16 @@ func NewCmd(app *application.App) *cobra.Command {
 					r.Get("/profile", server.V1Profile(app))
 
 					r.Get("/audit_logs", server.V1ListAuditLogs(app))
+
+					r.Route("/api_keys", func(r chi.Router) {
+						r.Get("/", server.V1ListAPIKeys(app))
+						r.Post("/", server.V1CreateAPIKey(app))
+
+						r.Route("/{id}", func(r chi.Router) {
+							r.Use(apiKeyCtx)
+							r.Get("/", server.V1GetAPIKey(app))
+						})
+					})
 
 					r.Route("/tags", func(r chi.Router) {
 						r.Get("/", server.V1Tags(app))
