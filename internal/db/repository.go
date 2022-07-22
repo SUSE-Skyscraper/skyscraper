@@ -63,9 +63,12 @@ type RepositoryQueries interface {
 
 	InsertScimAPIKey(ctx context.Context, encodedHash string) (ApiKey, error)
 	DeleteScimAPIKey(ctx context.Context) error
+	FindAPIKey(ctx context.Context, id uuid.UUID) (ApiKey, error)
 	FindScimAPIKey(ctx context.Context) (ApiKey, error)
+	GetAPIKeys(ctx context.Context) ([]ApiKey, error)
+	CreateAPIKey(ctx context.Context, input InsertAPIKeyParams) (ApiKey, error)
 
-	GetAuditLogs(ctx context.Context) ([]AuditLog, []User, error)
-	GetAuditLogsForTarget(ctx context.Context, input GetAuditLogsForTargetParams) ([]AuditLog, []User, error)
+	GetAuditLogs(ctx context.Context) ([]AuditLog, []any, error)
+	GetAuditLogsForTarget(ctx context.Context, input GetAuditLogsForTargetParams) ([]AuditLog, []any, error)
 	CreateAuditLog(ctx context.Context, input CreateAuditLogParams) (AuditLog, error)
 }

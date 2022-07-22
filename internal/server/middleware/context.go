@@ -3,8 +3,9 @@ package middleware
 type key int
 
 const (
-	CurrentUser key = iota
-	CloudAccount
-	Tag
-	User
+	ContextCaller key = iota
+	ContextCloudAccount
+	ContextTag
+	ContextUser
+	ContextAPIKey
 )

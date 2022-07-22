@@ -12,7 +12,7 @@ import (
 	"github.com/suse-skyscraper/skyscraper/internal/server/responses"
 )
 
-func TagCtx(app *application.App) func(next http.Handler) http.Handler {
+func APIKeyCtx(app *application.App) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			idString := chi.URLParam(r, "id")
@@ -23,7 +23,7 @@ func TagCtx(app *application.App) func(next http.Handler) http.Handler {
 				return
 			}
 
-			tag, err := app.Repository.FindTag(r.Context(), id)
+			apiKey, err := app.Repository.FindAPIKey(r.Context(), id)
 			if err != nil {
 				if err == pgx.ErrNoRows {
 					_ = render.Render(w, r, responses.ErrNotFound)
@@ -34,7 +34,7 @@ func TagCtx(app *application.App) func(next http.Handler) http.Handler {
 				return
 			}
 
-			ctx := context.WithValue(r.Context(), ContextTag, tag)
+			ctx := context.WithValue(r.Context(), ContextAPIKey, apiKey)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}

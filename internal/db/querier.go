@@ -29,11 +29,14 @@ type Querier interface {
 	DeleteUser(ctx context.Context, id uuid.UUID) error
 	DropMembershipForGroup(ctx context.Context, groupID uuid.UUID) error
 	DropMembershipForUserAndGroup(ctx context.Context, arg DropMembershipForUserAndGroupParams) error
+	FindAPIKey(ctx context.Context, id uuid.UUID) (ApiKey, error)
+	FindAPIKeysById(ctx context.Context, dollar_1 []uuid.UUID) ([]ApiKey, error)
 	FindByUsername(ctx context.Context, username string) (User, error)
 	FindCloudAccount(ctx context.Context, id uuid.UUID) (CloudAccount, error)
 	FindCloudAccountByCloudAndTenant(ctx context.Context, arg FindCloudAccountByCloudAndTenantParams) (CloudAccount, error)
 	FindScimAPIKey(ctx context.Context) (ApiKey, error)
 	FindTag(ctx context.Context, id uuid.UUID) (Tag, error)
+	GetAPIKeys(ctx context.Context) ([]ApiKey, error)
 	//------------------------------------------------------------------------------------------------------------------
 	// Audit Logs
 	//------------------------------------------------------------------------------------------------------------------
@@ -73,7 +76,7 @@ type Querier interface {
 	//------------------------------------------------------------------------------------------------------------------
 	// SCIM API Key
 	//------------------------------------------------------------------------------------------------------------------
-	InsertAPIKey(ctx context.Context, encodedhash string) (ApiKey, error)
+	InsertAPIKey(ctx context.Context, arg InsertAPIKeyParams) (ApiKey, error)
 	InsertScimAPIKey(ctx context.Context, apiKeyID uuid.UUID) (ScimApiKey, error)
 	PatchGroupDisplayName(ctx context.Context, arg PatchGroupDisplayNameParams) error
 	PatchUser(ctx context.Context, arg PatchUserParams) error

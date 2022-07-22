@@ -2,6 +2,7 @@ package application
 
 import (
 	"context"
+	"log"
 	"time"
 
 	"github.com/casbin/casbin/v2"
@@ -55,6 +56,19 @@ func (a *App) StartEnforcer() error {
 		return err
 	}
 	a.Enforcer = e
+
+	ticker := time.NewTicker(time.Second * 30)
+	go func(app *App) {
+		for range ticker.C {
+			if a.Enforcer != nil {
+				log.Println("Reloading policies")
+				err := a.Enforcer.LoadPolicy()
+				if err != nil {
+					log.Println(err)
+				}
+			}
+		}
+	}(a)
 
 	return nil
 }

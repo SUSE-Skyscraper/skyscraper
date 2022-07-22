@@ -25,10 +25,10 @@ export class AuditLogComponent implements OnInit, OnChanges {
 
   private getAuditLogs() {
     if (this.resource_id !== undefined && this.resource_type !== undefined) {
-      this.auditLogColumns = ['user_id', 'message', 'created_at'];
+      this.auditLogColumns = ['caller_id', 'message', 'created_at'];
     } else {
       this.auditLogColumns = [
-        'user_id',
+        'caller_id',
         'resource_type',
         'resource_id',
         'message',
@@ -49,12 +49,22 @@ export class AuditLogComponent implements OnInit, OnChanges {
 
           let tableItems: AuditLogTableItem[] = [];
           response.data.forEach((item) => {
-            const user = users.get(item.relationships['user']?.data.id);
+            let caller: string = '';
+            switch (item.attributes.caller_type) {
+              case 'user':
+                caller = `User (${
+                  users.get(item.attributes.caller_id)?.attributes.username ??
+                  ''
+                })`;
+                break;
+              case 'api_key':
+                caller = `API Key (${item.attributes.caller_id})`;
+                break;
+            }
 
             tableItems.push({
-              user_id: item.attributes.user_id,
               message: item.attributes.message,
-              username: user?.attributes.username ?? '',
+              caller: caller,
               created_at: new Date(item.attributes.created_at),
               resource_id: item.attributes.resource_id,
               resource_type: item.attributes.resource_type,
@@ -71,8 +81,7 @@ export class AuditLogComponent implements OnInit, OnChanges {
 
 export interface AuditLogTableItem {
   message: string;
-  user_id: string;
-  username: string;
+  caller: string;
   created_at: Date;
   resource_type: string;
   resource_id: string;

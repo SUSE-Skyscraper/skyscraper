@@ -25,7 +25,7 @@ func UserCtx(app *application.App) func(next http.Handler) http.Handler {
 				_ = render.Render(w, r, responses.ErrInternalServerError)
 				return
 			}
-			ctx := context.WithValue(r.Context(), User, user)
+			ctx := context.WithValue(r.Context(), ContextUser, user)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}

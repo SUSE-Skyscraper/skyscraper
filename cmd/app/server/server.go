@@ -26,14 +26,16 @@ func NewCmd(app *application.App) *cobra.Command {
 				return err
 			}
 
+			apiAuthorizer := apimiddleware.AuthorizationHandler(app)
 			enforcerHandler := apimiddleware.EnforcerHandler(app)
-			oktaAuthorizer := apimiddleware.OktaAuthorizationHandler(app)
+			tagCtx := apimiddleware.TagCtx(app)
+			userCtx := apimiddleware.UserCtx(app)
+			apiKeyCtx := apimiddleware.APIKeyCtx(app)
+
 			scimAuthorizer := scimmiddleware.BearerAuthorizationHandler(app)
 			cloudAccountCtx := apimiddleware.CloudAccountCtx(app)
 			scimUserCtx := scimmiddleware.UserCtx(app)
 			scimGroupCtx := scimmiddleware.GroupCtx(app)
-			tagCtx := apimiddleware.TagCtx(app)
-			userCtx := apimiddleware.UserCtx(app)
 
 			// common middleware
 			r.Use(chimiddleware.Logger)
@@ -50,13 +52,23 @@ func NewCmd(app *application.App) *cobra.Command {
 			// protected routes
 			r.Group(func(r chi.Router) {
 				if app.Config.Okta.Enabled {
-					r.Use(oktaAuthorizer)
+					r.Use(apiAuthorizer)
 				}
 				r.Use(enforcerHandler)
 				r.Route("/api/v1", func(r chi.Router) {
-					r.Get("/profile", server.V1Profile)
+					r.Get("/profile", server.V1Profile(app))
 
 					r.Get("/audit_logs", server.V1ListAuditLogs(app))
+
+					r.Route("/api_keys", func(r chi.Router) {
+						r.Get("/", server.V1ListAPIKeys(app))
+						r.Post("/", server.V1CreateAPIKey(app))
+
+						r.Route("/{id}", func(r chi.Router) {
+							r.Use(apiKeyCtx)
+							r.Get("/", server.V1GetAPIKey(app))
+						})
+					})
 
 					r.Route("/tags", func(r chi.Router) {
 						r.Get("/", server.V1Tags(app))

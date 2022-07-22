@@ -208,7 +208,8 @@ export interface CreateTagRequest {
 
 export interface AuditLogAttributes {
   message: string;
-  user_id: string;
+  caller_id: string;
+  caller_type: string;
   resource_type: string;
   resource_id: string;
   created_at: string;
@@ -232,5 +233,11 @@ export interface AuditLogItem {
 
 export interface AuditLogsResponse {
   data: AuditLogItem[] | null;
-  included: UserItem[] | null;
+  included: IncludedItem[] | null;
+}
+
+export interface IncludedItem {
+  id: string;
+  type: string;
+  attributes: any;
 }
