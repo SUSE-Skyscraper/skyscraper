@@ -81,7 +81,6 @@ from users
 where id = ANY ($1::uuid[])
 order by display_name;
 
-
 -- name: GetUser :one
 select *
 from users
@@ -197,8 +196,8 @@ on conflict (user_id, group_id) do update set updated_at = now();;
 --------------------------------------------------------------------------------------------------------------------
 
 -- name: InsertAPIKey :one
-insert into api_keys (encodedhash, created_at, updated_at)
-values ($1, now(), now())
+insert into api_keys (encodedhash, system, owner, description, created_at, updated_at)
+values ($1, $2, $3, $4, now(), now())
 returning *;
 
 -- name: InsertScimAPIKey :one
@@ -216,11 +215,21 @@ delete
 from scim_api_keys
 where domain = 'default';
 
+-- name: FindAPIKey :one
+select *
+from api_keys
+where id = $1 and system = false;
+
+-- name: FindAPIKeysById :many
+select *
+from api_keys
+where id = ANY ($1::uuid[]);
+
 -- name: FindScimAPIKey :one
 select api_keys.*
 from api_keys
          left join scim_api_keys on scim_api_keys.api_key_id = api_keys.id
-where scim_api_keys.domain = 'default';
+where scim_api_keys.domain = 'default' and api_keys.system = true;
 
 --------------------------------------------------------------------------------------------------------------------
 -- Policies
@@ -308,6 +317,6 @@ where resource_id = $1
 order by created_at desc;
 
 -- name: CreateAuditLog :one
-insert into audit_logs (user_id, resource_type, resource_id, message, created_at, updated_at)
-values ($1, $2, $3, $4, now(), now())
+insert into audit_logs (resource_type, resource_id, caller_id, caller_type, message, created_at, updated_at)
+values ($1, $2, $3, $4, $5, now(), now())
 returning *;

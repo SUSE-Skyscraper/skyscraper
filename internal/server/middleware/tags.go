@@ -34,7 +34,7 @@ func TagCtx(app *application.App) func(next http.Handler) http.Handler {
 				return
 			}
 
-			ctx := context.WithValue(r.Context(), Tag, tag)
+			ctx := context.WithValue(r.Context(), ContextTag, tag)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}

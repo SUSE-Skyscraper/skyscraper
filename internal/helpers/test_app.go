@@ -38,6 +38,24 @@ type TestRepository struct {
 	mock.Mock
 }
 
+func (t *TestRepository) FindAPIKey(ctx context.Context, id uuid.UUID) (db.ApiKey, error) {
+	args := t.Called(ctx, id)
+
+	return args.Get(0).(db.ApiKey), args.Error(1)
+}
+
+func (t *TestRepository) GetAuditLogs(ctx context.Context) ([]db.AuditLog, []any, error) {
+	args := t.Called(ctx)
+
+	return args.Get(0).([]db.AuditLog), args.Get(1).([]any), args.Error(1)
+}
+
+func (t *TestRepository) GetAuditLogsForTarget(ctx context.Context, input db.GetAuditLogsForTargetParams) ([]db.AuditLog, []any, error) {
+	args := t.Called(ctx, input)
+
+	return args.Get(0).([]db.AuditLog), args.Get(1).([]any), args.Error(2)
+}
+
 func (t *TestRepository) InsertScimAPIKey(ctx context.Context, encodedHash string) (db.ApiKey, error) {
 	args := t.Called(ctx, encodedHash)
 
@@ -60,21 +78,6 @@ func (t *TestRepository) GetUsers(ctx context.Context, input db.GetUsersParams) 
 	args := t.Called(ctx, input)
 
 	return args.Get(0).([]db.User), args.Error(1)
-}
-
-func (t *TestRepository) GetAuditLogs(ctx context.Context) ([]db.AuditLog, []db.User, error) {
-	args := t.Called(ctx)
-
-	return args.Get(0).([]db.AuditLog), args.Get(1).([]db.User), args.Error(2)
-}
-
-func (t *TestRepository) GetAuditLogsForTarget(
-	ctx context.Context,
-	input db.GetAuditLogsForTargetParams,
-) ([]db.AuditLog, []db.User, error) {
-	args := t.Called(ctx, input)
-
-	return args.Get(0).([]db.AuditLog), args.Get(1).([]db.User), args.Error(2)
 }
 
 func (t *TestRepository) CreateAuditLog(ctx context.Context, input db.CreateAuditLogParams) (db.AuditLog, error) {

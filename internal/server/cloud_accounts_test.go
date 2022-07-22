@@ -8,11 +8,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgtype"
 	"github.com/nats-io/nats.go"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/suse-skyscraper/skyscraper/internal/auth"
 	"github.com/suse-skyscraper/skyscraper/internal/db"
 	"github.com/suse-skyscraper/skyscraper/internal/helpers"
 	"github.com/suse-skyscraper/skyscraper/internal/server/middleware"
@@ -121,8 +123,11 @@ func TestV1UpdateCloudAccount(t *testing.T) {
 		testApp := helpers.NewTestApp()
 
 		ctx := req.Context()
-		ctx = context.WithValue(ctx, middleware.CloudAccount, cloudAccount)
-		ctx = context.WithValue(ctx, middleware.CurrentUser, db.User{})
+		ctx = context.WithValue(ctx, middleware.ContextCloudAccount, cloudAccount)
+		ctx = context.WithValue(ctx, middleware.ContextCaller, auth.Caller{
+			ID:   uuid.New(),
+			Type: auth.CallerUser,
+		})
 		req = req.WithContext(ctx)
 
 		testApp.Repository.On("Begin", mock.Anything).Return(testApp.Repository, tc.beginError)
@@ -148,7 +153,7 @@ func TestV1GetCloudAccount(t *testing.T) {
 	testApp := helpers.NewTestApp()
 
 	ctx := req.Context()
-	ctx = context.WithValue(ctx, middleware.CloudAccount, cloudAccount)
+	ctx = context.WithValue(ctx, middleware.ContextCloudAccount, cloudAccount)
 	req = req.WithContext(ctx)
 
 	V1GetCloudAccount(testApp.App)(w, req)

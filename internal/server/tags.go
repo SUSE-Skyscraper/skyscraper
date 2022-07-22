@@ -25,7 +25,7 @@ func V1Tags(app *application.App) func(w http.ResponseWriter, r *http.Request) {
 
 func V1UpdateTag(app *application.App) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		tag, ok := r.Context().Value(middleware.Tag).(db.Tag)
+		tag, ok := r.Context().Value(middleware.ContextTag).(db.Tag)
 		if !ok {
 			_ = render.Render(w, r, responses.ErrNotFound)
 			return

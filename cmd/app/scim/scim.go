@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	"github.com/suse-skyscraper/skyscraper/internal/apikeys"
 	"github.com/suse-skyscraper/skyscraper/internal/application"
+	"github.com/suse-skyscraper/skyscraper/internal/auth/apikeys"
 	"github.com/suse-skyscraper/skyscraper/internal/db"
 )
 
@@ -18,8 +18,8 @@ func NewCmd(app *application.App) *cobra.Command {
 	generateAPIKeyCmd := &cobra.Command{
 		Use: "gen-api-key",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			apiKeyGenerator := apikeys.New(app.Config.Argon2Config.MemoryCost, app.Config.Argon2Config.TimeCost, app.Config.Argon2Config.Parallelism)
-			hash, token, err := apiKeyGenerator.GenerateAPIKey()
+			apiKeyGenerator := apikeys.NewGenerator(app.Config.Argon2Config.MemoryCost, app.Config.Argon2Config.TimeCost, app.Config.Argon2Config.Parallelism)
+			hash, token, err := apiKeyGenerator.Generate()
 			if err != nil {
 				return err
 			}

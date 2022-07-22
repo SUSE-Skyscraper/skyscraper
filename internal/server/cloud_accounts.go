@@ -9,6 +9,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
 	"github.com/suse-skyscraper/skyscraper/internal/application"
+	"github.com/suse-skyscraper/skyscraper/internal/auth"
 	"github.com/suse-skyscraper/skyscraper/internal/db"
 	"github.com/suse-skyscraper/skyscraper/internal/server/middleware"
 	"github.com/suse-skyscraper/skyscraper/internal/server/payloads"
@@ -40,7 +41,7 @@ func V1UpdateCloudAccount(app *application.App) func(w http.ResponseWriter, r *h
 	natsWorker := workers.NewWorker(app)
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		cloudAccount, ok := r.Context().Value(middleware.CloudAccount).(db.CloudAccount)
+		cloudAccount, ok := r.Context().Value(middleware.ContextCloudAccount).(db.CloudAccount)
 		if !ok {
 			_ = render.Render(w, r, responses.ErrInternalServerError)
 			return
@@ -52,7 +53,7 @@ func V1UpdateCloudAccount(app *application.App) func(w http.ResponseWriter, r *h
 			return
 		}
 
-		user, ok := r.Context().Value(middleware.CurrentUser).(db.User)
+		caller, ok := r.Context().Value(middleware.ContextCaller).(auth.Caller)
 		if !ok {
 			_ = render.Render(w, r, responses.ErrInternalServerError)
 			return
@@ -90,8 +91,15 @@ func V1UpdateCloudAccount(app *application.App) func(w http.ResponseWriter, r *h
 			return
 		}
 
+		callerType, err := caller.GetDBType()
+		if err != nil {
+			_ = render.Render(w, r, responses.ErrInternalServerError)
+			return
+		}
+
 		_, err = repo.CreateAuditLog(r.Context(), db.CreateAuditLogParams{
-			UserID:       user.ID,
+			CallerID:     caller.ID,
+			CallerType:   callerType,
 			ResourceType: db.AuditResourceTypeCloudAccount,
 			ResourceID:   cloudAccount.ID,
 			Message:      fmt.Sprintf("Updated cloud account from %s to %s", string(before), string(after)),
@@ -122,7 +130,7 @@ func V1UpdateCloudAccount(app *application.App) func(w http.ResponseWriter, r *h
 
 func V1GetCloudAccount(_ *application.App) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		cloudTenantAccount := r.Context().Value(middleware.CloudAccount).(db.CloudAccount)
+		cloudTenantAccount := r.Context().Value(middleware.ContextCloudAccount).(db.CloudAccount)
 
 		_ = render.Render(w, r, responses.NewCloudAccountResponse(cloudTenantAccount))
 	}
