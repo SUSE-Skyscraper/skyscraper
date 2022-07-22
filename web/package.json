@@ -19,14 +19,14 @@
     "@angular/core": "^14.0.5",
     "@angular/forms": "^14.0.5",
     "@angular/material": "^14.0.5",
-    "@angular/platform-browser": "^14.0.5",
+    "@angular/platform-browser": "^14.1.0",
     "@angular/platform-browser-dynamic": "^14.0.5",
     "@angular/router": "^14.0.5",
     "@okta/okta-angular": "~5.2.0",
     "@okta/okta-auth-js": "^6.7.2",
     "rxjs": "~7.5.0",
     "tslib": "^2.3.0",
-    "zone.js": "~0.11.6"
+    "zone.js": "~0.11.7"
   },
   "devDependencies": {
     "@angular-devkit/build-angular": "^14.0.5",
