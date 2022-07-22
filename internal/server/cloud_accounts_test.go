@@ -100,7 +100,7 @@ func TestV1UpdateCloudAccount(t *testing.T) {
 		{
 			tags:         []byte(`{"data": {"tags_desired": {}}}`),
 			publishError: errors.New(""),
-			statusCode:   http.StatusInternalServerError,
+			statusCode:   http.StatusOK,
 		},
 		{
 			tags:       []byte(`{"data": {"tags_desired": {}}}`),

@@ -26,13 +26,61 @@ paths:
           $ref: '#/components/responses/UserResponse'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          description: Profile not found (not logged in as user, but maybe an API Key)
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/v1/api_keys:
+    get:
+      description: Returns the user API keys
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          $ref: '#/components/responses/APIKeysResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      description: Creates a new API key
+      security:
+        - bearerAuth: []
+      requestBody:
+        $ref: '#/components/requestBodies/CreateAPIKeyRequest'
+      responses:
+        '201':
+          $ref: '#/components/responses/APIKeyResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/v1/api_keys/{id}:
+    get:
+      description: Returns the user API key
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: API key ID
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          $ref: '#/components/responses/APIKeyResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          description: API key not found
         '500':
           $ref: '#/components/responses/InternalError'
   /api/v1/users:
     get:
       description: Returns the list of users
       security:
-        - bearerAuth: [ ]
+        - bearerAuth: []
       responses:
         '200':
           $ref: '#/components/responses/UsersResponse'
@@ -112,7 +160,7 @@ paths:
     put:
       description: Updates an account for a cloud tenant
       security:
-        - bearerAuth: [ ]
+        - bearerAuth: []
       parameters:
         - name: id
           in: path
@@ -134,7 +182,7 @@ paths:
     get:
       description: Returns the account for a cloud tenant
       security:
-        - bearerAuth: [ ]
+        - bearerAuth: []
       parameters:
         - name: id
           in: path
@@ -197,6 +245,20 @@ paths:
           $ref: '#/components/responses/InternalError'
 components:
   requestBodies:
+    CreateAPIKeyRequest:
+      description: Request body for creating an API key
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+                properties:
+                  owner:
+                    type: string
+                  description:
+                    type: string
     CreateTagRequest:
       description: To update a tag
       content:
@@ -252,14 +314,37 @@ components:
       description: Access token is missing or invalid
     InternalError:
       description: An unexpected internal error occurred
+    APIKeysResponse:
+      description: A response containing the API keys
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: array
+                items:
+                  $ref: '#/components/schemas/APIKey'
+    APIKeyResponse:
+      description: A response containing the API key
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                $ref: '#/components/schemas/APIKey'
     CloudTenantsResponse:
       description: A response containing the cloud tenants
       content:
         application/json:
           schema:
-            type: array
-            items:
-              $ref: '#/components/schemas/CloudTenant'
+            type: object
+            properties:
+              data:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CloudTenant'
     AuditLogsResponse:
       description: A response containing the audit logs
       content:
@@ -341,47 +426,72 @@ components:
       scheme: bearer
       bearerFormat: JWT
   schemas:
-    AuditLog:
+    APIKey:
       type: object
+      required:
+        - id
+        - type
       properties:
-        data:
+        id:
+          type: string
+        type:
+          type: string
+        attributes:
           type: object
           properties:
-            id:
+            secret:
               type: string
-            type:
+            owner:
               type: string
-            attributes:
+            description:
+              type: string
+            created_at:
+              type: string
+            updated_at:
+              type: string
+    AuditLog:
+      type: object
+      required:
+        - id
+        - type
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+        attributes:
+          type: object
+          properties:
+            created_at:
+              type: string
+            updated_at:
+              type: string
+            user_id:
+              type: string
+            resource_id:
+              type: string
+            resource_type:
+              type: string
+            message:
+              type: string
+        relationships:
+          type: object
+          properties:
+            user:
               type: object
               properties:
-                created_at:
-                  type: string
-                updated_at:
-                  type: string
-                user_id:
-                  type: string
-                resource_id:
-                  type: string
-                resource_type:
-                  type: string
-                message:
-                  type: string
-            relationships:
-              type: object
-              properties:
-                user:
+                data:
                   type: object
                   properties:
-                    data:
-                      type: object
-                      properties:
-                        id:
-                          type: string
-                        type:
-                          type: string
-
+                    id:
+                      type: string
+                    type:
+                      type: string
     Included:
       type: object
+      required:
+        - id
+        - type
       properties:
         id:
           type: string
@@ -391,49 +501,60 @@ components:
           type: object
     User:
       type: object
+      required:
+        - id
+        - type
       properties:
-        data:
+        id:
+          type: string
+        type:
+          type: string
+        attributes:
           type: object
           required:
-            - id
-            - type
+            - username
           properties:
-            id:
+            username:
               type: string
-            type:
+            locale:
               type: string
-            attributes:
-              type: object
-              required:
-                - username
-              properties:
-                username:
-                  type: string
-                locale:
-                  type: string
-                active:
-                  type: boolean
-                created_at:
-                  type: string
-                updated_at:
-                  type: string
+            active:
+              type: boolean
+            created_at:
+              type: string
+            updated_at:
+              type: string
     CloudTenant:
       type: object
+      required:
+        - id
+        - type
       properties:
-        cloud_provider:
+        id:
           type: string
-        tenant_id:
+        type:
           type: string
-        name:
-          type: string
-        active:
-          type: boolean
-        created_at:
-          type: string
-        updated_at:
-          type: string
+        attributes:
+          type: object
+          properties:
+            cloud_provider:
+              type: string
+            tenant_id:
+              type: string
+            name:
+              type: string
+            active:
+              type: boolean
+            created_at:
+              type: string
+            updated_at:
+              type: string
+
     Tag:
       type: object
+      required:
+        - id
+        - type
       properties:
         id:
           type: string
@@ -450,6 +571,9 @@ components:
               type: string
     CloudAccount:
       type: object
+      required:
+        - id
+        - type
       properties:
         id:
           type: string

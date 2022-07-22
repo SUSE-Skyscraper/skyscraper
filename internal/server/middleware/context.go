@@ -7,4 +7,5 @@ const (
 	ContextCloudAccount
 	ContextTag
 	ContextUser
+	ContextAPIKey
 )

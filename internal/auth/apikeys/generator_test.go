@@ -7,8 +7,12 @@ import (
 )
 
 func TestGenerator_Generate(t *testing.T) {
-	generator := NewGenerator(64*1024, 1, 4)
-	apiKey, hash, err := generator.Generate()
+	g := Generator{
+		Memory:      64 * 1024,
+		Time:        1,
+		Parallelism: 4,
+	}
+	apiKey, hash, err := g.Generate()
 	assert.Nil(t, err)
 	assert.NotEqualf(t, "", apiKey, "apiKey should not be empty")
 	assert.NotEqualf(t, "", hash, "hash should not be empty")

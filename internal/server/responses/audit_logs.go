@@ -45,7 +45,7 @@ func NewAuditLogsListResponse(logs []db.AuditLog, callers []any) *AuditLogsRespo
 		case "db.User":
 			includedList[i] = newUserItem(caller.(db.User))
 		case "db.ApiKey":
-			includedList[i] = newAPIKeyItem(caller.(db.ApiKey))
+			includedList[i] = newAPIKeyItem(caller.(db.ApiKey), "")
 		}
 	}
 

@@ -18,6 +18,7 @@ func V1Profile(app *application.App) func(w http.ResponseWriter, r *http.Request
 			return
 		}
 
+		// Only show the profile for users
 		if caller.Type != auth.CallerUser {
 			_ = render.Render(w, r, responses.ErrNotFound)
 			return

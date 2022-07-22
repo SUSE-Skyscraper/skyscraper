@@ -22,7 +22,7 @@ const (
 	AuditResourceTypeCloudTenant  AuditResourceType = "cloud_tenant"
 	AuditResourceTypeUser         AuditResourceType = "user"
 	AuditResourceTypeGroup        AuditResourceType = "group"
-	AuditResourceTypeScimApiKey   AuditResourceType = "scim_api_key"
+	AuditResourceTypeApiKey       AuditResourceType = "api_key"
 )
 
 func (e *AuditResourceType) Scan(src interface{}) error {

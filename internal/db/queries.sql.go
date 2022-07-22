@@ -514,6 +514,40 @@ func (q *Queries) FindTag(ctx context.Context, id uuid.UUID) (Tag, error) {
 	return i, err
 }
 
+const getAPIKeys = `-- name: GetAPIKeys :many
+select id, encodedhash, owner, description, system, created_at, updated_at
+from api_keys
+where system = false
+`
+
+func (q *Queries) GetAPIKeys(ctx context.Context) ([]ApiKey, error) {
+	rows, err := q.db.Query(ctx, getAPIKeys)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ApiKey
+	for rows.Next() {
+		var i ApiKey
+		if err := rows.Scan(
+			&i.ID,
+			&i.Encodedhash,
+			&i.Owner,
+			&i.Description,
+			&i.System,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getAuditLogs = `-- name: GetAuditLogs :many
 
 select id, caller_id, caller_type, resource_type, resource_id, message, created_at, updated_at
