@@ -7,7 +7,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/config v1.15.15
 	github.com/aws/aws-sdk-go-v2/credentials v1.12.10
 	github.com/aws/aws-sdk-go-v2/service/organizations v1.16.5
-	github.com/casbin/casbin/v2 v2.51.1
+	github.com/casbin/casbin/v2 v2.51.2
 	github.com/getkin/kin-openapi v0.98.0
 	github.com/go-chi/chi/v5 v5.0.7
 	github.com/go-chi/cors v1.2.1
