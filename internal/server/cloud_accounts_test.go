@@ -60,7 +60,10 @@ func TestV1ListCloudAccounts(t *testing.T) {
 		V1ListCloudAccounts(testApp.App)(w, req)
 
 		_ = helpers.AssertOpenAPI(t, w, req)
-		assert.Equal(t, tc.statusCode, w.Result().StatusCode)
+
+		result := w.Result()
+		assert.Equal(t, tc.statusCode, result.StatusCode)
+		_ = result.Body.Close()
 	}
 }
 
@@ -132,7 +135,10 @@ func TestV1UpdateCloudAccount(t *testing.T) {
 		V1UpdateCloudAccount(testApp.App)(w, req)
 
 		_ = helpers.AssertOpenAPI(t, w, req)
-		assert.Equal(t, tc.statusCode, w.Result().StatusCode)
+
+		result := w.Result()
+		assert.Equal(t, tc.statusCode, result.StatusCode)
+		_ = result.Body.Close()
 	}
 }
 
@@ -148,5 +154,8 @@ func TestV1GetCloudAccount(t *testing.T) {
 	V1GetCloudAccount(testApp.App)(w, req)
 
 	_ = helpers.AssertOpenAPI(t, w, req)
-	assert.Equal(t, http.StatusOK, w.Result().StatusCode)
+
+	result := w.Result()
+	assert.Equal(t, http.StatusOK, result.StatusCode)
+	_ = result.Body.Close()
 }

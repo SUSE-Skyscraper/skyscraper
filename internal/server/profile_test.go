@@ -44,5 +44,8 @@ func TestV1ProfileNoContext(t *testing.T) {
 	w := httptest.NewRecorder()
 	V1Profile(w, req)
 	_ = helpers.AssertOpenAPI(t, w, req)
-	assert.Equal(t, http.StatusInternalServerError, w.Result().StatusCode)
+
+	result := w.Result()
+	assert.Equal(t, http.StatusInternalServerError, result.StatusCode)
+	_ = result.Body.Close()
 }
