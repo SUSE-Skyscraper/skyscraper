@@ -62,7 +62,9 @@ func AssertOpenAPI(t *testing.T, rr *httptest.ResponseRecorder, req *http.Reques
 
 	// Don't validate the request body if the response indicates an error,
 	// to allow testing server-side validation using known bad values.
-	if rr.Result().StatusCode >= http.StatusBadRequest {
+	result := rr.Result()
+
+	if result.StatusCode >= http.StatusBadRequest {
 		requestValidationInput.Options.ExcludeRequestBody = true
 	}
 
@@ -72,8 +74,8 @@ func AssertOpenAPI(t *testing.T, rr *httptest.ResponseRecorder, req *http.Reques
 	// Validate response.
 	responseValidationInput := &openapi3filter.ResponseValidationInput{
 		RequestValidationInput: requestValidationInput,
-		Status:                 rr.Result().StatusCode,
-		//Header:                 rr.Result().Header,
+		Status:                 result.StatusCode,
+		//Header:                 result.Header,
 		Header: http.Header{"Content-Type": []string{rr.Header().Get("Content-Type")}},
 		Options: &openapi3filter.Options{
 			IncludeResponseStatus: true,
@@ -83,6 +85,8 @@ func AssertOpenAPI(t *testing.T, rr *httptest.ResponseRecorder, req *http.Reques
 	responseValidationInput.SetBodyBytes(bodyBytes)
 	err = openapi3filter.ValidateResponse(ctx, responseValidationInput)
 	assert.NoError(t, err, "http response is not valid")
+
+	_ = result.Body.Close()
 
 	return bodyBytes
 }

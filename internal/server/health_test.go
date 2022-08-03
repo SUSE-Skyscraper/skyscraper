@@ -15,5 +15,8 @@ func TestHealth(t *testing.T) {
 	Health(w, req)
 
 	_ = helpers.AssertOpenAPI(t, w, req)
-	assert.Equal(t, http.StatusOK, w.Result().StatusCode)
+
+	result := w.Result()
+	assert.Equal(t, http.StatusOK, result.StatusCode)
+	_ = result.Body.Close()
 }
