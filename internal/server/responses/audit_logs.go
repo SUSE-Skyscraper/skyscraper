@@ -2,6 +2,7 @@ package responses
 
 import (
 	"net/http"
+	"reflect"
 	"time"
 
 	"github.com/suse-skyscraper/skyscraper/internal/db"
@@ -9,8 +10,8 @@ import (
 
 type AuditLogItemAttributes struct {
 	Message      string               `json:"message"`
-	UserID       string               `json:"user_id"`
-	Username     string               `json:"username"`
+	CallerID     string               `json:"caller_id"`
+	CallerType   string               `json:"caller_type"`
 	ResourceType db.AuditResourceType `json:"resource_type"`
 	ResourceID   string               `json:"resource_id"`
 	CreatedAt    string               `json:"created_at"`
@@ -25,27 +26,32 @@ type AuditLogItem struct {
 
 type AuditLogsResponse struct {
 	Data     []AuditLogItem `json:"data"`
-	Included []UserItem     `json:"included"`
+	Included []any          `json:"included"`
 }
 
 func (rd *AuditLogsResponse) Render(_ http.ResponseWriter, _ *http.Request) error {
 	return nil
 }
 
-func NewAuditLogsListResponse(logs []db.AuditLog, users []db.User) *AuditLogsResponse {
+func NewAuditLogsListResponse(logs []db.AuditLog, callers []any) *AuditLogsResponse {
 	logList := make([]AuditLogItem, len(logs))
 	for i, log := range logs {
 		logList[i] = newAuditLogItem(log)
 	}
 
-	userList := make([]UserItem, len(users))
-	for i, user := range users {
-		userList[i] = newUserItem(user)
+	includedList := make([]any, len(callers))
+	for i, caller := range callers {
+		switch reflect.TypeOf(caller).String() {
+		case "db.User":
+			includedList[i] = newUserItem(caller.(db.User))
+		case "db.ApiKey":
+			includedList[i] = newAPIKeyItem(caller.(db.ApiKey), "")
+		}
 	}
 
 	return &AuditLogsResponse{
 		Data:     logList,
-		Included: userList,
+		Included: includedList,
 	}
 }
 
@@ -55,7 +61,8 @@ func newAuditLogItem(log db.AuditLog) AuditLogItem {
 		Type: ObjectResponseTypeAuditLog,
 		Attributes: AuditLogItemAttributes{
 			Message:      log.Message,
-			UserID:       log.UserID.String(),
+			CallerID:     log.CallerID.String(),
+			CallerType:   string(log.CallerType),
 			ResourceType: log.ResourceType,
 			ResourceID:   log.ResourceID.String(),
 			CreatedAt:    log.CreatedAt.Format(time.RFC3339),
@@ -63,8 +70,8 @@ func newAuditLogItem(log db.AuditLog) AuditLogItem {
 		Relationships: map[ObjectResponseType]Relationship{
 			ObjectResponseTypeUser: {
 				RelationshipData: RelationshipData{
-					ID:   log.UserID.String(),
-					Type: "user",
+					ID:   log.CallerID.String(),
+					Type: string(parseDBCallerType(log.CallerType)),
 				},
 			},
 		},

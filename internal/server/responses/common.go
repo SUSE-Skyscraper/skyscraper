@@ -4,17 +4,31 @@ import (
 	"net/http"
 
 	"github.com/go-chi/render"
+	"github.com/suse-skyscraper/skyscraper/internal/db"
 )
 
 type ObjectResponseType string
 
 const (
+	ObjectResponseTypeUnknown      ObjectResponseType = ""
 	ObjectResponseTypeUser         ObjectResponseType = "user"
 	ObjectResponseTypeAuditLog     ObjectResponseType = "audit_log"
 	ObjectResponseTypeCloudAccount ObjectResponseType = "cloud_account"
 	ObjectResponseTypeCloudTenant  ObjectResponseType = "cloud_tenant"
 	ObjectResponseTypeTag          ObjectResponseType = "tag"
+	ObjectResponseTypeAPIKey       ObjectResponseType = "api_key"
 )
+
+func parseDBCallerType(callerType db.CallerType) ObjectResponseType {
+	switch callerType {
+	case db.CallerTypeUser:
+		return ObjectResponseTypeUser
+	case db.CallerTypeApiKey:
+		return ObjectResponseTypeAPIKey
+	default:
+		return ObjectResponseTypeUnknown
+	}
+}
 
 type RelationshipData struct {
 	ID   string `json:"id"`
@@ -47,15 +61,6 @@ func ErrInvalidRequest(err error) render.Renderer {
 		Err:            err,
 		HTTPStatusCode: 400,
 		StatusText:     "Invalid request.",
-		ErrorText:      err.Error(),
-	}
-}
-
-func ErrRender(err error) render.Renderer {
-	return &ErrResponse{
-		Err:            err,
-		HTTPStatusCode: 422,
-		StatusText:     "Error rendering response.",
 		ErrorText:      err.Error(),
 	}
 }

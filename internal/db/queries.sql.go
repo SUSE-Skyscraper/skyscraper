@@ -48,29 +48,32 @@ func (q *Queries) AddPolicy(ctx context.Context, arg AddPolicyParams) error {
 }
 
 const createAuditLog = `-- name: CreateAuditLog :one
-insert into audit_logs (user_id, resource_type, resource_id, message, created_at, updated_at)
-values ($1, $2, $3, $4, now(), now())
-returning id, user_id, resource_type, resource_id, message, created_at, updated_at
+insert into audit_logs (resource_type, resource_id, caller_id, caller_type, message, created_at, updated_at)
+values ($1, $2, $3, $4, $5, now(), now())
+returning id, caller_id, caller_type, resource_type, resource_id, message, created_at, updated_at
 `
 
 type CreateAuditLogParams struct {
-	UserID       uuid.UUID
 	ResourceType AuditResourceType
 	ResourceID   uuid.UUID
+	CallerID     uuid.UUID
+	CallerType   CallerType
 	Message      string
 }
 
 func (q *Queries) CreateAuditLog(ctx context.Context, arg CreateAuditLogParams) (AuditLog, error) {
 	row := q.db.QueryRow(ctx, createAuditLog,
-		arg.UserID,
 		arg.ResourceType,
 		arg.ResourceID,
+		arg.CallerID,
+		arg.CallerType,
 		arg.Message,
 	)
 	var i AuditLog
 	err := row.Scan(
 		&i.ID,
-		&i.UserID,
+		&i.CallerID,
+		&i.CallerType,
 		&i.ResourceType,
 		&i.ResourceID,
 		&i.Message,
@@ -332,6 +335,61 @@ func (q *Queries) DropMembershipForUserAndGroup(ctx context.Context, arg DropMem
 	return err
 }
 
+const findAPIKey = `-- name: FindAPIKey :one
+select id, encodedhash, owner, description, system, created_at, updated_at
+from api_keys
+where id = $1 and system = false
+`
+
+func (q *Queries) FindAPIKey(ctx context.Context, id uuid.UUID) (ApiKey, error) {
+	row := q.db.QueryRow(ctx, findAPIKey, id)
+	var i ApiKey
+	err := row.Scan(
+		&i.ID,
+		&i.Encodedhash,
+		&i.Owner,
+		&i.Description,
+		&i.System,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const findAPIKeysById = `-- name: FindAPIKeysById :many
+select id, encodedhash, owner, description, system, created_at, updated_at
+from api_keys
+where id = ANY ($1::uuid[])
+`
+
+func (q *Queries) FindAPIKeysById(ctx context.Context, dollar_1 []uuid.UUID) ([]ApiKey, error) {
+	rows, err := q.db.Query(ctx, findAPIKeysById, dollar_1)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ApiKey
+	for rows.Next() {
+		var i ApiKey
+		if err := rows.Scan(
+			&i.ID,
+			&i.Encodedhash,
+			&i.Owner,
+			&i.Description,
+			&i.System,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const findByUsername = `-- name: FindByUsername :one
 select id, username, external_id, name, display_name, locale, active, emails, created_at, updated_at
 from users
@@ -415,10 +473,10 @@ func (q *Queries) FindCloudAccountByCloudAndTenant(ctx context.Context, arg Find
 }
 
 const findScimAPIKey = `-- name: FindScimAPIKey :one
-select api_keys.id, api_keys.encodedhash, api_keys.created_at, api_keys.updated_at
+select api_keys.id, api_keys.encodedhash, api_keys.owner, api_keys.description, api_keys.system, api_keys.created_at, api_keys.updated_at
 from api_keys
          left join scim_api_keys on scim_api_keys.api_key_id = api_keys.id
-where scim_api_keys.domain = 'default'
+where scim_api_keys.domain = 'default' and api_keys.system = true
 `
 
 func (q *Queries) FindScimAPIKey(ctx context.Context) (ApiKey, error) {
@@ -427,6 +485,9 @@ func (q *Queries) FindScimAPIKey(ctx context.Context) (ApiKey, error) {
 	err := row.Scan(
 		&i.ID,
 		&i.Encodedhash,
+		&i.Owner,
+		&i.Description,
+		&i.System,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -453,9 +514,43 @@ func (q *Queries) FindTag(ctx context.Context, id uuid.UUID) (Tag, error) {
 	return i, err
 }
 
+const getAPIKeys = `-- name: GetAPIKeys :many
+select id, encodedhash, owner, description, system, created_at, updated_at
+from api_keys
+where system = false
+`
+
+func (q *Queries) GetAPIKeys(ctx context.Context) ([]ApiKey, error) {
+	rows, err := q.db.Query(ctx, getAPIKeys)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ApiKey
+	for rows.Next() {
+		var i ApiKey
+		if err := rows.Scan(
+			&i.ID,
+			&i.Encodedhash,
+			&i.Owner,
+			&i.Description,
+			&i.System,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getAuditLogs = `-- name: GetAuditLogs :many
 
-select id, user_id, resource_type, resource_id, message, created_at, updated_at
+select id, caller_id, caller_type, resource_type, resource_id, message, created_at, updated_at
 from audit_logs
 order by created_at desc
 `
@@ -474,7 +569,8 @@ func (q *Queries) GetAuditLogs(ctx context.Context) ([]AuditLog, error) {
 		var i AuditLog
 		if err := rows.Scan(
 			&i.ID,
-			&i.UserID,
+			&i.CallerID,
+			&i.CallerType,
 			&i.ResourceType,
 			&i.ResourceID,
 			&i.Message,
@@ -492,7 +588,7 @@ func (q *Queries) GetAuditLogs(ctx context.Context) ([]AuditLog, error) {
 }
 
 const getAuditLogsForTarget = `-- name: GetAuditLogsForTarget :many
-select audit_logs.id, audit_logs.user_id, audit_logs.resource_type, audit_logs.resource_id, audit_logs.message, audit_logs.created_at, audit_logs.updated_at
+select audit_logs.id, audit_logs.caller_id, audit_logs.caller_type, audit_logs.resource_type, audit_logs.resource_id, audit_logs.message, audit_logs.created_at, audit_logs.updated_at
 from audit_logs
 where resource_id = $1
   and resource_type = $2
@@ -515,7 +611,8 @@ func (q *Queries) GetAuditLogsForTarget(ctx context.Context, arg GetAuditLogsFor
 		var i AuditLog
 		if err := rows.Scan(
 			&i.ID,
-			&i.UserID,
+			&i.CallerID,
+			&i.CallerType,
 			&i.ResourceType,
 			&i.ResourceID,
 			&i.Message,
@@ -949,20 +1046,35 @@ func (q *Queries) GetUsersById(ctx context.Context, dollar_1 []uuid.UUID) ([]Use
 
 const insertAPIKey = `-- name: InsertAPIKey :one
 
-insert into api_keys (encodedhash, created_at, updated_at)
-values ($1, now(), now())
-returning id, encodedhash, created_at, updated_at
+insert into api_keys (encodedhash, system, owner, description, created_at, updated_at)
+values ($1, $2, $3, $4, now(), now())
+returning id, encodedhash, owner, description, system, created_at, updated_at
 `
+
+type InsertAPIKeyParams struct {
+	Encodedhash string
+	System      bool
+	Owner       string
+	Description sql.NullString
+}
 
 //------------------------------------------------------------------------------------------------------------------
 // SCIM API Key
 //------------------------------------------------------------------------------------------------------------------
-func (q *Queries) InsertAPIKey(ctx context.Context, encodedhash string) (ApiKey, error) {
-	row := q.db.QueryRow(ctx, insertAPIKey, encodedhash)
+func (q *Queries) InsertAPIKey(ctx context.Context, arg InsertAPIKeyParams) (ApiKey, error) {
+	row := q.db.QueryRow(ctx, insertAPIKey,
+		arg.Encodedhash,
+		arg.System,
+		arg.Owner,
+		arg.Description,
+	)
 	var i ApiKey
 	err := row.Scan(
 		&i.ID,
 		&i.Encodedhash,
+		&i.Owner,
+		&i.Description,
+		&i.System,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)

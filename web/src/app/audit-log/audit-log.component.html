@@ -2,10 +2,10 @@
 
 <div *ngIf="auditLogs?.length; else noLogs">
   <table mat-table [dataSource]="auditLogs" class="mat-elevation-z8 w-full">
-    <ng-container matColumnDef="user_id">
-      <th mat-header-cell *matHeaderCellDef>User</th>
+    <ng-container matColumnDef="caller_id">
+      <th mat-header-cell *matHeaderCellDef>Caller</th>
       <td mat-cell *matCellDef="let element" class="p-2">
-        {{ element.username }}
+        {{ element.caller }}
       </td>
     </ng-container>
 

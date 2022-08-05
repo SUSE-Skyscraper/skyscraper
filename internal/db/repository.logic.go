@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"strings"
 
@@ -23,6 +24,14 @@ type Repository struct {
 	tx           pgx.Tx
 }
 
+func (r *Repository) CreateAPIKey(ctx context.Context, input InsertAPIKeyParams) (ApiKey, error) {
+	return r.db.InsertAPIKey(ctx, input)
+}
+
+func (r *Repository) GetAPIKeys(ctx context.Context) ([]ApiKey, error) {
+	return r.db.GetAPIKeys(ctx)
+}
+
 func (r *Repository) GetUsers(ctx context.Context, input GetUsersParams) ([]User, error) {
 	return r.db.GetUsers(ctx, input)
 }
@@ -30,36 +39,36 @@ func (r *Repository) GetUsers(ctx context.Context, input GetUsersParams) ([]User
 func (r *Repository) GetAuditLogsForTarget(
 	ctx context.Context,
 	input GetAuditLogsForTargetParams,
-) ([]AuditLog, []User, error) {
+) ([]AuditLog, []any, error) {
 	logs, err := r.db.GetAuditLogsForTarget(ctx, input)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	users, err := r.getUsersForLogs(ctx, logs)
+	callers, err := r.getCallersForLogs(ctx, logs)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	return logs, users, nil
+	return logs, callers, nil
 }
 
 func (r *Repository) CreateAuditLog(ctx context.Context, input CreateAuditLogParams) (AuditLog, error) {
 	return r.db.CreateAuditLog(ctx, input)
 }
 
-func (r *Repository) GetAuditLogs(ctx context.Context) ([]AuditLog, []User, error) {
+func (r *Repository) GetAuditLogs(ctx context.Context) ([]AuditLog, []any, error) {
 	logs, err := r.db.GetAuditLogs(ctx)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	users, err := r.getUsersForLogs(ctx, logs)
+	callers, err := r.getCallersForLogs(ctx, logs)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	return logs, users, nil
+	return logs, callers, nil
 }
 
 func (r *Repository) CreateTag(ctx context.Context, input CreateTagParams) (Tag, error) {
@@ -110,6 +119,10 @@ func (r *Repository) FindScimAPIKey(ctx context.Context) (ApiKey, error) {
 	return r.db.FindScimAPIKey(ctx)
 }
 
+func (r *Repository) FindAPIKey(ctx context.Context, id uuid.UUID) (ApiKey, error) {
+	return r.db.FindAPIKey(ctx, id)
+}
+
 func (r *Repository) DeleteScimAPIKey(ctx context.Context) error {
 	apiKey, err := r.FindScimAPIKey(ctx)
 	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
@@ -127,7 +140,12 @@ func (r *Repository) DeleteScimAPIKey(ctx context.Context) error {
 }
 
 func (r *Repository) InsertScimAPIKey(ctx context.Context, encodedHash string) (ApiKey, error) {
-	apiKey, err := r.db.InsertAPIKey(ctx, encodedHash)
+	apiKey, err := r.db.InsertAPIKey(ctx, InsertAPIKeyParams{
+		Encodedhash: encodedHash,
+		System:      true,
+		Owner:       "SCIM",
+		Description: sql.NullString{String: "SCIM API key", Valid: true},
+	})
 	if err != nil {
 		return ApiKey{}, err
 	}
@@ -414,17 +432,9 @@ func (r *Repository) AddUserToGroup(ctx context.Context, userID, groupID uuid.UU
 		return err
 	}
 
-	membership, err := r.db.GetGroupMembershipForUser(ctx, GetGroupMembershipForUserParams{
-		UserID:  userID,
-		GroupID: groupID,
-	})
-	if err != nil {
-		return err
-	}
-
 	err = r.db.AddPolicy(ctx, AddPolicyParams{
 		Ptype: "g",
-		V0:    membership.Username.String,
+		V0:    userID.String(),
 		V1:    groupID.String(),
 	})
 	if err != nil {
@@ -435,15 +445,7 @@ func (r *Repository) AddUserToGroup(ctx context.Context, userID, groupID uuid.UU
 }
 
 func (r *Repository) RemoveUserFromGroup(ctx context.Context, userID, groupID uuid.UUID) error {
-	membership, err := r.db.GetGroupMembershipForUser(ctx, GetGroupMembershipForUserParams{
-		UserID:  userID,
-		GroupID: groupID,
-	})
-	if err != nil {
-		return err
-	}
-
-	err = r.db.DropMembershipForUserAndGroup(ctx, DropMembershipForUserAndGroupParams{
+	err := r.db.DropMembershipForUserAndGroup(ctx, DropMembershipForUserAndGroupParams{
 		UserID:  userID,
 		GroupID: groupID,
 	})
@@ -453,7 +455,7 @@ func (r *Repository) RemoveUserFromGroup(ctx context.Context, userID, groupID uu
 
 	err = r.db.RemovePolicy(ctx, RemovePolicyParams{
 		Ptype: "g",
-		V0:    membership.Username.String,
+		V0:    userID.String(),
 		V1:    groupID.String(),
 	})
 	if err != nil {
