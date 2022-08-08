@@ -14,7 +14,7 @@ require (
 	github.com/go-chi/render v1.0.2
 	github.com/google/uuid v1.3.0
 	github.com/jackc/pgconn v1.12.1
-	github.com/jackc/pgtype v1.11.0
+	github.com/jackc/pgtype v1.12.0
 	github.com/jackc/pgx/v4 v4.16.1
 	github.com/nats-io/nats.go v1.16.0
 	github.com/okta/okta-jwt-verifier-golang v1.3.1
