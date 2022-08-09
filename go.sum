@@ -44,8 +44,9 @@ github.com/Masterminds/semver/v3 v3.1.1 h1:hLg3sBzpNErnxhQtUy/mmLR2I9foDujNK030I
 github.com/Masterminds/semver/v3 v3.1.1/go.mod h1:VPu/7SZ7ePZ3QOrcuXROw5FAcLl4a0cBrbBpGY/8hQs=
 github.com/ajg/form v1.5.1 h1:t9c7v8JUKu/XxOGBU0yjNpaMloxGEJhUkqFRq0ibGeU=
 github.com/ajg/form v1.5.1/go.mod h1:uL1WgH+h2mgNtvBq0339dVnzXdBETtL2LeUXaIv25UY=
-github.com/aws/aws-sdk-go-v2 v1.16.8 h1:gOe9UPR98XSf7oEJCcojYg+N2/jCRm4DdeIsP85pIyQ=
 github.com/aws/aws-sdk-go-v2 v1.16.8/go.mod h1:6CpKuLXg2w7If3ABZCl/qZ6rEgwtjZTn4eAf4RcEyuw=
+github.com/aws/aws-sdk-go-v2 v1.16.9 h1:Ezgkr/ByXA+5SASNJYLzA3kjbqXoho8QVDnCSHdgMBE=
+github.com/aws/aws-sdk-go-v2 v1.16.9/go.mod h1:6CpKuLXg2w7If3ABZCl/qZ6rEgwtjZTn4eAf4RcEyuw=
 github.com/aws/aws-sdk-go-v2/config v1.15.15 h1:yBV+J7Au5KZwOIrIYhYkTGJbifZPCkAnCFSvGsF3ui8=
 github.com/aws/aws-sdk-go-v2/config v1.15.15/go.mod h1:A1Lzyy/o21I5/s2FbyX5AevQfSVXpvvIDCoVFD0BC4E=
 github.com/aws/aws-sdk-go-v2/credentials v1.12.10 h1:7gGcMQePejwiKoDWjB9cWnpfVdnz/e5JwJFuT6OrroI=
