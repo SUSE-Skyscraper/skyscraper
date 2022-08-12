@@ -59,6 +59,12 @@ type NatsConfig struct {
 	URL string `mapstructure:"url"`
 }
 
+type FGAConfig struct {
+	APIScheme string `mapstructure:"api_scheme"`
+	APIHost   string `mapstructure:"api_host"`
+	StoreID   string `mapstructure:"store_id"`
+}
+
 func (db *DBConfig) GetDSN() string {
 	dsn := fmt.Sprintf("postgresql://%s:%s@%s:%d/%s", db.User, db.Password, db.Host, db.Port, db.Database)
 	return dsn
@@ -76,6 +82,7 @@ type Config struct {
 	Nats         NatsConfig     `mapstructure:"nats"`
 	ServerConfig ServerConfig   `mapstructure:"server"`
 	Argon2Config Argon2Config   `mapstructure:"argon2"`
+	FGAConfig    FGAConfig      `mapstructure:"fga"`
 }
 
 func NewConfigurator(configDir string) Configurator {
@@ -110,6 +117,11 @@ func defaultConfig() Config {
 			AWSTenants:   []AWSTenant{},
 			GCPTenants:   []GCPTenant{},
 			AzureTenants: []AzureTenant{},
+		},
+		FGAConfig: FGAConfig{
+			APIScheme: "http",
+			APIHost:   "127.0.0.1",
+			StoreID:   "",
 		},
 		Nats: NatsConfig{
 			URL: nats.DefaultURL,

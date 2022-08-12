@@ -13,7 +13,7 @@ import (
 	"github.com/suse-skyscraper/skyscraper/internal/server/responses"
 )
 
-func V1Tags(app *application.App) func(w http.ResponseWriter, r *http.Request) {
+func V1StandardTags(app *application.App) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		tags, err := app.Repository.GetTags(r.Context())
 		if err != nil {
@@ -25,7 +25,7 @@ func V1Tags(app *application.App) func(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func V1UpdateTag(app *application.App) func(w http.ResponseWriter, r *http.Request) {
+func V1UpdateStandardTag(app *application.App) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// bind the payload
 		var payload payloads.UpdateTagPayload
@@ -87,7 +87,7 @@ func V1UpdateTag(app *application.App) func(w http.ResponseWriter, r *http.Reque
 	}
 }
 
-func V1CreateTag(app *application.App) func(w http.ResponseWriter, r *http.Request) {
+func V1CreateStandardTag(app *application.App) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// bind the payload
 		var payload payloads.CreateTagPayload

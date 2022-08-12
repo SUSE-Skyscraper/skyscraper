@@ -7,7 +7,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/config v1.16.0
 	github.com/aws/aws-sdk-go-v2/credentials v1.12.12
 	github.com/aws/aws-sdk-go-v2/service/organizations v1.16.7
-	github.com/casbin/casbin/v2 v2.51.2
 	github.com/getkin/kin-openapi v0.98.0
 	github.com/go-chi/chi/v5 v5.0.7
 	github.com/go-chi/cors v1.2.1
@@ -18,6 +17,7 @@ require (
 	github.com/jackc/pgx/v4 v4.17.0
 	github.com/nats-io/nats.go v1.16.0
 	github.com/okta/okta-jwt-verifier-golang v1.3.1
+	github.com/openfga/go-sdk v0.0.1
 	github.com/pkg/errors v0.9.1
 	github.com/pressly/goose/v3 v3.6.1
 	github.com/spf13/cobra v1.5.0
@@ -27,7 +27,6 @@ require (
 )
 
 require (
-	github.com/Knetic/govaluate v3.0.1-0.20171022003610-9aa49832a739+incompatible // indirect
 	github.com/ajg/form v1.5.1 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.12.11 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.1.17 // indirect
@@ -76,6 +75,7 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/stretchr/objx v0.4.0 // indirect
 	github.com/subosito/gotenv v1.4.0 // indirect
+	golang.org/x/net v0.0.0-20220615171555-694bf12d69de // indirect
 	golang.org/x/sys v0.0.0-20220804214406-8e32c043e418 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	gopkg.in/ini.v1 v1.66.6 // indirect

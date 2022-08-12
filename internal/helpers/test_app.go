@@ -8,7 +8,6 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/suse-skyscraper/skyscraper/internal/application"
 	"github.com/suse-skyscraper/skyscraper/internal/db"
-	"github.com/suse-skyscraper/skyscraper/internal/scim/payloads"
 )
 
 type TestAppResponse struct {
@@ -188,18 +187,6 @@ func (t *TestRepository) TruncatePolicies(ctx context.Context) error {
 	return args.Error(0)
 }
 
-func (t *TestRepository) CreatePolicy(ctx context.Context, input db.AddPolicyParams) error {
-	args := t.Called(ctx, input)
-
-	return args.Error(0)
-}
-
-func (t *TestRepository) RemovePolicy(ctx context.Context, input db.RemovePolicyParams) error {
-	args := t.Called(ctx, input)
-
-	return args.Error(0)
-}
-
 func (t *TestRepository) Begin(ctx context.Context) (db.RepositoryQueries, error) {
 	args := t.Called(ctx)
 
@@ -260,16 +247,13 @@ func (t *TestRepository) AddUserToGroup(ctx context.Context, userID, groupID uui
 	return args.Error(0)
 }
 
-func (t *TestRepository) ReplaceUsersInGroup(ctx context.Context,
-	groupID uuid.UUID,
-	members []payloads.MemberPatch,
-) error {
+func (t *TestRepository) ReplaceUsersInGroup(ctx context.Context, groupID uuid.UUID, members []uuid.UUID) error {
 	args := t.Called(ctx, groupID, members)
 
 	return args.Error(0)
 }
 
-func (t *TestRepository) AddUsersToGroup(ctx context.Context, groupID uuid.UUID, members []payloads.MemberPatch) error {
+func (t *TestRepository) AddUsersToGroup(ctx context.Context, groupID uuid.UUID, members []uuid.UUID) error {
 	args := t.Called(ctx, groupID, members)
 
 	return args.Error(0)

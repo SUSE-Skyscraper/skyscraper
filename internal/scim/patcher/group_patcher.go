@@ -61,6 +61,11 @@ func (p *GroupPatcher) patchAdd(repo db.RepositoryQueries, group db.Group, op *p
 		return errors.New("failed to get add members patch")
 	}
 
+	err = p.app.FGAClient.AddUsersToGroup(p.ctx, newMembers, group.ID)
+	if err != nil {
+		return errors.New("failed to add members to FGA group")
+	}
+
 	err = repo.AddUsersToGroup(p.ctx, group.ID, newMembers)
 	if err != nil {
 		return errors.New("failed to add members")
@@ -75,6 +80,11 @@ func (p *GroupPatcher) patchRemove(repo db.RepositoryQueries, group db.Group, op
 		return errors.New("failed to parse id from path")
 	}
 
+	err = p.app.FGAClient.RemoveUserFromGroup(p.ctx, id, group.ID)
+	if err != nil {
+		return err
+	}
+
 	return repo.RemoveUserFromGroup(p.ctx, id, group.ID)
 }
 
@@ -84,6 +94,11 @@ func (p *GroupPatcher) patchReplace(repo db.RepositoryQueries, group db.Group, o
 		newMembers, err := op.GetAddMembersPatch()
 		if err != nil {
 			return errors.New("failed to get add members patch")
+		}
+
+		err = p.app.FGAClient.ReplaceUsersInGroup(p.ctx, newMembers, group.ID)
+		if err != nil {
+			return errors.New("failed to replace members in FGA")
 		}
 
 		err = repo.ReplaceUsersInGroup(p.ctx, group.ID, newMembers)

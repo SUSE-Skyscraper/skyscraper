@@ -52,11 +52,16 @@ func syncAWSAccounts(app *application.App) error {
 		}
 
 		for _, account := range accounts {
-			err = organizationsClient.SyncTags(ctx, app, awsclient.SyncTagsInput{
+			cloudAccount, err := organizationsClient.SyncTags(ctx, app, awsclient.SyncTagsInput{
 				AccountID:   aws.ToString(account.Id),
 				TenantID:    tenant.MasterAccountID,
 				AccountName: aws.ToString(account.Name),
 			})
+			if err != nil {
+				return err
+			}
+
+			err = app.FGAClient.AddAccountToOrganization(ctx, cloudAccount.ID)
 			if err != nil {
 				return err
 			}

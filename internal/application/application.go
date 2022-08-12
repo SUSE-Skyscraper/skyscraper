@@ -2,23 +2,22 @@ package application
 
 import (
 	"context"
-	"log"
 	"time"
 
-	"github.com/casbin/casbin/v2"
-	"github.com/casbin/casbin/v2/model"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/nats-io/nats.go"
+	openfga "github.com/openfga/go-sdk"
 	"github.com/suse-skyscraper/skyscraper/internal/db"
+	"github.com/suse-skyscraper/skyscraper/internal/fga"
 )
 
 type App struct {
 	Config       Config
-	Enforcer     *casbin.Enforcer
 	JS           nats.JetStreamContext
 	Repository   db.RepositoryQueries
 	natsConn     *nats.Conn
 	postgresPool *pgxpool.Pool
+	FGAClient    fga.Client
 }
 
 func NewApp(configDir string) (*App, error) {
@@ -47,28 +46,11 @@ func (a *App) Start(ctx context.Context) error {
 	a.JS = js
 	a.natsConn = nc
 
-	return nil
-}
-
-func (a *App) StartEnforcer() error {
-	e, err := setupEnforcer(a)
+	apiClient, err := setupFGA(ctx, a.Config)
 	if err != nil {
 		return err
 	}
-	a.Enforcer = e
-
-	ticker := time.NewTicker(time.Second * 30)
-	go func(app *App) {
-		for range ticker.C {
-			if a.Enforcer != nil {
-				log.Println("Reloading policies")
-				err := a.Enforcer.LoadPolicy()
-				if err != nil {
-					log.Println(err)
-				}
-			}
-		}
-	}(a)
+	a.FGAClient = fga.NewClient(apiClient)
 
 	return nil
 }
@@ -98,6 +80,21 @@ func setupDatabase(ctx context.Context, config Config) (*db.Queries, *pgxpool.Po
 	return database, pool, nil
 }
 
+func setupFGA(_ context.Context, config Config) (*openfga.APIClient, error) {
+	configuration, err := openfga.NewConfiguration(openfga.Configuration{
+		ApiScheme: config.FGAConfig.APIScheme,
+		ApiHost:   config.FGAConfig.APIHost,
+		StoreId:   config.FGAConfig.StoreID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	apiClient := openfga.NewAPIClient(configuration)
+
+	return apiClient, nil
+}
+
 func setupNats(_ context.Context, conf Config) (nats.JetStreamContext, *nats.Conn, error) {
 	nc, _ := nats.Connect(conf.Nats.URL)
 	js, _ := nc.JetStream(nats.PublishAsyncMaxPending(256))
@@ -116,36 +113,4 @@ func setupNats(_ context.Context, conf Config) (nats.JetStreamContext, *nats.Con
 	}
 
 	return js, nc, nil
-}
-
-func setupEnforcer(app *App) (*casbin.Enforcer, error) {
-	text :=
-		`
-[request_definition]
-r = sub, obj, act
-
-[policy_definition]
-p = sub, obj, act
-
-[role_definition]
-g = _, _
-
-[policy_effect]
-e = some(where (p.eft == allow))
-
-[matchers]
-m = (r.sub == "*" || g(r.sub, p.sub)) && keyMatch(r.obj, p.obj) && regexMatch(r.act, p.act)
-`
-	m, err := model.NewModelFromString(text)
-	if err != nil {
-		return nil, err
-	}
-
-	adapter := NewAdapter(app)
-	e, err := casbin.NewEnforcer(m, adapter)
-	if err != nil {
-		return nil, err
-	}
-
-	return e, nil
 }

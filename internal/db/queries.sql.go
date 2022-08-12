@@ -14,39 +14,6 @@ import (
 	"github.com/jackc/pgtype"
 )
 
-const addPolicy = `-- name: AddPolicy :exec
-insert into policies (id, ptype, v0, v1, v2, v3, v4, v5)
-values (uuid_generate_v5('6ba7b812-9dad-11d1-80b4-00c04fd430c8',
-                         concat($1::text, $2::text, $3::text, $4::text,
-                                $5::text, $6::text, $7::text)), $1::text,
-        $2::text, $3::text, $4::text, $5::text, $6::text,
-        $7::text)
-on conflict do nothing
-`
-
-type AddPolicyParams struct {
-	Ptype string
-	V0    string
-	V1    string
-	V2    string
-	V3    string
-	V4    string
-	V5    string
-}
-
-func (q *Queries) AddPolicy(ctx context.Context, arg AddPolicyParams) error {
-	_, err := q.db.Exec(ctx, addPolicy,
-		arg.Ptype,
-		arg.V0,
-		arg.V1,
-		arg.V2,
-		arg.V3,
-		arg.V4,
-		arg.V5,
-	)
-	return err
-}
-
 const createAuditLog = `-- name: CreateAuditLog :one
 insert into audit_logs (resource_type, resource_id, caller_id, caller_type, message, created_at, updated_at)
 values ($1, $2, $3, $4, $5, now(), now())
@@ -844,48 +811,6 @@ func (q *Queries) GetGroups(ctx context.Context, arg GetGroupsParams) ([]Group, 
 	return items, nil
 }
 
-const getPolicies = `-- name: GetPolicies :many
-
-select id, ptype, v0, v1, v2, v3, v4, v5
-from policies
-order by id
-`
-
-//------------------------------------------------------------------------------------------------------------------
-// Policies
-//
-// 6ba7b812-9dad-11d1-80b4-00c04fd430c8 is NameSpace_OID as specified in rfc4122 (https://tools.ietf.org/html/rfc4122)
-// we use uuid v5 so we can calculate the id from a collection of values
-//------------------------------------------------------------------------------------------------------------------
-func (q *Queries) GetPolicies(ctx context.Context) ([]Policy, error) {
-	rows, err := q.db.Query(ctx, getPolicies)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []Policy
-	for rows.Next() {
-		var i Policy
-		if err := rows.Scan(
-			&i.ID,
-			&i.Ptype,
-			&i.V0,
-			&i.V1,
-			&i.V2,
-			&i.V3,
-			&i.V4,
-			&i.V5,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const getTags = `-- name: GetTags :many
 
 select id, display_name, description, key, created_at, updated_at
@@ -1134,49 +1059,6 @@ func (q *Queries) PatchUser(ctx context.Context, arg PatchUserParams) error {
 	return err
 }
 
-const removePoliciesForGroup = `-- name: RemovePoliciesForGroup :exec
-delete
-from policies
-where ptype = 'g'
-  and v1 = $1
-`
-
-func (q *Queries) RemovePoliciesForGroup(ctx context.Context, v1 string) error {
-	_, err := q.db.Exec(ctx, removePoliciesForGroup, v1)
-	return err
-}
-
-const removePolicy = `-- name: RemovePolicy :exec
-delete
-from policies
-where id = uuid_generate_v5('6ba7b812-9dad-11d1-80b4-00c04fd430c8',
-                            concat($1, $2, $3, $4, $5,
-                                   $6, $7))
-`
-
-type RemovePolicyParams struct {
-	Ptype interface{}
-	V0    interface{}
-	V1    interface{}
-	V2    interface{}
-	V3    interface{}
-	V4    interface{}
-	V5    interface{}
-}
-
-func (q *Queries) RemovePolicy(ctx context.Context, arg RemovePolicyParams) error {
-	_, err := q.db.Exec(ctx, removePolicy,
-		arg.Ptype,
-		arg.V0,
-		arg.V1,
-		arg.V2,
-		arg.V3,
-		arg.V4,
-		arg.V5,
-	)
-	return err
-}
-
 const searchTag = `-- name: SearchTag :many
 
 select id, cloud, tenant_id, account_id, name, active, tags_current, tags_desired, tags_drift_detected, created_at, updated_at
@@ -1225,15 +1107,6 @@ func (q *Queries) SearchTag(ctx context.Context, arg SearchTagParams) ([]CloudAc
 		return nil, err
 	}
 	return items, nil
-}
-
-const truncatePolicies = `-- name: TruncatePolicies :exec
-truncate policies
-`
-
-func (q *Queries) TruncatePolicies(ctx context.Context) error {
-	_, err := q.db.Exec(ctx, truncatePolicies)
-	return err
 }
 
 const updateCloudAccount = `-- name: UpdateCloudAccount :exec

@@ -197,48 +197,48 @@ paths:
           $ref: '#/components/responses/UnauthorizedError'
         '500':
           $ref: '#/components/responses/InternalError'
-  /api/v1/tags:
+  /api/v1/standard_tags:
     post:
-      description: Creates a tag
+      description: Creates a standard tag
       security:
         - bearerAuth: []
       requestBody:
-        $ref: '#/components/requestBodies/CreateTagRequest'
+        $ref: '#/components/requestBodies/CreateStandardTagRequest'
       responses:
         '201':
-          $ref: '#/components/responses/TagResponse'
+          $ref: '#/components/responses/StandardTagResponse'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '500':
           $ref: '#/components/responses/InternalError'
     get:
-      description: Returns the tags
+      description: Returns the standard tags
       security:
         - bearerAuth: []
       responses:
         '200':
-          $ref: '#/components/responses/TagsResponse'
+          $ref: '#/components/responses/StandardTagsResponse'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '500':
           $ref: '#/components/responses/InternalError'
   /api/v1/tags/{id}:
     put:
-      description: Creates a tag
+      description: Updates a standard tag
       parameters:
         - name: id
           in: path
-          description: The tag ID
+          description: The standard tag ID
           required: true
           schema:
             type: string
       security:
         - bearerAuth: []
       requestBody:
-        $ref: '#/components/requestBodies/UpdateTagRequest'
+        $ref: '#/components/requestBodies/UpdateStandardTagRequest'
       responses:
         '200':
-          $ref: '#/components/responses/TagResponse'
+          $ref: '#/components/responses/StandardTagResponse'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '500':
@@ -259,8 +259,8 @@ components:
                     type: string
                   description:
                     type: string
-    CreateTagRequest:
-      description: To update a tag
+    CreateStandardTagRequest:
+      description: Request body for creating a standard tag
       content:
         application/json:
           schema:
@@ -277,8 +277,8 @@ components:
                     type: boolean
                   description:
                     type: string
-    UpdateTagRequest:
-      description: To update a tag
+    UpdateStandardTagRequest:
+      description: Request body for updating a standard tag
       content:
         application/json:
           schema:
@@ -296,7 +296,7 @@ components:
                   description:
                     type: string
     UpdateAccountRequest:
-      description: The account update request body
+      description: Request body for updating an account
       content:
         application/json:
           schema:
@@ -400,8 +400,8 @@ components:
             properties:
               data:
                 $ref: '#/components/schemas/User'
-    TagResponse:
-      description: A response containing a tag
+    StandardTagResponse:
+      description: A response containing a standard tag
       content:
         application/json:
           schema:
@@ -409,8 +409,8 @@ components:
             properties:
               data:
                 $ref: '#/components/schemas/Tag'
-    TagsResponse:
-      description: A response containing a list of tags
+    StandardTagsResponse:
+      description: A response containing a list of standard tags
       content:
         application/json:
           schema:
