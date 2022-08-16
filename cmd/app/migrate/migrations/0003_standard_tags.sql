@@ -1,5 +1,5 @@
 -- +goose Up
-create table tags
+create table standard_tags
 (
     id           uuid                  default uuid_generate_v4() not null primary key,
     display_name varchar(255) not null,
@@ -10,4 +10,4 @@ create table tags
 );
 
 -- +goose Down
-drop table tags;
+drop table standard_tags;

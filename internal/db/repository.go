@@ -26,11 +26,14 @@ type RepositoryQueries interface {
 	FindCloudAccount(ctx context.Context, input FindCloudAccountInput) (CloudAccount, error)
 	UpdateCloudAccount(ctx context.Context, input UpdateCloudAccountParams) (CloudAccount, error)
 	SearchCloudAccounts(ctx context.Context, input SearchCloudAccountsInput) ([]CloudAccount, error)
+	AssignCloudAccountToOrganizationalUnit(ctx context.Context, id, organizationalUnitID uuid.UUID) error
+	UnAssignCloudAccountFromOrganizationalUnits(ctx context.Context, id uuid.UUID) error
+	OrganizationalUnitsCloudAccounts(ctx context.Context, id []uuid.UUID) ([]CloudAccount, error)
 
-	CreateTag(ctx context.Context, input CreateTagParams) (Tag, error)
-	UpdateTag(ctx context.Context, input UpdateTagParams) (Tag, error)
-	FindTag(ctx context.Context, id uuid.UUID) (Tag, error)
-	GetTags(ctx context.Context) ([]Tag, error)
+	CreateTag(ctx context.Context, input CreateTagParams) (StandardTag, error)
+	UpdateTag(ctx context.Context, input UpdateTagParams) (StandardTag, error)
+	FindTag(ctx context.Context, id uuid.UUID) (StandardTag, error)
+	GetTags(ctx context.Context) ([]StandardTag, error)
 
 	GetCloudTenants(ctx context.Context) ([]CloudTenant, error)
 	CreateCloudTenant(ctx context.Context, input CreateCloudTenantParams) error
@@ -46,6 +49,7 @@ type RepositoryQueries interface {
 	GetGroupMembership(ctx context.Context, idString string) ([]GetGroupMembershipRow, error)
 	GetGroups(ctx context.Context, params GetGroupsParams) (int64, []Group, error)
 
+	GetUserOrganizationalUnits(ctx context.Context, id uuid.UUID) ([]OrganizationalUnit, error)
 	FindUser(ctx context.Context, id string) (User, error)
 	FindUserByUsername(ctx context.Context, username string) (User, error)
 	GetUsers(ctx context.Context, input GetUsersParams) ([]User, error)
@@ -55,6 +59,7 @@ type RepositoryQueries interface {
 	UpdateUser(ctx context.Context, id uuid.UUID, input UpdateUserParams) (User, error)
 	ScimPatchUser(ctx context.Context, input PatchUserParams) error
 
+	GetAPIKeysOrganizationalUnits(ctx context.Context, id uuid.UUID) ([]OrganizationalUnit, error)
 	InsertScimAPIKey(ctx context.Context, encodedHash string) (ApiKey, error)
 	DeleteScimAPIKey(ctx context.Context) error
 	FindAPIKey(ctx context.Context, id uuid.UUID) (ApiKey, error)
@@ -65,4 +70,11 @@ type RepositoryQueries interface {
 	GetAuditLogs(ctx context.Context) ([]AuditLog, []any, error)
 	GetAuditLogsForTarget(ctx context.Context, input GetAuditLogsForTargetParams) ([]AuditLog, []any, error)
 	CreateAuditLog(ctx context.Context, input CreateAuditLogParams) (AuditLog, error)
+
+	CreateOrganizationalUnit(ctx context.Context, input CreateOrganizationalUnitParams) (OrganizationalUnit, error)
+	GetOrganizationalUnits(ctx context.Context) ([]OrganizationalUnit, error)
+	FindOrganizationalUnit(ctx context.Context, id uuid.UUID) (OrganizationalUnit, error)
+	GetOrganizationalUnitChildren(ctx context.Context, id uuid.UUID) ([]OrganizationalUnit, error)
+	GetOrganizationalUnitCloudAccounts(ctx context.Context, id uuid.UUID) ([]CloudAccount, error)
+	DeleteOrganizationalUnit(ctx context.Context, id uuid.UUID) error
 }

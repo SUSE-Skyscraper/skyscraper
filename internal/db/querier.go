@@ -11,6 +11,7 @@ import (
 )
 
 type Querier interface {
+	AssignAccountToOU(ctx context.Context, arg AssignAccountToOUParams) error
 	CreateAuditLog(ctx context.Context, arg CreateAuditLogParams) (AuditLog, error)
 	//------------------------------------------------------------------------------------------------------------------
 	// Cloud Tenants
@@ -19,10 +20,12 @@ type Querier interface {
 	CreateGroup(ctx context.Context, displayName string) (Group, error)
 	CreateMembershipForUserAndGroup(ctx context.Context, arg CreateMembershipForUserAndGroupParams) error
 	CreateOrInsertCloudAccount(ctx context.Context, arg CreateOrInsertCloudAccountParams) (CloudAccount, error)
-	CreateTag(ctx context.Context, arg CreateTagParams) (Tag, error)
+	CreateOrganizationalUnit(ctx context.Context, arg CreateOrganizationalUnitParams) (OrganizationalUnit, error)
+	CreateTag(ctx context.Context, arg CreateTagParams) (StandardTag, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	DeleteAPIKey(ctx context.Context, id uuid.UUID) error
 	DeleteGroup(ctx context.Context, id uuid.UUID) error
+	DeleteOrganizationalUnit(ctx context.Context, id uuid.UUID) error
 	DeleteScimAPIKey(ctx context.Context) error
 	DeleteTag(ctx context.Context, id uuid.UUID) error
 	DeleteUser(ctx context.Context, id uuid.UUID) error
@@ -33,9 +36,11 @@ type Querier interface {
 	FindByUsername(ctx context.Context, username string) (User, error)
 	FindCloudAccount(ctx context.Context, id uuid.UUID) (CloudAccount, error)
 	FindCloudAccountByCloudAndTenant(ctx context.Context, arg FindCloudAccountByCloudAndTenantParams) (CloudAccount, error)
+	FindOrganizationalUnit(ctx context.Context, id uuid.UUID) (OrganizationalUnit, error)
 	FindScimAPIKey(ctx context.Context) (ApiKey, error)
-	FindTag(ctx context.Context, id uuid.UUID) (Tag, error)
+	FindTag(ctx context.Context, id uuid.UUID) (StandardTag, error)
 	GetAPIKeys(ctx context.Context) ([]ApiKey, error)
+	GetAPIKeysOrganizationalUnits(ctx context.Context, apiKeyID uuid.UUID) ([]OrganizationalUnit, error)
 	//------------------------------------------------------------------------------------------------------------------
 	// Audit Logs
 	//------------------------------------------------------------------------------------------------------------------
@@ -55,11 +60,18 @@ type Querier interface {
 	//------------------------------------------------------------------------------------------------------------------
 	GetGroups(ctx context.Context, arg GetGroupsParams) ([]Group, error)
 	//------------------------------------------------------------------------------------------------------------------
+	// Organizational Units
+	//------------------------------------------------------------------------------------------------------------------
+	GetOrganizationalUnitChildren(ctx context.Context, parentID uuid.NullUUID) ([]OrganizationalUnit, error)
+	GetOrganizationalUnitCloudAccounts(ctx context.Context, organizationalUnitID uuid.UUID) ([]CloudAccount, error)
+	GetOrganizationalUnits(ctx context.Context) ([]OrganizationalUnit, error)
+	//------------------------------------------------------------------------------------------------------------------
 	// Tags
 	//------------------------------------------------------------------------------------------------------------------
-	GetTags(ctx context.Context) ([]Tag, error)
+	GetTags(ctx context.Context) ([]StandardTag, error)
 	GetUser(ctx context.Context, id uuid.UUID) (User, error)
 	GetUserCount(ctx context.Context) (int64, error)
+	GetUserOrganizationalUnits(ctx context.Context, userID uuid.UUID) ([]OrganizationalUnit, error)
 	//------------------------------------------------------------------------------------------------------------------
 	// Users
 	//------------------------------------------------------------------------------------------------------------------
@@ -70,12 +82,14 @@ type Querier interface {
 	//------------------------------------------------------------------------------------------------------------------
 	InsertAPIKey(ctx context.Context, arg InsertAPIKeyParams) (ApiKey, error)
 	InsertScimAPIKey(ctx context.Context, apiKeyID uuid.UUID) (ScimApiKey, error)
+	OrganizationalUnitsCloudAccounts(ctx context.Context, dollar_1 []uuid.UUID) ([]CloudAccount, error)
 	PatchGroupDisplayName(ctx context.Context, arg PatchGroupDisplayNameParams) error
 	PatchUser(ctx context.Context, arg PatchUserParams) error
 	//------------------------------------------------------------------------------------------------------------------
 	// Cloud Account Metadata
 	//------------------------------------------------------------------------------------------------------------------
 	SearchTag(ctx context.Context, arg SearchTagParams) ([]CloudAccount, error)
+	UnAssignAccountFromOUs(ctx context.Context, cloudAccountID uuid.UUID) error
 	UpdateCloudAccount(ctx context.Context, arg UpdateCloudAccountParams) error
 	UpdateCloudAccountTagsDriftDetected(ctx context.Context, arg UpdateCloudAccountTagsDriftDetectedParams) error
 	UpdateTag(ctx context.Context, arg UpdateTagParams) error

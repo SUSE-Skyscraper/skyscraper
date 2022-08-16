@@ -23,6 +23,57 @@ type Repository struct {
 	tx           pgx.Tx
 }
 
+func (r *Repository) GetAPIKeysOrganizationalUnits(ctx context.Context, id uuid.UUID) ([]OrganizationalUnit, error) {
+	return r.db.GetAPIKeysOrganizationalUnits(ctx, id)
+}
+
+func (r *Repository) OrganizationalUnitsCloudAccounts(ctx context.Context, id []uuid.UUID) ([]CloudAccount, error) {
+	return r.db.OrganizationalUnitsCloudAccounts(ctx, id)
+}
+
+func (r *Repository) GetUserOrganizationalUnits(ctx context.Context, id uuid.UUID) ([]OrganizationalUnit, error) {
+	return r.db.GetUserOrganizationalUnits(ctx, id)
+}
+
+func (r *Repository) UnAssignCloudAccountFromOrganizationalUnits(ctx context.Context, id uuid.UUID) error {
+	return r.db.UnAssignAccountFromOUs(ctx, id)
+}
+
+func (r *Repository) AssignCloudAccountToOrganizationalUnit(ctx context.Context, id, organizationalUnitID uuid.UUID) error {
+	return r.db.AssignAccountToOU(ctx, AssignAccountToOUParams{
+		CloudAccountID:       id,
+		OrganizationalUnitID: organizationalUnitID,
+	})
+}
+
+func (r *Repository) DeleteOrganizationalUnit(ctx context.Context, id uuid.UUID) error {
+	return r.db.DeleteOrganizationalUnit(ctx, id)
+}
+
+func (r *Repository) GetOrganizationalUnitChildren(ctx context.Context, id uuid.UUID) ([]OrganizationalUnit, error) {
+	parentID := uuid.NullUUID{
+		UUID:  id,
+		Valid: true,
+	}
+	return r.db.GetOrganizationalUnitChildren(ctx, parentID)
+}
+
+func (r *Repository) GetOrganizationalUnitCloudAccounts(ctx context.Context, id uuid.UUID) ([]CloudAccount, error) {
+	return r.db.GetOrganizationalUnitCloudAccounts(ctx, id)
+}
+
+func (r *Repository) CreateOrganizationalUnit(ctx context.Context, input CreateOrganizationalUnitParams) (OrganizationalUnit, error) {
+	return r.db.CreateOrganizationalUnit(ctx, input)
+}
+
+func (r *Repository) FindOrganizationalUnit(ctx context.Context, id uuid.UUID) (OrganizationalUnit, error) {
+	return r.db.FindOrganizationalUnit(ctx, id)
+}
+
+func (r *Repository) GetOrganizationalUnits(ctx context.Context) ([]OrganizationalUnit, error) {
+	return r.db.GetOrganizationalUnits(ctx)
+}
+
 func (r *Repository) CreateAPIKey(ctx context.Context, input InsertAPIKeyParams) (ApiKey, error) {
 	return r.db.InsertAPIKey(ctx, input)
 }
@@ -70,29 +121,29 @@ func (r *Repository) GetAuditLogs(ctx context.Context) ([]AuditLog, []any, error
 	return logs, callers, nil
 }
 
-func (r *Repository) CreateTag(ctx context.Context, input CreateTagParams) (Tag, error) {
+func (r *Repository) CreateTag(ctx context.Context, input CreateTagParams) (StandardTag, error) {
 	return r.db.CreateTag(ctx, input)
 }
 
-func (r *Repository) UpdateTag(ctx context.Context, input UpdateTagParams) (Tag, error) {
+func (r *Repository) UpdateTag(ctx context.Context, input UpdateTagParams) (StandardTag, error) {
 	err := r.db.UpdateTag(ctx, input)
 	if err != nil {
-		return Tag{}, err
+		return StandardTag{}, err
 	}
 
 	tag, err := r.db.FindTag(ctx, input.ID)
 	if err != nil {
-		return Tag{}, err
+		return StandardTag{}, err
 	}
 
 	return tag, nil
 }
 
-func (r *Repository) FindTag(ctx context.Context, id uuid.UUID) (Tag, error) {
+func (r *Repository) FindTag(ctx context.Context, id uuid.UUID) (StandardTag, error) {
 	return r.db.FindTag(ctx, id)
 }
 
-func (r *Repository) GetTags(ctx context.Context) ([]Tag, error) {
+func (r *Repository) GetTags(ctx context.Context) ([]StandardTag, error) {
 	return r.db.GetTags(ctx)
 }
 

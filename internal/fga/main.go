@@ -13,6 +13,8 @@ const DocumentOrganizationRelationStandardTagsEditor Relation = "standard_tags_e
 const DocumentOrganizationRelationUsersViewer Relation = "users_viewer"
 const DocumentOrganizationRelationCloudAccountsViewer Relation = "cloud_accounts_viewer"
 const DocumentOrganizationRelationCloudTenantsViewer Relation = "cloud_tenants_viewer"
+const DocumentOrganizationRelationOrganizationalUnitsViewer Relation = "organizational_units_viewer"
+const DocumentOrganizationRelationOrganizationalUnitsEditor Relation = "organizational_units_editor"
 
 const DocumentAccount Document = "account"
 const DocumentAccountRelationViewer Relation = "viewer"

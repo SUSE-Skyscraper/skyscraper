@@ -36,7 +36,7 @@ func V1UpdateStandardTag(app *application.App) func(w http.ResponseWriter, r *ht
 		}
 
 		// Get the tag we want to change from the context
-		tag, ok := r.Context().Value(middleware.ContextTag).(db.Tag)
+		tag, ok := r.Context().Value(middleware.ContextTag).(db.StandardTag)
 		if !ok {
 			_ = render.Render(w, r, responses.ErrNotFound)
 			return
@@ -70,7 +70,7 @@ func V1UpdateStandardTag(app *application.App) func(w http.ResponseWriter, r *ht
 		}
 
 		// audit the change
-		err = auditor.Audit(r.Context(), db.AuditResourceTypeTag, tag.ID, payload)
+		err = auditor.AuditChange(r.Context(), db.AuditResourceTypeTag, tag.ID, payload)
 		if err != nil {
 			_ = render.Render(w, r, responses.ErrInternalServerError)
 			return
@@ -124,7 +124,7 @@ func V1CreateStandardTag(app *application.App) func(w http.ResponseWriter, r *ht
 		}
 
 		// audit the change
-		err = auditor.Audit(r.Context(), db.AuditResourceTypeTag, tag.ID, payload)
+		err = auditor.AuditChange(r.Context(), db.AuditResourceTypeTag, tag.ID, payload)
 		if err != nil {
 			_ = render.Render(w, r, responses.ErrInternalServerError)
 			return

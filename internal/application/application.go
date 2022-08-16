@@ -17,7 +17,7 @@ type App struct {
 	Repository   db.RepositoryQueries
 	natsConn     *nats.Conn
 	postgresPool *pgxpool.Pool
-	FGAClient    fga.Client
+	FGAClient    fga.Authorizer
 }
 
 func NewApp(configDir string) (*App, error) {

@@ -1,40 +1,248 @@
-package helpers
+package testhelpers
 
 import (
 	"context"
 
 	"github.com/google/uuid"
 	"github.com/nats-io/nats.go"
+	openfga "github.com/openfga/go-sdk"
 	"github.com/stretchr/testify/mock"
 	"github.com/suse-skyscraper/skyscraper/internal/application"
 	"github.com/suse-skyscraper/skyscraper/internal/db"
+	"github.com/suse-skyscraper/skyscraper/internal/fga"
 )
 
-type TestAppResponse struct {
+type TestApp struct {
 	App        *application.App
 	JS         *TestJS
 	Repository *TestRepository
+	FGAClient  *TestFGAAuthorizer
 }
 
-func NewTestApp() *TestAppResponse {
+func NewTestApp() *TestApp {
 	repository := new(TestRepository)
 	js := new(TestJS)
+	fgaClient := new(TestFGAAuthorizer)
 
 	app := &application.App{
 		Config:     application.Config{},
 		JS:         js,
 		Repository: repository,
+		FGAClient:  fgaClient,
 	}
 
-	return &TestAppResponse{
+	return &TestApp{
 		App:        app,
 		JS:         js,
 		Repository: repository,
+		FGAClient:  fgaClient,
 	}
+}
+
+type TestFGAAuthorizer struct {
+	mock.Mock
+}
+
+func (t *TestFGAAuthorizer) SetTypeDefinitions(ctx context.Context, typeDefinitionsContent string) (string, error) {
+	args := t.Called(ctx, typeDefinitionsContent)
+
+	return args.String(0), args.Error(1)
+}
+
+func (t *TestFGAAuthorizer) RunAssertions(ctx context.Context, typeDefinitionsContent string) (bool, error) {
+	args := t.Called(ctx, typeDefinitionsContent)
+
+	return args.Bool(0), args.Error(1)
+}
+
+func (t *TestFGAAuthorizer) ReplaceUsersInGroup(ctx context.Context, userIDs []uuid.UUID, groupID uuid.UUID) error {
+	args := t.Called(ctx, userIDs, groupID)
+
+	return args.Error(0)
+}
+
+func (t *TestFGAAuthorizer) Check(ctx context.Context, callerID uuid.UUID, relation fga.Relation, document fga.Document, objectID string) (bool, error) {
+	args := t.Called(ctx, callerID, relation, document, objectID)
+
+	return args.Bool(0), args.Error(1)
+}
+
+func (t *TestFGAAuthorizer) RemoveUser(ctx context.Context, userID uuid.UUID) error {
+	args := t.Called(ctx, userID)
+
+	return args.Error(0)
+}
+
+func (t *TestFGAAuthorizer) UserTuples(ctx context.Context, userID uuid.UUID, document string) ([]openfga.TupleKey, error) {
+	args := t.Called(ctx, userID, document)
+
+	return args.Get(0).([]openfga.TupleKey), args.Error(1)
+}
+
+func (t *TestFGAAuthorizer) CheckUserAlreadyExistsInOrganization(ctx context.Context, userID uuid.UUID) (bool, error) {
+	args := t.Called(ctx, userID)
+
+	return args.Bool(0), args.Error(1)
+}
+
+func (t *TestFGAAuthorizer) AddUserToOrganization(ctx context.Context, userID uuid.UUID) error {
+	args := t.Called(ctx, userID)
+
+	return args.Error(0)
+}
+
+func (t *TestFGAAuthorizer) RemoveUserFromOrganization(ctx context.Context, userID uuid.UUID) error {
+	args := t.Called(ctx, userID)
+
+	return args.Error(0)
+}
+
+func (t *TestFGAAuthorizer) CheckUserAlreadyExistsInGroup(ctx context.Context, userID, groupID uuid.UUID) (bool, error) {
+	args := t.Called(ctx, userID, groupID)
+
+	return args.Bool(0), args.Error(1)
+}
+
+func (t *TestFGAAuthorizer) AddUsersToGroup(ctx context.Context, userIDs []uuid.UUID, groupID uuid.UUID) error {
+	args := t.Called(ctx, userIDs, groupID)
+
+	return args.Error(0)
+}
+
+func (t *TestFGAAuthorizer) RemoveUserFromGroup(ctx context.Context, userID uuid.UUID, groupID uuid.UUID) error {
+	args := t.Called(ctx, userID, groupID)
+
+	return args.Error(0)
+}
+
+func (t *TestFGAAuthorizer) RemoveUsersInGroup(ctx context.Context, groupID uuid.UUID) error {
+	args := t.Called(ctx, groupID)
+
+	return args.Error(0)
+}
+
+func (t *TestFGAAuthorizer) CheckAccountAlreadyExistsInOrganization(ctx context.Context, accountID uuid.UUID) (bool, error) {
+	args := t.Called(ctx, accountID)
+
+	return args.Bool(0), args.Error(1)
+}
+
+func (t *TestFGAAuthorizer) AddAccountToOrganization(ctx context.Context, accountID uuid.UUID) error {
+	args := t.Called(ctx, accountID)
+
+	return args.Error(0)
+}
+
+func (t *TestFGAAuthorizer) CheckOrganizationalUnitRelationship(ctx context.Context, id uuid.UUID, parentID uuid.NullUUID) (bool, error) {
+	args := t.Called(ctx, id, parentID)
+
+	return args.Bool(0), args.Error(1)
+}
+
+func (t *TestFGAAuthorizer) AddOrganizationalUnit(ctx context.Context, id uuid.UUID, parentID uuid.NullUUID) error {
+	args := t.Called(ctx, id, parentID)
+
+	return args.Error(0)
+}
+
+func (t *TestFGAAuthorizer) RemoveOrganizationalUnitRelationships(ctx context.Context, id uuid.UUID, parentID uuid.NullUUID) error {
+	args := t.Called(ctx, id, parentID)
+
+	return args.Error(0)
 }
 
 type TestRepository struct {
 	mock.Mock
+}
+
+func (t *TestRepository) OrganizationalUnitsCloudAccounts(ctx context.Context, id []uuid.UUID) ([]db.CloudAccount, error) {
+	args := t.Called(ctx, id)
+
+	return args.Get(0).([]db.CloudAccount), args.Error(1)
+}
+
+func (t *TestRepository) GetUserOrganizationalUnits(ctx context.Context, id uuid.UUID) ([]db.OrganizationalUnit, error) {
+	args := t.Called(ctx, id)
+
+	return args.Get(0).([]db.OrganizationalUnit), args.Error(1)
+}
+
+func (t *TestRepository) GetAPIKeysOrganizationalUnits(ctx context.Context, id uuid.UUID) ([]db.OrganizationalUnit, error) {
+	args := t.Called(ctx, id)
+
+	return args.Get(0).([]db.OrganizationalUnit), args.Error(1)
+}
+
+func (t *TestRepository) AssignCloudAccountToOrganizationalUnit(ctx context.Context, id, organizationalUnitID uuid.UUID) error {
+	args := t.Called(ctx, id, organizationalUnitID)
+
+	return args.Error(0)
+}
+
+func (t *TestRepository) UnAssignCloudAccountFromOrganizationalUnits(ctx context.Context, id uuid.UUID) error {
+	args := t.Called(ctx, id)
+
+	return args.Error(0)
+}
+
+func (t *TestRepository) CreateTag(ctx context.Context, input db.CreateTagParams) (db.StandardTag, error) {
+	args := t.Called(ctx, input)
+
+	return args.Get(0).(db.StandardTag), args.Error(1)
+}
+
+func (t *TestRepository) UpdateTag(ctx context.Context, input db.UpdateTagParams) (db.StandardTag, error) {
+	args := t.Called(ctx, input)
+
+	return args.Get(0).(db.StandardTag), args.Error(1)
+}
+
+func (t *TestRepository) FindTag(ctx context.Context, id uuid.UUID) (db.StandardTag, error) {
+	args := t.Called(ctx, id)
+
+	return args.Get(0).(db.StandardTag), args.Error(1)
+}
+
+func (t *TestRepository) GetTags(ctx context.Context) ([]db.StandardTag, error) {
+	args := t.Called(ctx)
+
+	return args.Get(0).([]db.StandardTag), args.Error(1)
+}
+
+func (t *TestRepository) CreateOrganizationalUnit(ctx context.Context, input db.CreateOrganizationalUnitParams) (db.OrganizationalUnit, error) {
+	args := t.Called(ctx, input)
+
+	return args.Get(0).(db.OrganizationalUnit), args.Error(1)
+}
+
+func (t *TestRepository) GetOrganizationalUnits(ctx context.Context) ([]db.OrganizationalUnit, error) {
+	args := t.Called(ctx)
+
+	return args.Get(0).([]db.OrganizationalUnit), args.Error(1)
+}
+
+func (t *TestRepository) FindOrganizationalUnit(ctx context.Context, id uuid.UUID) (db.OrganizationalUnit, error) {
+	args := t.Called(ctx, id)
+
+	return args.Get(0).(db.OrganizationalUnit), args.Error(1)
+}
+
+func (t *TestRepository) GetOrganizationalUnitChildren(ctx context.Context, id uuid.UUID) ([]db.OrganizationalUnit, error) {
+	args := t.Called(ctx, id)
+
+	return args.Get(0).([]db.OrganizationalUnit), args.Error(1)
+}
+
+func (t *TestRepository) GetOrganizationalUnitCloudAccounts(ctx context.Context, id uuid.UUID) ([]db.CloudAccount, error) {
+	args := t.Called(ctx, id)
+
+	return args.Get(0).([]db.CloudAccount), args.Error(1)
+}
+
+func (t *TestRepository) DeleteOrganizationalUnit(ctx context.Context, id uuid.UUID) error {
+	args := t.Called(ctx, id)
+
+	return args.Error(0)
 }
 
 func (t *TestRepository) GetAPIKeys(ctx context.Context) ([]db.ApiKey, error) {
@@ -97,30 +305,6 @@ func (t *TestRepository) CreateAuditLog(ctx context.Context, input db.CreateAudi
 	return args.Get(0).(db.AuditLog), args.Error(1)
 }
 
-func (t *TestRepository) CreateTag(ctx context.Context, input db.CreateTagParams) (db.Tag, error) {
-	args := t.Called(ctx, input)
-
-	return args.Get(0).(db.Tag), args.Error(1)
-}
-
-func (t *TestRepository) UpdateTag(ctx context.Context, input db.UpdateTagParams) (db.Tag, error) {
-	args := t.Called(ctx, input)
-
-	return args.Get(0).(db.Tag), args.Error(1)
-}
-
-func (t *TestRepository) FindTag(ctx context.Context, id uuid.UUID) (db.Tag, error) {
-	args := t.Called(ctx, id)
-
-	return args.Get(0).(db.Tag), args.Error(1)
-}
-
-func (t *TestRepository) GetTags(ctx context.Context) ([]db.Tag, error) {
-	args := t.Called(ctx)
-
-	return args.Get(0).([]db.Tag), args.Error(1)
-}
-
 func (t *TestRepository) UpdateCloudAccountTagsDriftDetected(
 	ctx context.Context,
 	input db.UpdateCloudAccountTagsDriftDetectedParams,
@@ -171,18 +355,6 @@ func (t *TestRepository) UpdateUser(ctx context.Context, id uuid.UUID, input db.
 
 func (t *TestRepository) ScimPatchUser(ctx context.Context, input db.PatchUserParams) error {
 	args := t.Called(ctx, input)
-
-	return args.Error(0)
-}
-
-func (t *TestRepository) GetPolicies(ctx context.Context) ([]db.Policy, error) {
-	args := t.Called(ctx)
-
-	return args.Get(0).([]db.Policy), args.Error(1)
-}
-
-func (t *TestRepository) TruncatePolicies(ctx context.Context) error {
-	args := t.Called(ctx)
 
 	return args.Error(0)
 }

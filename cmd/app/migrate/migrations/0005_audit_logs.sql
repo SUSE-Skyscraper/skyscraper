@@ -1,6 +1,6 @@
 -- +goose Up
 
-create type audit_resource_type as enum ('cloud_account','tag', 'policy', 'cloud_tenant', 'user', 'group', 'api_key');
+create type audit_resource_type as enum ('cloud_account','tag', 'policy', 'cloud_tenant', 'user', 'group', 'api_key', 'organizational_unit');
 create type caller_type as enum ('user', 'api_key');
 create table audit_logs
 (

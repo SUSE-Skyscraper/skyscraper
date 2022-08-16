@@ -29,7 +29,7 @@ export class BackendService {
   }
 
   getProfile(): Observable<UserResponse> {
-    const url = new URL('/api/v1/profile', this.host);
+    const url = new URL('/api/v1/caller/profile', this.host);
 
     return this.http.get<UserResponse>(url.href);
   }

@@ -16,9 +16,12 @@ paths:
             application/json:
               schema:
                 type: object
-  /api/v1/profile:
+
+  /api/v1/caller/profile:
     get:
       description: Returns the user profile
+      tags:
+        - Caller
       security:
         - bearerAuth: []
       responses:
@@ -30,9 +33,27 @@ paths:
           description: Profile not found (not logged in as user, but maybe an API Key)
         '500':
           $ref: '#/components/responses/InternalError'
+
+  /api/v1/caller/cloud_accounts:
+    get:
+      description: Returns a caller-scoped list of cloud accounts
+      tags:
+        - Caller
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          $ref: '#/components/responses/CloudAccountsResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
   /api/v1/api_keys:
     get:
       description: Returns the user API keys
+      tags:
+        - API Keys
       security:
         - bearerAuth: []
       responses:
@@ -44,6 +65,8 @@ paths:
           $ref: '#/components/responses/InternalError'
     post:
       description: Creates a new API key
+      tags:
+        - API Keys
       security:
         - bearerAuth: []
       requestBody:
@@ -58,6 +81,8 @@ paths:
   /api/v1/api_keys/{id}:
     get:
       description: Returns the user API key
+      tags:
+        - API Keys
       security:
         - bearerAuth: []
       parameters:
@@ -76,40 +101,13 @@ paths:
           description: API key not found
         '500':
           $ref: '#/components/responses/InternalError'
-  /api/v1/users:
-    get:
-      description: Returns the list of users
-      security:
-        - bearerAuth: []
-      responses:
-        '200':
-          $ref: '#/components/responses/UsersResponse'
-        '401':
-          $ref: '#/components/responses/UnauthorizedError'
-        '500':
-          $ref: '#/components/responses/InternalError'
-  /api/v1/users/{id}:
-    get:
-      description: Returns the user with the given id
-      parameters:
-        - name: id
-          in: path
-          description: The account ID
-          required: true
-          schema:
-            type: string
-      security:
-        - bearerAuth: []
-      responses:
-        '200':
-          $ref: '#/components/responses/UserResponse'
-        '401':
-          $ref: '#/components/responses/UnauthorizedError'
-        '500':
-          $ref: '#/components/responses/InternalError'
+
+  # Audit Logs
   /api/v1/audit_logs:
     get:
       description: Returns the audit logs
+      tags:
+        - Audit Logs
       security:
         - bearerAuth: []
       parameters:
@@ -132,21 +130,13 @@ paths:
           $ref: '#/components/responses/UnauthorizedError'
         '500':
           $ref: '#/components/responses/InternalError'
-  /api/v1/cloud_tenants:
-    get:
-      description: Returns the cloud tenants
-      security:
-        - bearerAuth: []
-      responses:
-        '200':
-          $ref: '#/components/responses/CloudTenantsResponse'
-        '401':
-          $ref: '#/components/responses/UnauthorizedError'
-        '500':
-          $ref: '#/components/responses/InternalError'
+
+  # Cloud Accounts
   /api/v1/cloud_accounts:
     get:
       description: Returns the list of cloud accounts
+      tags:
+        - Cloud Accounts
       security:
         - bearerAuth: []
       responses:
@@ -159,6 +149,8 @@ paths:
   /api/v1/cloud_accounts/{id}:
     put:
       description: Updates an account for a cloud tenant
+      tags:
+        - Cloud Accounts
       security:
         - bearerAuth: []
       parameters:
@@ -181,6 +173,8 @@ paths:
           $ref: '#/components/responses/InternalError'
     get:
       description: Returns the account for a cloud tenant
+      tags:
+        - Cloud Accounts
       security:
         - bearerAuth: []
       parameters:
@@ -197,9 +191,129 @@ paths:
           $ref: '#/components/responses/UnauthorizedError'
         '500':
           $ref: '#/components/responses/InternalError'
+  /api/v1/cloud_accounts/{id}/organizational_unit:
+    post:
+      description: Assigns a cloud account to an Organizational Unit
+      tags:
+        - Cloud Accounts
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: The account ID
+          required: true
+          schema:
+            type: string
+      requestBody:
+        $ref: '#/components/requestBodies/AccountOrganizationalUnitRequest'
+      responses:
+        '204':
+          description: Successfully assigned the account to an organizational unit
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  # Cloud Tenants
+  /api/v1/cloud_tenants:
+    get:
+      description: Returns the cloud tenants
+      tags:
+        - Cloud Tenants
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          $ref: '#/components/responses/CloudTenantsResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  # Organizational Units
+  /api/v1/organizational_units:
+    get:
+      description: Returns the list of organizational units
+      tags:
+        - Organizational Units
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          $ref: '#/components/responses/OrganizationalUnitsResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      description: Creates a new organizational unit
+      tags:
+        - Organizational Units
+      security:
+        - bearerAuth: []
+      requestBody:
+        $ref: '#/components/requestBodies/CreateOrganizationalUnitsRequest'
+      responses:
+        '201':
+          $ref: '#/components/responses/OrganizationalUnitResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/v1/organizational_units/{id}:
+    get:
+      description: Gets the organizational unit with the given id
+      tags:
+        - Organizational Units
+      parameters:
+        - name: id
+          in: path
+          description: The account ID
+          required: true
+          schema:
+            type: string
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          $ref: '#/components/responses/OrganizationalUnitResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    delete:
+      description: Deletes the organizational unit with the given id
+      tags:
+        - Organizational Units
+      parameters:
+        - name: id
+          in: path
+          description: The account ID
+          required: true
+          schema:
+            type: string
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Successfully deleted the organizational unit
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
   /api/v1/standard_tags:
     post:
       description: Creates a standard tag
+      tags:
+        - Standard Tags
       security:
         - bearerAuth: []
       requestBody:
@@ -213,6 +327,8 @@ paths:
           $ref: '#/components/responses/InternalError'
     get:
       description: Returns the standard tags
+      tags:
+        - Standard Tags
       security:
         - bearerAuth: []
       responses:
@@ -222,9 +338,11 @@ paths:
           $ref: '#/components/responses/UnauthorizedError'
         '500':
           $ref: '#/components/responses/InternalError'
-  /api/v1/tags/{id}:
+  /api/v1/standard_tags/{id}:
     put:
       description: Updates a standard tag
+      tags:
+        - Standard Tags
       parameters:
         - name: id
           in: path
@@ -239,6 +357,43 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/StandardTagResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  # Users
+  /api/v1/users:
+    get:
+      description: Returns the list of users
+      tags:
+        - Users
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          $ref: '#/components/responses/UsersResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/v1/users/{id}:
+    get:
+      description: Returns the user with the given id
+      tags:
+        - Users
+      parameters:
+        - name: id
+          in: path
+          description: The account ID
+          required: true
+          schema:
+            type: string
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          $ref: '#/components/responses/UserResponse'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '500':
@@ -258,6 +413,20 @@ components:
                   owner:
                     type: string
                   description:
+                    type: string
+    CreateOrganizationalUnitsRequest:
+      description: Request body for creating an Organizational Unit
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+                properties:
+                  display_name:
+                    type: string
+                  parent_id:
                     type: string
     CreateStandardTagRequest:
       description: Request body for creating a standard tag
@@ -294,6 +463,18 @@ components:
                   required:
                     type: boolean
                   description:
+                    type: string
+    AccountOrganizationalUnitRequest:
+      description: Request body for assigning an account to an organizational unit
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+                properties:
+                  organizational_unit_id:
                     type: string
     UpdateAccountRequest:
       description: Request body for updating an account
@@ -334,6 +515,26 @@ components:
             properties:
               data:
                 $ref: '#/components/schemas/APIKey'
+    OrganizationalUnitResponse:
+      description: A response containing the organizational units
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                $ref: '#/components/schemas/OrganizationalUnit'
+    OrganizationalUnitsResponse:
+      description: A response containing the organizational units
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OrganizationalUnit'
     CloudTenantsResponse:
       description: A response containing the cloud tenants
       content:
@@ -426,6 +627,20 @@ components:
       scheme: bearer
       bearerFormat: JWT
   schemas:
+    OrganizationalUnit:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+        attributes:
+          type: object
+          properties:
+            display_name:
+              type: string
+            parent_id:
+              type: string
     APIKey:
       type: object
       required:

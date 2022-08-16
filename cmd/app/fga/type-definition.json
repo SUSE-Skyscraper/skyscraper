@@ -1,8 +1,19 @@
 {
   "type_definitions": [
     {
+      "type": "group",
+      "relations": {
+        "member": {
+          "this": {}
+        }
+      }
+    },
+    {
       "type": "organization",
       "relations": {
+        "member": {
+          "this": {}
+        },
         "viewer": {
           "union": {
             "child": [
@@ -19,25 +30,6 @@
         },
         "editor": {
           "this": {}
-        },
-        "member": {
-          "union": {
-            "child": [
-              {
-                "this": {}
-              },
-              {
-                "computedUserset": {
-                  "relation": "editor"
-                }
-              },
-              {
-                "computedUserset": {
-                  "relation": "viewer"
-                }
-              }
-            ]
-          }
         },
         "api_keys_viewer": {
           "computedUserset": {
@@ -74,6 +66,16 @@
             "relation": "viewer"
           }
         },
+        "organizational_units_viewer": {
+          "computedUserset": {
+            "relation": "viewer"
+          }
+        },
+        "organizational_units_editor": {
+          "computedUserset": {
+            "relation": "editor"
+          }
+        },
         "cloud_tenants_viewer": {
           "computedUserset": {
             "relation": "viewer"
@@ -82,18 +84,44 @@
       }
     },
     {
-      "type": "group",
-      "relations": {
-        "member": {
-          "this": {}
-        }
-      }
-    },
-    {
-      "type": "account",
+      "type": "organizational_unit",
       "relations": {
         "parent": {
           "this": {}
+        },
+        "parent_editor": {
+          "tupleToUserset": {
+            "tupleset": {
+              "relation": "parent"
+            },
+            "computedUserset": {
+              "relation": "editor"
+            }
+          }
+        },
+        "parent_viewer": {
+          "tupleToUserset": {
+            "tupleset": {
+              "relation": "parent"
+            },
+            "computedUserset": {
+              "relation": "editor"
+            }
+          }
+        },
+        "editor": {
+          "union": {
+            "child": [
+              {
+                "this": {}
+              },
+              {
+                "computedUserset": {
+                  "relation": "parent_editor"
+                }
+              }
+            ]
+          }
         },
         "viewer": {
           "union": {
@@ -107,13 +135,65 @@
                 }
               },
               {
-                "tupleToUserset": {
-                  "tupleset": {
-                    "relation": "parent"
-                  },
-                  "computedUserset": {
-                    "relation": "viewer"
-                  }
+                "computedUserset": {
+                  "relation": "parent_viewer"
+                }
+              },
+              {
+                "computedUserset": {
+                  "relation": "parent_editor"
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "type": "account",
+      "relations": {
+        "parent": {
+          "this": {}
+        },
+        "parent_editor": {
+          "tupleToUserset": {
+            "tupleset": {
+              "relation": "parent"
+            },
+            "computedUserset": {
+              "relation": "editor"
+            }
+          }
+        },
+        "parent_viewer": {
+          "tupleToUserset": {
+            "tupleset": {
+              "relation": "parent"
+            },
+            "computedUserset": {
+              "relation": "viewer"
+            }
+          }
+        },
+        "viewer": {
+          "union": {
+            "child": [
+              {
+                "this": {}
+              },
+              {
+                "computedUserset": {
+                  "relation": "parent_viewer"
+                }
+              },
+              {
+                "computedUserset": {
+                  "relation": "editor"
+                }
+              },
+              {
+                "computedUserset": {
+                  "relation": "parent_editor"
                 }
               }
             ]
@@ -126,13 +206,8 @@
                 "this": {}
               },
               {
-                "tupleToUserset": {
-                  "tupleset": {
-                    "relation": "parent"
-                  },
-                  "computedUserset": {
-                    "relation": "editor"
-                  }
+                "computedUserset": {
+                  "relation": "parent_editor"
                 }
               }
             ]

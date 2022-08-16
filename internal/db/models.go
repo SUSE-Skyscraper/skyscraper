@@ -16,13 +16,14 @@ import (
 type AuditResourceType string
 
 const (
-	AuditResourceTypeCloudAccount AuditResourceType = "cloud_account"
-	AuditResourceTypeTag          AuditResourceType = "tag"
-	AuditResourceTypePolicy       AuditResourceType = "policy"
-	AuditResourceTypeCloudTenant  AuditResourceType = "cloud_tenant"
-	AuditResourceTypeUser         AuditResourceType = "user"
-	AuditResourceTypeGroup        AuditResourceType = "group"
-	AuditResourceTypeApiKey       AuditResourceType = "api_key"
+	AuditResourceTypeCloudAccount       AuditResourceType = "cloud_account"
+	AuditResourceTypeTag                AuditResourceType = "tag"
+	AuditResourceTypePolicy             AuditResourceType = "policy"
+	AuditResourceTypeCloudTenant        AuditResourceType = "cloud_tenant"
+	AuditResourceTypeUser               AuditResourceType = "user"
+	AuditResourceTypeGroup              AuditResourceType = "group"
+	AuditResourceTypeApiKey             AuditResourceType = "api_key"
+	AuditResourceTypeOrganizationalUnit AuditResourceType = "organizational_unit"
 )
 
 func (e *AuditResourceType) Scan(src interface{}) error {
@@ -108,23 +109,32 @@ type Group struct {
 	UpdatedAt   time.Time
 }
 
-type GroupMember struct {
-	ID        int32
-	GroupID   uuid.UUID
-	UserID    uuid.UUID
-	CreatedAt time.Time
-	UpdatedAt time.Time
+type GroupApiKey struct {
+	GroupID  uuid.UUID
+	ApiKeyID uuid.UUID
 }
 
-type Policy struct {
-	ID    uuid.UUID
-	Ptype string
-	V0    string
-	V1    string
-	V2    sql.NullString
-	V3    sql.NullString
-	V4    sql.NullString
-	V5    sql.NullString
+type GroupUser struct {
+	GroupID uuid.UUID
+	UserID  uuid.UUID
+}
+
+type OrganizationalUnit struct {
+	ID          uuid.UUID
+	ParentID    uuid.NullUUID
+	DisplayName string
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+}
+
+type OrganizationalUnitsCloudAccount struct {
+	CloudAccountID       uuid.UUID
+	OrganizationalUnitID uuid.UUID
+}
+
+type OrganizationalUnitsGroup struct {
+	GroupID              uuid.UUID
+	OrganizationalUnitID uuid.UUID
 }
 
 type ScimApiKey struct {
@@ -135,7 +145,7 @@ type ScimApiKey struct {
 	UpdatedAt time.Time
 }
 
-type Tag struct {
+type StandardTag struct {
 	ID          uuid.UUID
 	DisplayName string
 	Description string

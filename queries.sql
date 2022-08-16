@@ -163,31 +163,31 @@ where id = $1;
 --------------------------------------------------------------------------------------------------------------------
 
 -- name: GetGroupMembership :many
-select group_members.*, users.username as username
-from group_members
-         left join users on users.id = group_members.user_id
-where group_members.group_id = $1;
+select group_users.*, users.username as username
+from group_users
+         left join users on users.id = group_users.user_id
+where group_users.group_id = $1;
 
 -- name: GetGroupMembershipForUser :one
-select group_members.*, users.username as username
-from group_members
-         left join users on users.id = group_members.user_id
-where group_members.group_id = $1
-  and group_members.user_id = $2;
+select group_users.*, users.username as username
+from group_users
+         left join users on users.id = group_users.user_id
+where group_users.group_id = $1
+  and group_users.user_id = $2;
 
 -- name: DropMembershipForGroup :exec
 delete
-from group_members
+from group_users
 where group_id = $1;
 
 -- name: DropMembershipForUserAndGroup :exec
 delete
-from group_members
+from group_users
 where user_id = $1
   and group_id = $2;
 
 -- name: CreateMembershipForUserAndGroup :exec
-insert into group_members (user_id, group_id, created_at, updated_at)
+insert into group_users (user_id, group_id, created_at, updated_at)
 values ($1, $2, now(), now())
 on conflict (user_id, group_id) do update set updated_at = now();;
 
@@ -218,7 +218,8 @@ where domain = 'default';
 -- name: FindAPIKey :one
 select *
 from api_keys
-where id = $1 and system = false;
+where id = $1
+  and system = false;
 
 -- name: FindAPIKeysById :many
 select *
@@ -229,7 +230,8 @@ where id = ANY ($1::uuid[]);
 select api_keys.*
 from api_keys
          left join scim_api_keys on scim_api_keys.api_key_id = api_keys.id
-where scim_api_keys.domain = 'default' and api_keys.system = true;
+where scim_api_keys.domain = 'default'
+  and api_keys.system = true;
 
 -- name: GetAPIKeys :many
 select *
@@ -242,21 +244,21 @@ where system = false;
 
 -- name: GetTags :many
 select *
-from tags
+from standard_tags
 order by key;
 
 -- name: CreateTag :one
-insert into tags (display_name, key, description, created_at, updated_at)
+insert into standard_tags (display_name, key, description, created_at, updated_at)
 values ($1, $2, $3, now(), now())
 returning *;
 
 -- name: FindTag :one
 select *
-from tags
+from standard_tags
 where id = $1;
 
 -- name: UpdateTag :exec
-update tags
+update standard_tags
 set display_name = $2,
     key          = $3,
     description  = $4,
@@ -265,7 +267,7 @@ where id = $1;
 
 -- name: DeleteTag :exec
 delete
-from tags
+from standard_tags
 where id = $1;
 
 --------------------------------------------------------------------------------------------------------------------
@@ -288,3 +290,90 @@ order by created_at desc;
 insert into audit_logs (resource_type, resource_id, caller_id, caller_type, message, created_at, updated_at)
 values ($1, $2, $3, $4, $5, now(), now())
 returning *;
+
+--------------------------------------------------------------------------------------------------------------------
+-- Organizational Units
+--------------------------------------------------------------------------------------------------------------------
+
+-- name: GetOrganizationalUnitChildren :many
+select *
+from organizational_units
+where parent_id = $1;
+
+-- name: GetOrganizationalUnitCloudAccounts :many
+select cloud_accounts.*
+from organizational_units_cloud_accounts
+         join cloud_accounts on cloud_accounts.id = organizational_units_cloud_accounts.cloud_account_id
+where organizational_unit_id = $1;
+
+-- name: DeleteOrganizationalUnit :exec
+delete
+from organizational_units
+where id = $1;
+
+-- name: FindOrganizationalUnit :one
+select *
+from organizational_units
+where id = $1;
+
+-- name: GetOrganizationalUnits :many
+select *
+from organizational_units;
+
+-- name: UnAssignAccountFromOUs :exec
+delete
+from organizational_units_cloud_accounts
+where cloud_account_id = $1;
+
+-- name: AssignAccountToOU :exec
+insert into organizational_units_cloud_accounts (cloud_account_id, organizational_unit_id)
+values ($1, $2);
+
+-- name: CreateOrganizationalUnit :one
+insert into organizational_units (parent_id, display_name, created_at, updated_at)
+values ($1, $2, now(), now())
+returning *;
+
+-- name: GetAPIKeysOrganizationalUnits :many
+select o2.*
+from (select group_id
+      from group_api_keys
+      where group_api_keys.api_key_id = $1) m
+         inner join (select organizational_unit_id, group_id
+                     from organizational_units_groups
+                              inner join organizational_units on organizational_units.id =
+                                                                 organizational_units_groups.organizational_unit_id) o
+                    on m.group_id = o.group_id
+         inner join (select *
+                     from organizational_units) o2 on o.organizational_unit_id = o2.id;
+
+-- name: GetUserOrganizationalUnits :many
+select o2.*
+from (select group_id
+      from group_users
+      where group_users.user_id = $1) m
+         inner join (select organizational_unit_id, group_id
+                     from organizational_units_groups
+                              inner join organizational_units on organizational_units.id =
+                                                                 organizational_units_groups.organizational_unit_id) o
+                    on m.group_id = o.group_id
+         inner join (select *
+                     from organizational_units) o2 on o.organizational_unit_id = o2.id;
+
+-- name: OrganizationalUnitsCloudAccounts :many
+WITH RECURSIVE organizational_unit_ids(id, parent_id, display_name) AS (SELECT id,
+                                                                               parent_id,
+                                                                               display_name
+                                                                        FROM organizational_units
+                                                                        WHERE id = ANY ($1::uuid[])
+                                                                        UNION ALL
+                                                                        SELECT o2.id,
+                                                                               o2.parent_id,
+                                                                               o2.display_name
+                                                                        FROM organizational_units o2
+                                                                                 INNER JOIN organizational_unit_ids o ON o.id = o2.parent_id)
+SELECT cloud_accounts.*
+FROM organizational_unit_ids
+         join organizational_units_cloud_accounts
+              on organizational_unit_ids.id = organizational_units_cloud_accounts.organizational_unit_id
+         join cloud_accounts on organizational_units_cloud_accounts.cloud_account_id = cloud_accounts.id;
