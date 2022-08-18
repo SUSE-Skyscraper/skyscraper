@@ -22,15 +22,37 @@ func NewAuditor(repo db.RepositoryQueries) Auditor {
 	}
 }
 
-func (a *Auditor) Audit(ctx context.Context, resourceType db.AuditResourceType, resourceID uuid.UUID, state any) error {
+func (a *Auditor) AuditDelete(ctx context.Context, resourceType db.AuditResourceType, resourceID uuid.UUID) error {
+	message := fmt.Sprintf("deleted %s", resourceType)
+
+	return a.audit(ctx, resourceType, resourceID, message)
+}
+
+func (a *Auditor) AuditCreate(ctx context.Context, resourceType db.AuditResourceType, resourceID uuid.UUID, payload any) error {
+	jsonState, err := json.Marshal(payload)
+	if err != nil {
+		return err
+	}
+
+	message := fmt.Sprintf("created with payload: %s", string(jsonState))
+	return a.audit(ctx, resourceType, resourceID, message)
+}
+
+func (a *Auditor) AuditChange(ctx context.Context, resourceType db.AuditResourceType, resourceID uuid.UUID, payload any) error {
+	jsonState, err := json.Marshal(payload)
+	if err != nil {
+		return err
+	}
+
+	message := fmt.Sprintf("action with payload: %s", string(jsonState))
+
+	return a.audit(ctx, resourceType, resourceID, message)
+}
+
+func (a *Auditor) audit(ctx context.Context, resourceType db.AuditResourceType, resourceID uuid.UUID, message string) error {
 	caller, ok := ctx.Value(middleware.ContextCaller).(auth.Caller)
 	if !ok {
 		return errors.New("failed to get caller from context")
-	}
-
-	jsonState, err := json.Marshal(state)
-	if err != nil {
-		return err
 	}
 
 	callerType, err := caller.GetDBType()
@@ -43,7 +65,7 @@ func (a *Auditor) Audit(ctx context.Context, resourceType db.AuditResourceType, 
 		CallerType:   callerType,
 		ResourceType: resourceType,
 		ResourceID:   resourceID,
-		Message:      fmt.Sprintf("action with payload: %s", string(jsonState)),
+		Message:      message,
 	})
 	if err != nil {
 		return err

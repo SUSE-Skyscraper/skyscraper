@@ -10,7 +10,6 @@ import (
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/suse-skyscraper/skyscraper/internal/scim/filters"
-	"github.com/suse-skyscraper/skyscraper/internal/scim/payloads"
 )
 
 var ErrConflict = errors.New("duplicate key value violates unique constraint")
@@ -22,6 +21,57 @@ type Repository struct {
 	postgresPool *pgxpool.Pool
 	db           Querier
 	tx           pgx.Tx
+}
+
+func (r *Repository) GetAPIKeysOrganizationalUnits(ctx context.Context, id uuid.UUID) ([]OrganizationalUnit, error) {
+	return r.db.GetAPIKeysOrganizationalUnits(ctx, id)
+}
+
+func (r *Repository) OrganizationalUnitsCloudAccounts(ctx context.Context, id []uuid.UUID) ([]CloudAccount, error) {
+	return r.db.OrganizationalUnitsCloudAccounts(ctx, id)
+}
+
+func (r *Repository) GetUserOrganizationalUnits(ctx context.Context, id uuid.UUID) ([]OrganizationalUnit, error) {
+	return r.db.GetUserOrganizationalUnits(ctx, id)
+}
+
+func (r *Repository) UnAssignCloudAccountFromOrganizationalUnits(ctx context.Context, id uuid.UUID) error {
+	return r.db.UnAssignAccountFromOUs(ctx, id)
+}
+
+func (r *Repository) AssignCloudAccountToOrganizationalUnit(ctx context.Context, id, organizationalUnitID uuid.UUID) error {
+	return r.db.AssignAccountToOU(ctx, AssignAccountToOUParams{
+		CloudAccountID:       id,
+		OrganizationalUnitID: organizationalUnitID,
+	})
+}
+
+func (r *Repository) DeleteOrganizationalUnit(ctx context.Context, id uuid.UUID) error {
+	return r.db.DeleteOrganizationalUnit(ctx, id)
+}
+
+func (r *Repository) GetOrganizationalUnitChildren(ctx context.Context, id uuid.UUID) ([]OrganizationalUnit, error) {
+	parentID := uuid.NullUUID{
+		UUID:  id,
+		Valid: true,
+	}
+	return r.db.GetOrganizationalUnitChildren(ctx, parentID)
+}
+
+func (r *Repository) GetOrganizationalUnitCloudAccounts(ctx context.Context, id uuid.UUID) ([]CloudAccount, error) {
+	return r.db.GetOrganizationalUnitCloudAccounts(ctx, id)
+}
+
+func (r *Repository) CreateOrganizationalUnit(ctx context.Context, input CreateOrganizationalUnitParams) (OrganizationalUnit, error) {
+	return r.db.CreateOrganizationalUnit(ctx, input)
+}
+
+func (r *Repository) FindOrganizationalUnit(ctx context.Context, id uuid.UUID) (OrganizationalUnit, error) {
+	return r.db.FindOrganizationalUnit(ctx, id)
+}
+
+func (r *Repository) GetOrganizationalUnits(ctx context.Context) ([]OrganizationalUnit, error) {
+	return r.db.GetOrganizationalUnits(ctx)
 }
 
 func (r *Repository) CreateAPIKey(ctx context.Context, input InsertAPIKeyParams) (ApiKey, error) {
@@ -71,29 +121,29 @@ func (r *Repository) GetAuditLogs(ctx context.Context) ([]AuditLog, []any, error
 	return logs, callers, nil
 }
 
-func (r *Repository) CreateTag(ctx context.Context, input CreateTagParams) (Tag, error) {
+func (r *Repository) CreateTag(ctx context.Context, input CreateTagParams) (StandardTag, error) {
 	return r.db.CreateTag(ctx, input)
 }
 
-func (r *Repository) UpdateTag(ctx context.Context, input UpdateTagParams) (Tag, error) {
+func (r *Repository) UpdateTag(ctx context.Context, input UpdateTagParams) (StandardTag, error) {
 	err := r.db.UpdateTag(ctx, input)
 	if err != nil {
-		return Tag{}, err
+		return StandardTag{}, err
 	}
 
 	tag, err := r.db.FindTag(ctx, input.ID)
 	if err != nil {
-		return Tag{}, err
+		return StandardTag{}, err
 	}
 
 	return tag, nil
 }
 
-func (r *Repository) FindTag(ctx context.Context, id uuid.UUID) (Tag, error) {
+func (r *Repository) FindTag(ctx context.Context, id uuid.UUID) (StandardTag, error) {
 	return r.db.FindTag(ctx, id)
 }
 
-func (r *Repository) GetTags(ctx context.Context) ([]Tag, error) {
+func (r *Repository) GetTags(ctx context.Context) ([]StandardTag, error) {
 	return r.db.GetTags(ctx)
 }
 
@@ -156,22 +206,6 @@ func (r *Repository) InsertScimAPIKey(ctx context.Context, encodedHash string) (
 	}
 
 	return apiKey, nil
-}
-
-func (r *Repository) RemovePolicy(ctx context.Context, input RemovePolicyParams) error {
-	return r.db.RemovePolicy(ctx, input)
-}
-
-func (r *Repository) CreatePolicy(ctx context.Context, input AddPolicyParams) error {
-	return r.db.AddPolicy(ctx, input)
-}
-
-func (r *Repository) TruncatePolicies(ctx context.Context) error {
-	return r.db.TruncatePolicies(ctx)
-}
-
-func (r *Repository) GetPolicies(ctx context.Context) ([]Policy, error) {
-	return r.db.GetPolicies(ctx)
 }
 
 func (r *Repository) ScimPatchUser(ctx context.Context, input PatchUserParams) error {
@@ -290,11 +324,6 @@ func (r *Repository) DeleteGroup(ctx context.Context, idString string) error {
 		return err
 	}
 
-	err = r.db.RemovePoliciesForGroup(ctx, idString)
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
@@ -391,9 +420,9 @@ func (r *Repository) FindUserByUsername(ctx context.Context, username string) (U
 	return r.db.FindByUsername(ctx, username)
 }
 
-func (r *Repository) AddUsersToGroup(ctx context.Context, groupID uuid.UUID, members []payloads.MemberPatch) error {
+func (r *Repository) AddUsersToGroup(ctx context.Context, groupID uuid.UUID, members []uuid.UUID) error {
 	for _, member := range members {
-		err := r.AddUserToGroup(ctx, member.Value, groupID)
+		err := r.AddUserToGroup(ctx, member, groupID)
 		if err != nil {
 			return err
 		}
@@ -402,19 +431,14 @@ func (r *Repository) AddUsersToGroup(ctx context.Context, groupID uuid.UUID, mem
 	return nil
 }
 
-func (r *Repository) ReplaceUsersInGroup(ctx context.Context, groupID uuid.UUID, members []payloads.MemberPatch) error {
+func (r *Repository) ReplaceUsersInGroup(ctx context.Context, groupID uuid.UUID, members []uuid.UUID) error {
 	err := r.db.DropMembershipForGroup(ctx, groupID)
 	if err != nil {
 		return err
 	}
 
-	err = r.db.RemovePoliciesForGroup(ctx, groupID.String())
-	if err != nil {
-		return err
-	}
-
 	for _, member := range members {
-		err = r.AddUserToGroup(ctx, member.Value, groupID)
+		err = r.AddUserToGroup(ctx, member, groupID)
 		if err != nil {
 			return err
 		}
@@ -432,15 +456,6 @@ func (r *Repository) AddUserToGroup(ctx context.Context, userID, groupID uuid.UU
 		return err
 	}
 
-	err = r.db.AddPolicy(ctx, AddPolicyParams{
-		Ptype: "g",
-		V0:    userID.String(),
-		V1:    groupID.String(),
-	})
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
@@ -448,15 +463,6 @@ func (r *Repository) RemoveUserFromGroup(ctx context.Context, userID, groupID uu
 	err := r.db.DropMembershipForUserAndGroup(ctx, DropMembershipForUserAndGroupParams{
 		UserID:  userID,
 		GroupID: groupID,
-	})
-	if err != nil {
-		return err
-	}
-
-	err = r.db.RemovePolicy(ctx, RemovePolicyParams{
-		Ptype: "g",
-		V0:    userID.String(),
-		V1:    groupID.String(),
 	})
 	if err != nil {
 		return err

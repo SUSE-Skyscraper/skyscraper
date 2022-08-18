@@ -8,42 +8,23 @@ package db
 import (
 	"context"
 	"database/sql"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgtype"
 )
 
-const addPolicy = `-- name: AddPolicy :exec
-insert into policies (id, ptype, v0, v1, v2, v3, v4, v5)
-values (uuid_generate_v5('6ba7b812-9dad-11d1-80b4-00c04fd430c8',
-                         concat($1::text, $2::text, $3::text, $4::text,
-                                $5::text, $6::text, $7::text)), $1::text,
-        $2::text, $3::text, $4::text, $5::text, $6::text,
-        $7::text)
-on conflict do nothing
+const assignAccountToOU = `-- name: AssignAccountToOU :exec
+insert into organizational_units_cloud_accounts (cloud_account_id, organizational_unit_id)
+values ($1, $2)
 `
 
-type AddPolicyParams struct {
-	Ptype string
-	V0    string
-	V1    string
-	V2    string
-	V3    string
-	V4    string
-	V5    string
+type AssignAccountToOUParams struct {
+	CloudAccountID       uuid.UUID
+	OrganizationalUnitID uuid.UUID
 }
 
-func (q *Queries) AddPolicy(ctx context.Context, arg AddPolicyParams) error {
-	_, err := q.db.Exec(ctx, addPolicy,
-		arg.Ptype,
-		arg.V0,
-		arg.V1,
-		arg.V2,
-		arg.V3,
-		arg.V4,
-		arg.V5,
-	)
+func (q *Queries) AssignAccountToOU(ctx context.Context, arg AssignAccountToOUParams) error {
+	_, err := q.db.Exec(ctx, assignAccountToOU, arg.CloudAccountID, arg.OrganizationalUnitID)
 	return err
 }
 
@@ -124,7 +105,7 @@ func (q *Queries) CreateGroup(ctx context.Context, displayName string) (Group, e
 }
 
 const createMembershipForUserAndGroup = `-- name: CreateMembershipForUserAndGroup :exec
-insert into group_members (user_id, group_id, created_at, updated_at)
+insert into group_users (user_id, group_id, created_at, updated_at)
 values ($1, $2, now(), now())
 on conflict (user_id, group_id) do update set updated_at = now()
 `
@@ -184,8 +165,32 @@ func (q *Queries) CreateOrInsertCloudAccount(ctx context.Context, arg CreateOrIn
 	return i, err
 }
 
+const createOrganizationalUnit = `-- name: CreateOrganizationalUnit :one
+insert into organizational_units (parent_id, display_name, created_at, updated_at)
+values ($1, $2, now(), now())
+returning id, parent_id, display_name, created_at, updated_at
+`
+
+type CreateOrganizationalUnitParams struct {
+	ParentID    uuid.NullUUID
+	DisplayName string
+}
+
+func (q *Queries) CreateOrganizationalUnit(ctx context.Context, arg CreateOrganizationalUnitParams) (OrganizationalUnit, error) {
+	row := q.db.QueryRow(ctx, createOrganizationalUnit, arg.ParentID, arg.DisplayName)
+	var i OrganizationalUnit
+	err := row.Scan(
+		&i.ID,
+		&i.ParentID,
+		&i.DisplayName,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const createTag = `-- name: CreateTag :one
-insert into tags (display_name, key, description, created_at, updated_at)
+insert into standard_tags (display_name, key, description, created_at, updated_at)
 values ($1, $2, $3, now(), now())
 returning id, display_name, description, key, created_at, updated_at
 `
@@ -196,9 +201,9 @@ type CreateTagParams struct {
 	Description string
 }
 
-func (q *Queries) CreateTag(ctx context.Context, arg CreateTagParams) (Tag, error) {
+func (q *Queries) CreateTag(ctx context.Context, arg CreateTagParams) (StandardTag, error) {
 	row := q.db.QueryRow(ctx, createTag, arg.DisplayName, arg.Key, arg.Description)
-	var i Tag
+	var i StandardTag
 	err := row.Scan(
 		&i.ID,
 		&i.DisplayName,
@@ -274,6 +279,17 @@ func (q *Queries) DeleteGroup(ctx context.Context, id uuid.UUID) error {
 	return err
 }
 
+const deleteOrganizationalUnit = `-- name: DeleteOrganizationalUnit :exec
+delete
+from organizational_units
+where id = $1
+`
+
+func (q *Queries) DeleteOrganizationalUnit(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteOrganizationalUnit, id)
+	return err
+}
+
 const deleteScimAPIKey = `-- name: DeleteScimAPIKey :exec
 delete
 from scim_api_keys
@@ -287,7 +303,7 @@ func (q *Queries) DeleteScimAPIKey(ctx context.Context) error {
 
 const deleteTag = `-- name: DeleteTag :exec
 delete
-from tags
+from standard_tags
 where id = $1
 `
 
@@ -309,7 +325,7 @@ func (q *Queries) DeleteUser(ctx context.Context, id uuid.UUID) error {
 
 const dropMembershipForGroup = `-- name: DropMembershipForGroup :exec
 delete
-from group_members
+from group_users
 where group_id = $1
 `
 
@@ -320,7 +336,7 @@ func (q *Queries) DropMembershipForGroup(ctx context.Context, groupID uuid.UUID)
 
 const dropMembershipForUserAndGroup = `-- name: DropMembershipForUserAndGroup :exec
 delete
-from group_members
+from group_users
 where user_id = $1
   and group_id = $2
 `
@@ -338,7 +354,8 @@ func (q *Queries) DropMembershipForUserAndGroup(ctx context.Context, arg DropMem
 const findAPIKey = `-- name: FindAPIKey :one
 select id, encodedhash, owner, description, system, created_at, updated_at
 from api_keys
-where id = $1 and system = false
+where id = $1
+  and system = false
 `
 
 func (q *Queries) FindAPIKey(ctx context.Context, id uuid.UUID) (ApiKey, error) {
@@ -472,11 +489,31 @@ func (q *Queries) FindCloudAccountByCloudAndTenant(ctx context.Context, arg Find
 	return i, err
 }
 
+const findOrganizationalUnit = `-- name: FindOrganizationalUnit :one
+select id, parent_id, display_name, created_at, updated_at
+from organizational_units
+where id = $1
+`
+
+func (q *Queries) FindOrganizationalUnit(ctx context.Context, id uuid.UUID) (OrganizationalUnit, error) {
+	row := q.db.QueryRow(ctx, findOrganizationalUnit, id)
+	var i OrganizationalUnit
+	err := row.Scan(
+		&i.ID,
+		&i.ParentID,
+		&i.DisplayName,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const findScimAPIKey = `-- name: FindScimAPIKey :one
 select api_keys.id, api_keys.encodedhash, api_keys.owner, api_keys.description, api_keys.system, api_keys.created_at, api_keys.updated_at
 from api_keys
          left join scim_api_keys on scim_api_keys.api_key_id = api_keys.id
-where scim_api_keys.domain = 'default' and api_keys.system = true
+where scim_api_keys.domain = 'default'
+  and api_keys.system = true
 `
 
 func (q *Queries) FindScimAPIKey(ctx context.Context) (ApiKey, error) {
@@ -496,13 +533,13 @@ func (q *Queries) FindScimAPIKey(ctx context.Context) (ApiKey, error) {
 
 const findTag = `-- name: FindTag :one
 select id, display_name, description, key, created_at, updated_at
-from tags
+from standard_tags
 where id = $1
 `
 
-func (q *Queries) FindTag(ctx context.Context, id uuid.UUID) (Tag, error) {
+func (q *Queries) FindTag(ctx context.Context, id uuid.UUID) (StandardTag, error) {
 	row := q.db.QueryRow(ctx, findTag, id)
-	var i Tag
+	var i StandardTag
 	err := row.Scan(
 		&i.ID,
 		&i.DisplayName,
@@ -535,6 +572,46 @@ func (q *Queries) GetAPIKeys(ctx context.Context) ([]ApiKey, error) {
 			&i.Owner,
 			&i.Description,
 			&i.System,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getAPIKeysOrganizationalUnits = `-- name: GetAPIKeysOrganizationalUnits :many
+select o2.id, o2.parent_id, o2.display_name, o2.created_at, o2.updated_at
+from (select group_id
+      from group_api_keys
+      where group_api_keys.api_key_id = $1) m
+         inner join (select organizational_unit_id, group_id
+                     from organizational_units_groups
+                              inner join organizational_units on organizational_units.id =
+                                                                 organizational_units_groups.organizational_unit_id) o
+                    on m.group_id = o.group_id
+         inner join (select id, parent_id, display_name, created_at, updated_at
+                     from organizational_units) o2 on o.organizational_unit_id = o2.id
+`
+
+func (q *Queries) GetAPIKeysOrganizationalUnits(ctx context.Context, apiKeyID uuid.UUID) ([]OrganizationalUnit, error) {
+	rows, err := q.db.Query(ctx, getAPIKeysOrganizationalUnits, apiKeyID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []OrganizationalUnit
+	for rows.Next() {
+		var i OrganizationalUnit
+		if err := rows.Scan(
+			&i.ID,
+			&i.ParentID,
+			&i.DisplayName,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -722,19 +799,16 @@ func (q *Queries) GetGroupCount(ctx context.Context) (int64, error) {
 
 const getGroupMembership = `-- name: GetGroupMembership :many
 
-select group_members.id, group_members.group_id, group_members.user_id, group_members.created_at, group_members.updated_at, users.username as username
-from group_members
-         left join users on users.id = group_members.user_id
-where group_members.group_id = $1
+select group_users.group_id, group_users.user_id, users.username as username
+from group_users
+         left join users on users.id = group_users.user_id
+where group_users.group_id = $1
 `
 
 type GetGroupMembershipRow struct {
-	ID        int32
-	GroupID   uuid.UUID
-	UserID    uuid.UUID
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	Username  sql.NullString
+	GroupID  uuid.UUID
+	UserID   uuid.UUID
+	Username sql.NullString
 }
 
 //------------------------------------------------------------------------------------------------------------------
@@ -749,14 +823,7 @@ func (q *Queries) GetGroupMembership(ctx context.Context, groupID uuid.UUID) ([]
 	var items []GetGroupMembershipRow
 	for rows.Next() {
 		var i GetGroupMembershipRow
-		if err := rows.Scan(
-			&i.ID,
-			&i.GroupID,
-			&i.UserID,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-			&i.Username,
-		); err != nil {
+		if err := rows.Scan(&i.GroupID, &i.UserID, &i.Username); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -768,11 +835,11 @@ func (q *Queries) GetGroupMembership(ctx context.Context, groupID uuid.UUID) ([]
 }
 
 const getGroupMembershipForUser = `-- name: GetGroupMembershipForUser :one
-select group_members.id, group_members.group_id, group_members.user_id, group_members.created_at, group_members.updated_at, users.username as username
-from group_members
-         left join users on users.id = group_members.user_id
-where group_members.group_id = $1
-  and group_members.user_id = $2
+select group_users.group_id, group_users.user_id, users.username as username
+from group_users
+         left join users on users.id = group_users.user_id
+where group_users.group_id = $1
+  and group_users.user_id = $2
 `
 
 type GetGroupMembershipForUserParams struct {
@@ -781,25 +848,15 @@ type GetGroupMembershipForUserParams struct {
 }
 
 type GetGroupMembershipForUserRow struct {
-	ID        int32
-	GroupID   uuid.UUID
-	UserID    uuid.UUID
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	Username  sql.NullString
+	GroupID  uuid.UUID
+	UserID   uuid.UUID
+	Username sql.NullString
 }
 
 func (q *Queries) GetGroupMembershipForUser(ctx context.Context, arg GetGroupMembershipForUserParams) (GetGroupMembershipForUserRow, error) {
 	row := q.db.QueryRow(ctx, getGroupMembershipForUser, arg.GroupID, arg.UserID)
 	var i GetGroupMembershipForUserRow
-	err := row.Scan(
-		&i.ID,
-		&i.GroupID,
-		&i.UserID,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.Username,
-	)
+	err := row.Scan(&i.GroupID, &i.UserID, &i.Username)
 	return i, err
 }
 
@@ -844,37 +901,101 @@ func (q *Queries) GetGroups(ctx context.Context, arg GetGroupsParams) ([]Group, 
 	return items, nil
 }
 
-const getPolicies = `-- name: GetPolicies :many
+const getOrganizationalUnitChildren = `-- name: GetOrganizationalUnitChildren :many
 
-select id, ptype, v0, v1, v2, v3, v4, v5
-from policies
-order by id
+select id, parent_id, display_name, created_at, updated_at
+from organizational_units
+where parent_id = $1
 `
 
 //------------------------------------------------------------------------------------------------------------------
-// Policies
-//
-// 6ba7b812-9dad-11d1-80b4-00c04fd430c8 is NameSpace_OID as specified in rfc4122 (https://tools.ietf.org/html/rfc4122)
-// we use uuid v5 so we can calculate the id from a collection of values
+// Organizational Units
 //------------------------------------------------------------------------------------------------------------------
-func (q *Queries) GetPolicies(ctx context.Context) ([]Policy, error) {
-	rows, err := q.db.Query(ctx, getPolicies)
+func (q *Queries) GetOrganizationalUnitChildren(ctx context.Context, parentID uuid.NullUUID) ([]OrganizationalUnit, error) {
+	rows, err := q.db.Query(ctx, getOrganizationalUnitChildren, parentID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Policy
+	var items []OrganizationalUnit
 	for rows.Next() {
-		var i Policy
+		var i OrganizationalUnit
 		if err := rows.Scan(
 			&i.ID,
-			&i.Ptype,
-			&i.V0,
-			&i.V1,
-			&i.V2,
-			&i.V3,
-			&i.V4,
-			&i.V5,
+			&i.ParentID,
+			&i.DisplayName,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getOrganizationalUnitCloudAccounts = `-- name: GetOrganizationalUnitCloudAccounts :many
+select cloud_accounts.id, cloud_accounts.cloud, cloud_accounts.tenant_id, cloud_accounts.account_id, cloud_accounts.name, cloud_accounts.active, cloud_accounts.tags_current, cloud_accounts.tags_desired, cloud_accounts.tags_drift_detected, cloud_accounts.created_at, cloud_accounts.updated_at
+from organizational_units_cloud_accounts
+         join cloud_accounts on cloud_accounts.id = organizational_units_cloud_accounts.cloud_account_id
+where organizational_unit_id = $1
+`
+
+func (q *Queries) GetOrganizationalUnitCloudAccounts(ctx context.Context, organizationalUnitID uuid.UUID) ([]CloudAccount, error) {
+	rows, err := q.db.Query(ctx, getOrganizationalUnitCloudAccounts, organizationalUnitID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []CloudAccount
+	for rows.Next() {
+		var i CloudAccount
+		if err := rows.Scan(
+			&i.ID,
+			&i.Cloud,
+			&i.TenantID,
+			&i.AccountID,
+			&i.Name,
+			&i.Active,
+			&i.TagsCurrent,
+			&i.TagsDesired,
+			&i.TagsDriftDetected,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getOrganizationalUnits = `-- name: GetOrganizationalUnits :many
+select id, parent_id, display_name, created_at, updated_at
+from organizational_units
+`
+
+func (q *Queries) GetOrganizationalUnits(ctx context.Context) ([]OrganizationalUnit, error) {
+	rows, err := q.db.Query(ctx, getOrganizationalUnits)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []OrganizationalUnit
+	for rows.Next() {
+		var i OrganizationalUnit
+		if err := rows.Scan(
+			&i.ID,
+			&i.ParentID,
+			&i.DisplayName,
+			&i.CreatedAt,
+			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -889,22 +1010,22 @@ func (q *Queries) GetPolicies(ctx context.Context) ([]Policy, error) {
 const getTags = `-- name: GetTags :many
 
 select id, display_name, description, key, created_at, updated_at
-from tags
+from standard_tags
 order by key
 `
 
 //------------------------------------------------------------------------------------------------------------------
 // Tags
 //------------------------------------------------------------------------------------------------------------------
-func (q *Queries) GetTags(ctx context.Context) ([]Tag, error) {
+func (q *Queries) GetTags(ctx context.Context) ([]StandardTag, error) {
 	rows, err := q.db.Query(ctx, getTags)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Tag
+	var items []StandardTag
 	for rows.Next() {
-		var i Tag
+		var i StandardTag
 		if err := rows.Scan(
 			&i.ID,
 			&i.DisplayName,
@@ -957,6 +1078,46 @@ func (q *Queries) GetUserCount(ctx context.Context) (int64, error) {
 	var count int64
 	err := row.Scan(&count)
 	return count, err
+}
+
+const getUserOrganizationalUnits = `-- name: GetUserOrganizationalUnits :many
+select o2.id, o2.parent_id, o2.display_name, o2.created_at, o2.updated_at
+from (select group_id
+      from group_users
+      where group_users.user_id = $1) m
+         inner join (select organizational_unit_id, group_id
+                     from organizational_units_groups
+                              inner join organizational_units on organizational_units.id =
+                                                                 organizational_units_groups.organizational_unit_id) o
+                    on m.group_id = o.group_id
+         inner join (select id, parent_id, display_name, created_at, updated_at
+                     from organizational_units) o2 on o.organizational_unit_id = o2.id
+`
+
+func (q *Queries) GetUserOrganizationalUnits(ctx context.Context, userID uuid.UUID) ([]OrganizationalUnit, error) {
+	rows, err := q.db.Query(ctx, getUserOrganizationalUnits, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []OrganizationalUnit
+	for rows.Next() {
+		var i OrganizationalUnit
+		if err := rows.Scan(
+			&i.ID,
+			&i.ParentID,
+			&i.DisplayName,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getUsers = `-- name: GetUsers :many
@@ -1100,6 +1261,57 @@ func (q *Queries) InsertScimAPIKey(ctx context.Context, apiKeyID uuid.UUID) (Sci
 	return i, err
 }
 
+const organizationalUnitsCloudAccounts = `-- name: OrganizationalUnitsCloudAccounts :many
+WITH RECURSIVE organizational_unit_ids(id, parent_id, display_name) AS (SELECT id,
+                                                                               parent_id,
+                                                                               display_name
+                                                                        FROM organizational_units
+                                                                        WHERE id = ANY ($1::uuid[])
+                                                                        UNION ALL
+                                                                        SELECT o2.id,
+                                                                               o2.parent_id,
+                                                                               o2.display_name
+                                                                        FROM organizational_units o2
+                                                                                 INNER JOIN organizational_unit_ids o ON o.id = o2.parent_id)
+SELECT cloud_accounts.id, cloud_accounts.cloud, cloud_accounts.tenant_id, cloud_accounts.account_id, cloud_accounts.name, cloud_accounts.active, cloud_accounts.tags_current, cloud_accounts.tags_desired, cloud_accounts.tags_drift_detected, cloud_accounts.created_at, cloud_accounts.updated_at
+FROM organizational_unit_ids
+         join organizational_units_cloud_accounts
+              on organizational_unit_ids.id = organizational_units_cloud_accounts.organizational_unit_id
+         join cloud_accounts on organizational_units_cloud_accounts.cloud_account_id = cloud_accounts.id
+`
+
+func (q *Queries) OrganizationalUnitsCloudAccounts(ctx context.Context, dollar_1 []uuid.UUID) ([]CloudAccount, error) {
+	rows, err := q.db.Query(ctx, organizationalUnitsCloudAccounts, dollar_1)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []CloudAccount
+	for rows.Next() {
+		var i CloudAccount
+		if err := rows.Scan(
+			&i.ID,
+			&i.Cloud,
+			&i.TenantID,
+			&i.AccountID,
+			&i.Name,
+			&i.Active,
+			&i.TagsCurrent,
+			&i.TagsDesired,
+			&i.TagsDriftDetected,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const patchGroupDisplayName = `-- name: PatchGroupDisplayName :exec
 update groups
 set display_name = $2,
@@ -1131,49 +1343,6 @@ type PatchUserParams struct {
 
 func (q *Queries) PatchUser(ctx context.Context, arg PatchUserParams) error {
 	_, err := q.db.Exec(ctx, patchUser, arg.ID, arg.Active)
-	return err
-}
-
-const removePoliciesForGroup = `-- name: RemovePoliciesForGroup :exec
-delete
-from policies
-where ptype = 'g'
-  and v1 = $1
-`
-
-func (q *Queries) RemovePoliciesForGroup(ctx context.Context, v1 string) error {
-	_, err := q.db.Exec(ctx, removePoliciesForGroup, v1)
-	return err
-}
-
-const removePolicy = `-- name: RemovePolicy :exec
-delete
-from policies
-where id = uuid_generate_v5('6ba7b812-9dad-11d1-80b4-00c04fd430c8',
-                            concat($1, $2, $3, $4, $5,
-                                   $6, $7))
-`
-
-type RemovePolicyParams struct {
-	Ptype interface{}
-	V0    interface{}
-	V1    interface{}
-	V2    interface{}
-	V3    interface{}
-	V4    interface{}
-	V5    interface{}
-}
-
-func (q *Queries) RemovePolicy(ctx context.Context, arg RemovePolicyParams) error {
-	_, err := q.db.Exec(ctx, removePolicy,
-		arg.Ptype,
-		arg.V0,
-		arg.V1,
-		arg.V2,
-		arg.V3,
-		arg.V4,
-		arg.V5,
-	)
 	return err
 }
 
@@ -1227,12 +1396,14 @@ func (q *Queries) SearchTag(ctx context.Context, arg SearchTagParams) ([]CloudAc
 	return items, nil
 }
 
-const truncatePolicies = `-- name: TruncatePolicies :exec
-truncate policies
+const unAssignAccountFromOUs = `-- name: UnAssignAccountFromOUs :exec
+delete
+from organizational_units_cloud_accounts
+where cloud_account_id = $1
 `
 
-func (q *Queries) TruncatePolicies(ctx context.Context) error {
-	_, err := q.db.Exec(ctx, truncatePolicies)
+func (q *Queries) UnAssignAccountFromOUs(ctx context.Context, cloudAccountID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, unAssignAccountFromOUs, cloudAccountID)
 	return err
 }
 
@@ -1280,7 +1451,7 @@ func (q *Queries) UpdateCloudAccountTagsDriftDetected(ctx context.Context, arg U
 }
 
 const updateTag = `-- name: UpdateTag :exec
-update tags
+update standard_tags
 set display_name = $2,
     key          = $3,
     description  = $4,

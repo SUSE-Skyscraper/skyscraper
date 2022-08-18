@@ -4,21 +4,36 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/casbin/casbin/v2"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/render"
 	"github.com/suse-skyscraper/skyscraper/internal/application"
 	"github.com/suse-skyscraper/skyscraper/internal/auth"
+	"github.com/suse-skyscraper/skyscraper/internal/fga"
+	"github.com/suse-skyscraper/skyscraper/internal/server/responses"
 )
 
-func EnforcerHandler(app *application.App) func(next http.Handler) http.Handler {
-	enforcer := newEnforcer(app)
-
+func EnforcerHandler(app *application.App, document fga.Document, relation fga.Relation) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			result, err := enforcer.Enforce(r)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
+			caller, ok := r.Context().Value(ContextCaller).(auth.Caller)
+			if !ok {
+				_ = render.Render(w, r, responses.ErrInternalServerError)
 				return
-			} else if !result {
+			}
+
+			var objectID string
+			switch document {
+			case fga.DocumentAccount:
+				objectID = chi.URLParam(r, "id")
+			case fga.DocumentOrganization:
+				objectID = fga.DefaultOrganizationID
+			}
+
+			allowed, err := app.FGAClient.Check(r.Context(), caller.ID, relation, document, objectID)
+			if err != nil {
+				_ = render.Render(w, r, responses.ErrInternalServerError)
+				return
+			} else if !allowed {
 				w.WriteHeader(http.StatusUnauthorized)
 				_, _ = fmt.Fprintf(w, "Not Authorized")
 				return
@@ -27,26 +42,4 @@ func EnforcerHandler(app *application.App) func(next http.Handler) http.Handler 
 			next.ServeHTTP(w, r)
 		})
 	}
-}
-
-type apiEnforcer struct {
-	enforcer *casbin.Enforcer
-}
-
-func newEnforcer(app *application.App) apiEnforcer {
-	return apiEnforcer{app.Enforcer}
-}
-
-func (a *apiEnforcer) Enforce(r *http.Request) (bool, error) {
-	caller, ok := r.Context().Value(ContextCaller).(auth.Caller)
-	if !ok {
-		return false, nil
-	}
-
-	result, err := a.enforcer.Enforce(caller.ID.String(), r.URL.Path, r.Method)
-	if err != nil {
-		return false, err
-	}
-
-	return result, nil
 }

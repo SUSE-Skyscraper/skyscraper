@@ -110,7 +110,13 @@ func V2DeleteGroup(app *application.App) func(w http.ResponseWriter, r *http.Req
 	return func(w http.ResponseWriter, r *http.Request) {
 		group := r.Context().Value(middleware.Group).(db.Group)
 
-		err := app.Repository.DeleteGroup(r.Context(), group.ID.String())
+		err := app.FGAClient.RemoveUsersInGroup(r.Context(), group.ID)
+		if err != nil {
+			_ = render.Render(w, r, responses.ErrInternalServerError)
+			return
+		}
+
+		err = app.Repository.DeleteGroup(r.Context(), group.ID.String())
 		if err != nil {
 			_ = render.Render(w, r, responses.ErrInternalServerError)
 			return

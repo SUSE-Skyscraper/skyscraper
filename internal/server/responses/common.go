@@ -10,13 +10,14 @@ import (
 type ObjectResponseType string
 
 const (
-	ObjectResponseTypeUnknown      ObjectResponseType = ""
-	ObjectResponseTypeUser         ObjectResponseType = "user"
-	ObjectResponseTypeAuditLog     ObjectResponseType = "audit_log"
-	ObjectResponseTypeCloudAccount ObjectResponseType = "cloud_account"
-	ObjectResponseTypeCloudTenant  ObjectResponseType = "cloud_tenant"
-	ObjectResponseTypeTag          ObjectResponseType = "tag"
-	ObjectResponseTypeAPIKey       ObjectResponseType = "api_key"
+	ObjectResponseTypeUnknown            ObjectResponseType = ""
+	ObjectResponseTypeUser               ObjectResponseType = "user"
+	ObjectResponseTypeAuditLog           ObjectResponseType = "audit_log"
+	ObjectResponseTypeCloudAccount       ObjectResponseType = "cloud_account"
+	ObjectResponseTypeCloudTenant        ObjectResponseType = "cloud_tenant"
+	ObjectResponseTypeTag                ObjectResponseType = "tag"
+	ObjectResponseTypeAPIKey             ObjectResponseType = "api_key"
+	ObjectResponseTypeOrganizationalUnit ObjectResponseType = "organizational_unit"
 )
 
 func parseDBCallerType(callerType db.CallerType) ObjectResponseType {
@@ -41,6 +42,7 @@ type Relationship struct {
 
 var ErrNotFound = &ErrResponse{HTTPStatusCode: 404, StatusText: "Resource not found."}
 var ErrInternalServerError = &ErrResponse{HTTPStatusCode: 500, StatusText: "internal error"}
+var ErrOrganizationNotEmpty = &ErrResponse{HTTPStatusCode: 400, StatusText: "Bad Request - Organization not empty."}
 
 type ErrResponse struct {
 	Err            error `json:"-"` // low-level runtime error

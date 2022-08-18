@@ -29,7 +29,7 @@ export class BackendService {
   }
 
   getProfile(): Observable<UserResponse> {
-    const url = new URL('/api/v1/profile', this.host);
+    const url = new URL('/api/v1/caller/profile', this.host);
 
     return this.http.get<UserResponse>(url.href);
   }
@@ -47,19 +47,19 @@ export class BackendService {
   }
 
   getTags(): Observable<TagsResponse> {
-    const url = new URL(`/api/v1/tags`, this.host);
+    const url = new URL(`/api/v1/standard_tags`, this.host);
 
     return this.http.get<TagsResponse>(url.href);
   }
 
   updateTag(id: string, update: UpdateTagRequest): Observable<TagsResponse> {
-    const url = new URL(`/api/v1/tags/${id}`, this.host);
+    const url = new URL(`/api/v1/standard_tags/${id}`, this.host);
 
     return this.http.put<TagResponse>(url.href, update);
   }
 
   createTag(update: CreateTagRequest): Observable<TagsResponse> {
-    const url = new URL(`/api/v1/tags`, this.host);
+    const url = new URL(`/api/v1/standard_tags`, this.host);
 
     return this.http.post<TagResponse>(url.href, update);
   }

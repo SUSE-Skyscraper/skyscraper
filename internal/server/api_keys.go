@@ -86,7 +86,7 @@ func V1CreateAPIKey(app *application.App) func(w http.ResponseWriter, r *http.Re
 		}
 
 		// audit the change
-		err = auditor.Audit(r.Context(), db.AuditResourceTypeApiKey, apiKey.ID, payload)
+		err = auditor.AuditChange(r.Context(), db.AuditResourceTypeApiKey, apiKey.ID, payload)
 		if err != nil {
 			_ = render.Render(w, r, responses.ErrInternalServerError)
 			return

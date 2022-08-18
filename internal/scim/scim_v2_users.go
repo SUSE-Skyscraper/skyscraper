@@ -1,7 +1,9 @@
 package scim
 
 import (
+	"context"
 	"database/sql"
+	"log"
 	"net/http"
 
 	"github.com/go-chi/render"
@@ -71,7 +73,17 @@ func V2CreateUser(app *application.App) func(w http.ResponseWriter, r *http.Requ
 			return
 		}
 
-		user, err := app.Repository.CreateUser(r.Context(), db.CreateUserParams{
+		tx, err := app.Repository.Begin(r.Context())
+		if err != nil {
+			_ = render.Render(w, r, responses.ErrInternalServerError)
+			return
+		}
+
+		defer func(tx db.RepositoryQueries, ctx context.Context) {
+			_ = tx.Rollback(ctx)
+		}(tx, r.Context())
+
+		user, err := tx.CreateUser(r.Context(), db.CreateUserParams{
 			Username: payload.Username,
 			Name:     payload.GetJSONName(),
 			Active:   payload.Active,
@@ -97,6 +109,23 @@ func V2CreateUser(app *application.App) func(w http.ResponseWriter, r *http.Requ
 			return
 		}
 
+		err = app.FGAClient.AddUserToOrganization(r.Context(), user.ID)
+		if err != nil {
+			_ = render.Render(w, r, responses.ErrInternalServerError)
+			return
+		}
+
+		err = tx.Commit(r.Context())
+		if err != nil {
+			err = app.FGAClient.RemoveUserFromOrganization(r.Context(), user.ID)
+			if err != nil {
+				log.Println("failed to create user")
+			}
+
+			_ = render.Render(w, r, responses.ErrInternalServerError)
+			return
+		}
+
 		RenderScimJSON(w, r, http.StatusCreated, responses.NewScimUserResponse(app.Config, user))
 	}
 }
@@ -109,7 +138,29 @@ func V2DeleteUser(app *application.App) func(w http.ResponseWriter, r *http.Requ
 			return
 		}
 
-		err := app.Repository.DeleteUser(r.Context(), user.ID)
+		tx, err := app.Repository.Begin(r.Context())
+		if err != nil {
+			_ = render.Render(w, r, responses.ErrInternalServerError)
+			return
+		}
+
+		defer func(tx db.RepositoryQueries, ctx context.Context) {
+			_ = tx.Rollback(ctx)
+		}(tx, r.Context())
+
+		err = tx.DeleteUser(r.Context(), user.ID)
+		if err != nil {
+			_ = render.Render(w, r, responses.ErrInternalServerError)
+			return
+		}
+
+		err = app.FGAClient.RemoveUser(r.Context(), user.ID)
+		if err != nil {
+			_ = render.Render(w, r, responses.ErrInternalServerError)
+			return
+		}
+
+		err = tx.Commit(r.Context())
 		if err != nil {
 			_ = render.Render(w, r, responses.ErrInternalServerError)
 			return

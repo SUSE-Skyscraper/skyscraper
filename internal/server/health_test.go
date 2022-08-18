@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/suse-skyscraper/skyscraper/internal/helpers"
+	"github.com/suse-skyscraper/skyscraper/internal/testhelpers"
 )
 
 func TestHealth(t *testing.T) {
@@ -14,7 +14,7 @@ func TestHealth(t *testing.T) {
 	w := httptest.NewRecorder()
 	Health(w, req)
 
-	_ = helpers.AssertOpenAPI(t, w, req)
+	_ = testhelpers.AssertOpenAPI(t, w, req)
 
 	result := w.Result()
 	assert.Equal(t, http.StatusOK, result.StatusCode)

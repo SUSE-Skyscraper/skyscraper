@@ -72,39 +72,31 @@ func (o *GroupPatchOperation) GetPatch() (GroupPatch, error) {
 	return patch, nil
 }
 
-func (o *GroupPatchOperation) GetAddMembersPatch() ([]MemberPatch, error) {
+func (o *GroupPatchOperation) GetAddMembersPatch() ([]uuid.UUID, error) {
 	members, ok := o.Value.([]interface{})
 	if !ok {
-		return []MemberPatch{}, errors.New("invalid value type")
+		return []uuid.UUID{}, errors.New("invalid value type")
 	}
 
-	var patches []MemberPatch
+	var patches []uuid.UUID
 
 	for _, memberInterface := range members {
 		member, ok := memberInterface.(map[string]interface{})
 		if !ok {
-			return []MemberPatch{}, errors.New("invalid value type")
-		}
-
-		display, ok := member["display"].(string)
-		if !ok {
-			return []MemberPatch{}, errors.New("invalid value type")
+			return []uuid.UUID{}, errors.New("invalid value type")
 		}
 
 		value, ok := member["value"].(string)
 		if !ok {
-			return []MemberPatch{}, errors.New("invalid value type")
+			return []uuid.UUID{}, errors.New("invalid value type")
 		}
 
 		id, err := uuid.Parse(value)
 		if err != nil {
-			return []MemberPatch{}, errors.New("invalid value type")
+			return []uuid.UUID{}, errors.New("invalid value type")
 		}
 
-		patches = append(patches, MemberPatch{
-			Display: display,
-			Value:   id,
-		})
+		patches = append(patches, id)
 	}
 
 	return patches, nil

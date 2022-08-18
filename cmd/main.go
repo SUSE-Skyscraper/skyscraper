@@ -7,6 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/suse-skyscraper/skyscraper/cmd/app/cloudsync"
+	"github.com/suse-skyscraper/skyscraper/cmd/app/fga"
 	"github.com/suse-skyscraper/skyscraper/cmd/app/migrate"
 	"github.com/suse-skyscraper/skyscraper/cmd/app/scim"
 	"github.com/suse-skyscraper/skyscraper/cmd/app/server"
@@ -23,7 +24,7 @@ func main() {
 	}
 
 	rootCmd := &cobra.Command{
-		Use: "cloud-dashboard",
+		Use: "skyscraper",
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			err := app.Start(ctx)
 			if err != nil {
@@ -42,6 +43,7 @@ func main() {
 	rootCmd.AddCommand(migrate.NewCmd(app))
 	rootCmd.AddCommand(worker.NewCmd(app))
 	rootCmd.AddCommand(scim.NewCmd(app))
+	rootCmd.AddCommand(fga.NewCmd(app))
 
 	err = rootCmd.Execute()
 	if err != nil {

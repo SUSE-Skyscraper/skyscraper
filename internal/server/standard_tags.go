@@ -13,7 +13,7 @@ import (
 	"github.com/suse-skyscraper/skyscraper/internal/server/responses"
 )
 
-func V1Tags(app *application.App) func(w http.ResponseWriter, r *http.Request) {
+func V1StandardTags(app *application.App) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		tags, err := app.Repository.GetTags(r.Context())
 		if err != nil {
@@ -25,7 +25,7 @@ func V1Tags(app *application.App) func(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func V1UpdateTag(app *application.App) func(w http.ResponseWriter, r *http.Request) {
+func V1UpdateStandardTag(app *application.App) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// bind the payload
 		var payload payloads.UpdateTagPayload
@@ -36,7 +36,7 @@ func V1UpdateTag(app *application.App) func(w http.ResponseWriter, r *http.Reque
 		}
 
 		// Get the tag we want to change from the context
-		tag, ok := r.Context().Value(middleware.ContextTag).(db.Tag)
+		tag, ok := r.Context().Value(middleware.ContextTag).(db.StandardTag)
 		if !ok {
 			_ = render.Render(w, r, responses.ErrNotFound)
 			return
@@ -70,7 +70,7 @@ func V1UpdateTag(app *application.App) func(w http.ResponseWriter, r *http.Reque
 		}
 
 		// audit the change
-		err = auditor.Audit(r.Context(), db.AuditResourceTypeTag, tag.ID, payload)
+		err = auditor.AuditChange(r.Context(), db.AuditResourceTypeTag, tag.ID, payload)
 		if err != nil {
 			_ = render.Render(w, r, responses.ErrInternalServerError)
 			return
@@ -87,7 +87,7 @@ func V1UpdateTag(app *application.App) func(w http.ResponseWriter, r *http.Reque
 	}
 }
 
-func V1CreateTag(app *application.App) func(w http.ResponseWriter, r *http.Request) {
+func V1CreateStandardTag(app *application.App) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// bind the payload
 		var payload payloads.CreateTagPayload
@@ -124,7 +124,7 @@ func V1CreateTag(app *application.App) func(w http.ResponseWriter, r *http.Reque
 		}
 
 		// audit the change
-		err = auditor.Audit(r.Context(), db.AuditResourceTypeTag, tag.ID, payload)
+		err = auditor.AuditChange(r.Context(), db.AuditResourceTypeTag, tag.ID, payload)
 		if err != nil {
 			_ = render.Render(w, r, responses.ErrInternalServerError)
 			return

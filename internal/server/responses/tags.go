@@ -37,13 +37,13 @@ func (rd *TagsResponse) Render(_ http.ResponseWriter, _ *http.Request) error {
 	return nil
 }
 
-func NewTagResponse(tag db.Tag) *TagResponse {
+func NewTagResponse(tag db.StandardTag) *TagResponse {
 	return &TagResponse{
 		Data: newTagItem(tag),
 	}
 }
 
-func NewTagsResponse(tags []db.Tag) *TagsResponse {
+func NewTagsResponse(tags []db.StandardTag) *TagsResponse {
 	list := make([]TagItem, len(tags))
 	for i, tag := range tags {
 		list[i] = newTagItem(tag)
@@ -54,7 +54,7 @@ func NewTagsResponse(tags []db.Tag) *TagsResponse {
 	}
 }
 
-func newTagItem(tag db.Tag) TagItem {
+func newTagItem(tag db.StandardTag) TagItem {
 	return TagItem{
 		ID:   tag.ID.String(),
 		Type: ObjectResponseTypeTag,

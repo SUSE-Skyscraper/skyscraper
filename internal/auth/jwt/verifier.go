@@ -2,6 +2,7 @@ package jwt
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	jwtverifier "github.com/okta/okta-jwt-verifier-golang"
@@ -52,6 +53,10 @@ func (v *Verifier) Verify(ctx context.Context, authorizationHeader string) (auth
 	user, err := v.app.Repository.FindUserByUsername(ctx, username)
 	if err != nil {
 		return auth.Caller{}, false, err
+	}
+
+	if !user.Active {
+		return auth.Caller{}, false, fmt.Errorf("user is not active")
 	}
 
 	caller := auth.Caller{

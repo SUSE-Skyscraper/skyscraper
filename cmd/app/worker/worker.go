@@ -184,7 +184,7 @@ func changeAwsTags(ctx context.Context, app *application.App, input changeAWSTag
 		}
 	}
 
-	err = organizations.SyncTags(ctx, app, awsclient.SyncTagsInput{
+	_, err = organizations.SyncTags(ctx, app, awsclient.SyncTagsInput{
 		TenantID:    input.tenantID,
 		AccountID:   input.accountID,
 		AccountName: input.accountName,

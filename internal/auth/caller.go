@@ -10,7 +10,8 @@ import (
 type CallerType int
 
 const (
-	CallerUser CallerType = iota
+	_ CallerType = iota
+	CallerUser
 	CallerAPIKey
 )
 

@@ -62,10 +62,10 @@ type SyncTagsInput struct {
 	AccountName string
 }
 
-func (o *OrganizationsClient) SyncTags(ctx context.Context, app *application.App, input SyncTagsInput) error {
+func (o *OrganizationsClient) SyncTags(ctx context.Context, app *application.App, input SyncTagsInput) (*db.CloudAccount, error) {
 	accountTags, err := o.ListTagsForAccount(ctx, input.AccountID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	var tags = make(map[string]string)
@@ -75,7 +75,7 @@ func (o *OrganizationsClient) SyncTags(ctx context.Context, app *application.App
 	json := pgtype.JSONB{}
 	err = json.Set(tags)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	account, err := app.Repository.CreateOrInsertCloudAccount(ctx, db.CreateOrInsertCloudAccountParams{
@@ -87,7 +87,7 @@ func (o *OrganizationsClient) SyncTags(ctx context.Context, app *application.App
 		TagsDesired: json,
 	})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	driftDetected := !reflect.DeepEqual(account.TagsDesired, account.TagsCurrent)
@@ -100,9 +100,9 @@ func (o *OrganizationsClient) SyncTags(ctx context.Context, app *application.App
 			TagsDriftDetected: driftDetected,
 		})
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
-	return nil
+	return &account, nil
 }

@@ -34,15 +34,6 @@ create table groups
     updated_at   timestamp    not null default now()
 );
 
-create table group_members
-(
-    id         serial primary key,
-    group_id   uuid      not null references groups (id) on delete cascade,
-    user_id    uuid      not null references users (id) on delete cascade,
-    created_at timestamp not null default now(),
-    updated_at timestamp not null default now(),
-    unique (group_id, user_id)
-);
 
 create table api_keys
 (
@@ -65,9 +56,24 @@ create table scim_api_keys
     FOREIGN KEY (api_key_id) references api_keys (id) on delete cascade
 );
 
+create table group_users
+(
+    group_id uuid not null references groups (id) on delete cascade,
+    user_id  uuid not null references users (id) on delete cascade,
+    unique (group_id, user_id)
+);
+
+create table group_api_keys
+(
+    group_id   uuid not null references groups (id) on delete cascade,
+    api_key_id uuid not null references api_keys (id) on delete cascade,
+    unique (group_id, api_key_id)
+);
+
 -- +goose Down
+drop table group_users;
+drop table group_api_keys;
 drop table scim_api_keys;
 drop table api_keys;
-drop table group_members;
 drop table groups;
 drop table users;
