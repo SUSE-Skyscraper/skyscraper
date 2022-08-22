@@ -31,7 +31,7 @@ jobs:
 
       - name: start_jetstream
         run: |
-          docker cp ${{ github.workspace }}/.github/workflows/nats-entrypoint.sh jetstream:/usr/local/bin/docker-entrypoint.sh
+          docker cp ${{ github.workspace }}/.github/test-config/nats-entrypoint.sh jetstream:/usr/local/bin/docker-entrypoint.sh
           docker restart jetstream
 
       - name: Set up Go
@@ -51,7 +51,7 @@ jobs:
 
       - name: Configure Tests
         run: |
-          cp ${{ github.workspace }}/.github/workflows/config.yaml .
+          cp ${{ github.workspace }}/.github/test-config/config.yaml .
           go run ./cmd/main.go migrate up
 
       - name: Test
