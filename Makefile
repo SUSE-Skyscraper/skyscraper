@@ -1,5 +1,5 @@
 .ONESHELL:
-.PHONY: lint fmt build test dev_cert
+.PHONY: lint fmt build dev_cert test test_unit test_integration
 
 lint:
 	golangci-lint run
@@ -15,8 +15,13 @@ fmt:
 build:
 	go build -v ./cmd/main.go
 
-test:
+test: test_unit test_integration
+
+test_unit:
 	go test -v ./cmd/... ./internal/...
+
+test_integration:
+	go test -v ./test/...
 
 dev_ca:
 	cd kubernetes/ca/keys

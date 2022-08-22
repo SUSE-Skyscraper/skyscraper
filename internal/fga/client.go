@@ -16,7 +16,10 @@ type Client struct {
 type Authorizer interface {
 	Check(ctx context.Context, callerID uuid.UUID, relation Relation, document Document, objectID string) (bool, error)
 	SetTypeDefinitions(ctx context.Context, typeDefinitionsContent string) (string, error)
-	RunAssertions(ctx context.Context, typeDefinitionsContent string) (bool, error)
+
+	RunAssertions(ctx context.Context, authorizationModelID string) (bool, error)
+	WriteTuples(ctx context.Context, tuples []openfga.TupleKey) error
+	WriteAssertions(ctx context.Context, authorizationModelID string, assertions []openfga.Assertion) error
 
 	RemoveUser(ctx context.Context, userID uuid.UUID) error
 	UserTuples(ctx context.Context, userID uuid.UUID, document string) ([]openfga.TupleKey, error)
@@ -43,40 +46,6 @@ func NewClient(fgaAPI *openfga.APIClient) Authorizer {
 	return &Client{
 		fgaAPI: fgaAPI,
 	}
-}
-
-func (c *Client) RunAssertions(ctx context.Context, typeDefinitionsContent string) (bool, error) {
-	resp, _, err := c.fgaAPI.OpenFgaApi.CreateStore(ctx).Body(openfga.CreateStoreRequest{
-		Name: openfga.PtrString("test"),
-	}).Execute()
-	if err != nil {
-		return false, err
-	}
-
-	storeID := resp.GetId()
-
-	c.fgaAPI.SetStoreId(storeID)
-
-	defer func(deleteStore openfga.ApiDeleteStoreRequest) {
-		_, _ = deleteStore.Execute()
-	}(c.fgaAPI.OpenFgaApi.DeleteStore(ctx))
-
-	typeDefinitionID, err := c.SetTypeDefinitions(ctx, typeDefinitionsContent)
-	if err != nil {
-		return false, err
-	}
-
-	err = c.writeAssertionTuples(ctx)
-	if err != nil {
-		return false, err
-	}
-
-	err = c.writeAssertions(ctx, typeDefinitionID)
-	if err != nil {
-		return false, err
-	}
-
-	return c.readAssertions(ctx, typeDefinitionID)
 }
 
 func (c *Client) Check(ctx context.Context, callerID uuid.UUID, relation Relation, document Document, objectID string) (bool, error) {
@@ -478,7 +447,7 @@ func (c *Client) organizationalUnitParentID(parentID uuid.NullUUID) string {
 	return "organization:default"
 }
 
-func (c *Client) readAssertions(ctx context.Context, authorizationModelID string) (bool, error) {
+func (c *Client) RunAssertions(ctx context.Context, authorizationModelID string) (bool, error) {
 	resp, _, err := c.fgaAPI.OpenFgaApi.ReadAssertions(ctx, authorizationModelID).Execute()
 	if err != nil {
 		return false, err
@@ -501,71 +470,10 @@ func (c *Client) readAssertions(ctx context.Context, authorizationModelID string
 	return true, nil
 }
 
-func (c *Client) writeAssertionTuples(ctx context.Context) error {
+func (c *Client) WriteTuples(ctx context.Context, tuples []openfga.TupleKey) error {
 	body := openfga.WriteRequest{
 		Writes: &openfga.TupleKeys{
-			TupleKeys: []openfga.TupleKey{
-				{
-					User:     openfga.PtrString("org-test-editor"),
-					Relation: openfga.PtrString("editor"),
-					Object:   openfga.PtrString("organization:default"),
-				},
-				{
-					User:     openfga.PtrString("org-test-viewer"),
-					Relation: openfga.PtrString("viewer"),
-					Object:   openfga.PtrString("organization:default"),
-				},
-				{
-					User:     openfga.PtrString("test-admin-user"),
-					Relation: openfga.PtrString("member"),
-					Object:   openfga.PtrString("group:group-org-admins"),
-				},
-				{
-					User:     openfga.PtrString("group:group-org-admins#member"),
-					Relation: openfga.PtrString("editor"),
-					Object:   openfga.PtrString("organization:default"),
-				},
-				{
-					User:     openfga.PtrString("test-viewer-user"),
-					Relation: openfga.PtrString("member"),
-					Object:   openfga.PtrString("group:group-org-viewers"),
-				},
-				{
-					User:     openfga.PtrString("group:group-org-viewers#member"),
-					Relation: openfga.PtrString("viewer"),
-					Object:   openfga.PtrString("organization:default"),
-				},
-				{
-					User:     openfga.PtrString("test-ou-1-editor-user"),
-					Relation: openfga.PtrString("member"),
-					Object:   openfga.PtrString("group:group-ou-1-editors"),
-				},
-				{
-					User:     openfga.PtrString("group:group-ou-1-editors#member"),
-					Relation: openfga.PtrString("editor"),
-					Object:   openfga.PtrString("organizational_unit:ou-1"),
-				},
-				{
-					User:     openfga.PtrString("test-ou-1-viewer-user"),
-					Relation: openfga.PtrString("member"),
-					Object:   openfga.PtrString("group:group-ou-1-viewers"),
-				},
-				{
-					User:     openfga.PtrString("group:group-ou-1-viewers#member"),
-					Relation: openfga.PtrString("viewer"),
-					Object:   openfga.PtrString("organizational_unit:ou-1"),
-				},
-				{
-					User:     openfga.PtrString("organizational_unit:ou-1"),
-					Relation: openfga.PtrString("parent"),
-					Object:   openfga.PtrString("account:account-1"),
-				},
-				{
-					User:     openfga.PtrString("organizational_unit:ou-2"),
-					Relation: openfga.PtrString("parent"),
-					Object:   openfga.PtrString("account:account-2"),
-				},
-			},
+			TupleKeys: tuples,
 		},
 	}
 
@@ -577,202 +485,9 @@ func (c *Client) writeAssertionTuples(ctx context.Context) error {
 	return nil
 }
 
-func (c *Client) writeAssertions(ctx context.Context, authorizationModelID string) error {
+func (c *Client) WriteAssertions(ctx context.Context, authorizationModelID string, assertions []openfga.Assertion) error {
 	body := openfga.WriteAssertionsRequest{
-		Assertions: []openfga.Assertion{
-			{
-				TupleKey: &openfga.TupleKey{
-					User:     openfga.PtrString("org-test-editor"),
-					Relation: openfga.PtrString("editor"),
-					Object:   openfga.PtrString("organization:default"),
-				},
-				Expectation: true,
-			},
-			{
-				TupleKey: &openfga.TupleKey{
-					User:     openfga.PtrString("org-test-editor"),
-					Relation: openfga.PtrString("viewer"),
-					Object:   openfga.PtrString("organization:default"),
-				},
-				Expectation: true,
-			},
-			{
-				TupleKey: &openfga.TupleKey{
-					User:     openfga.PtrString("org-test-viewer"),
-					Relation: openfga.PtrString("viewer"),
-					Object:   openfga.PtrString("organization:default"),
-				},
-				Expectation: true,
-			},
-			{
-				TupleKey: &openfga.TupleKey{
-					User:     openfga.PtrString("org-test-viewer"),
-					Relation: openfga.PtrString("editor"),
-					Object:   openfga.PtrString("organization:default"),
-				},
-				Expectation: false,
-			},
-			{
-				TupleKey: &openfga.TupleKey{
-					User:     openfga.PtrString("test-admin-user"),
-					Relation: openfga.PtrString("editor"),
-					Object:   openfga.PtrString("organization:default"),
-				},
-				Expectation: true,
-			},
-			{
-				TupleKey: &openfga.TupleKey{
-					User:     openfga.PtrString("test-admin-user"),
-					Relation: openfga.PtrString("viewer"),
-					Object:   openfga.PtrString("organization:default"),
-				},
-				Expectation: true,
-			},
-			{
-				TupleKey: &openfga.TupleKey{
-					User:     openfga.PtrString("test-viewer-user"),
-					Relation: openfga.PtrString("editor"),
-					Object:   openfga.PtrString("organization:default"),
-				},
-				Expectation: false,
-			},
-			{
-				TupleKey: &openfga.TupleKey{
-					User:     openfga.PtrString("test-viewer-user"),
-					Relation: openfga.PtrString("viewer"),
-					Object:   openfga.PtrString("organization:default"),
-				},
-				Expectation: true,
-			},
-			{
-				TupleKey: &openfga.TupleKey{
-					User:     openfga.PtrString("test-ou-1-viewer-user"),
-					Relation: openfga.PtrString("viewer"),
-					Object:   openfga.PtrString("organization:default"),
-				},
-				Expectation: false,
-			},
-			{
-				TupleKey: &openfga.TupleKey{
-					User:     openfga.PtrString("test-ou-1-viewer-user"),
-					Relation: openfga.PtrString("editor"),
-					Object:   openfga.PtrString("organization:default"),
-				},
-				Expectation: false,
-			},
-			{
-				TupleKey: &openfga.TupleKey{
-					User:     openfga.PtrString("test-ou-1-editor-user"),
-					Relation: openfga.PtrString("viewer"),
-					Object:   openfga.PtrString("organization:default"),
-				},
-				Expectation: false,
-			},
-			{
-				TupleKey: &openfga.TupleKey{
-					User:     openfga.PtrString("test-ou-1-editor-user"),
-					Relation: openfga.PtrString("editor"),
-					Object:   openfga.PtrString("organization:default"),
-				},
-				Expectation: false,
-			},
-			{
-				TupleKey: &openfga.TupleKey{
-					User:     openfga.PtrString("test-ou-1-editor-user"),
-					Relation: openfga.PtrString("viewer"),
-					Object:   openfga.PtrString("organizational_unit:ou-1"),
-				},
-				Expectation: true,
-			},
-			{
-				TupleKey: &openfga.TupleKey{
-					User:     openfga.PtrString("test-ou-1-editor-user"),
-					Relation: openfga.PtrString("editor"),
-					Object:   openfga.PtrString("organizational_unit:ou-1"),
-				},
-				Expectation: true,
-			},
-			{
-				TupleKey: &openfga.TupleKey{
-					User:     openfga.PtrString("test-ou-1-viewer-user"),
-					Relation: openfga.PtrString("viewer"),
-					Object:   openfga.PtrString("organizational_unit:ou-1"),
-				},
-				Expectation: true,
-			},
-			{
-				TupleKey: &openfga.TupleKey{
-					User:     openfga.PtrString("test-ou-1-viewer-user"),
-					Relation: openfga.PtrString("editor"),
-					Object:   openfga.PtrString("organizational_unit:ou-1"),
-				},
-				Expectation: false,
-			},
-			{
-				TupleKey: &openfga.TupleKey{
-					User:     openfga.PtrString("test-ou-1-viewer-user"),
-					Relation: openfga.PtrString("viewer"),
-					Object:   openfga.PtrString("account:account-1"),
-				},
-				Expectation: true,
-			},
-			{
-				TupleKey: &openfga.TupleKey{
-					User:     openfga.PtrString("test-ou-1-viewer-user"),
-					Relation: openfga.PtrString("editor"),
-					Object:   openfga.PtrString("account:account-1"),
-				},
-				Expectation: false,
-			},
-			{
-				TupleKey: &openfga.TupleKey{
-					User:     openfga.PtrString("test-ou-1-editor-user"),
-					Relation: openfga.PtrString("editor"),
-					Object:   openfga.PtrString("account:account-1"),
-				},
-				Expectation: true,
-			},
-			{
-				TupleKey: &openfga.TupleKey{
-					User:     openfga.PtrString("test-ou-1-editor-user"),
-					Relation: openfga.PtrString("viewer"),
-					Object:   openfga.PtrString("account:account-1"),
-				},
-				Expectation: true,
-			},
-			{
-				TupleKey: &openfga.TupleKey{
-					User:     openfga.PtrString("test-ou-1-viewer-user"),
-					Relation: openfga.PtrString("viewer"),
-					Object:   openfga.PtrString("account:account-2"),
-				},
-				Expectation: false,
-			},
-			{
-				TupleKey: &openfga.TupleKey{
-					User:     openfga.PtrString("test-ou-1-viewer-user"),
-					Relation: openfga.PtrString("editor"),
-					Object:   openfga.PtrString("account:account-2"),
-				},
-				Expectation: false,
-			},
-			{
-				TupleKey: &openfga.TupleKey{
-					User:     openfga.PtrString("test-ou-1-editor-user"),
-					Relation: openfga.PtrString("editor"),
-					Object:   openfga.PtrString("account:account-2"),
-				},
-				Expectation: false,
-			},
-			{
-				TupleKey: &openfga.TupleKey{
-					User:     openfga.PtrString("test-ou-1-editor-user"),
-					Relation: openfga.PtrString("viewer"),
-					Object:   openfga.PtrString("account:account-2"),
-				},
-				Expectation: false,
-			},
-		},
+		Assertions: assertions,
 	}
 
 	_, err := c.fgaAPI.OpenFgaApi.WriteAssertions(ctx, authorizationModelID).Body(body).Execute()
