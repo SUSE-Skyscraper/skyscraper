@@ -43,8 +43,20 @@ type TestFGAAuthorizer struct {
 	mock.Mock
 }
 
-func (t *TestFGAAuthorizer) SetTypeDefinitions(ctx context.Context, typeDefinitionsContent string) (string, error) {
-	args := t.Called(ctx, typeDefinitionsContent)
+func (t *TestFGAAuthorizer) WriteTuples(ctx context.Context, tuples []openfga.TupleKey) error {
+	args := t.Called(ctx, tuples)
+
+	return args.Error(0)
+}
+
+func (t *TestFGAAuthorizer) WriteAssertions(ctx context.Context, authorizationModelID string, assertions []openfga.Assertion) error {
+	args := t.Called(ctx, authorizationModelID, assertions)
+
+	return args.Error(0)
+}
+
+func (t *TestFGAAuthorizer) SetTypeDefinitions(ctx context.Context, authorizationModelID string) (string, error) {
+	args := t.Called(ctx, authorizationModelID)
 
 	return args.String(0), args.Error(1)
 }
