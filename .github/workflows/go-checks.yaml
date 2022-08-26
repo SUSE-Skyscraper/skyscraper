@@ -56,4 +56,13 @@ jobs:
           go run ./cmd/main.go migrate up
 
       - name: Test
+        if: ${{ github.ref != 'refs/heads/master' }}
         run: make test
+
+      - name: Upload coverage to Codecov
+        if: ${{ github.ref != 'refs/heads/master' }}
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage.out
+          name: go-coverage

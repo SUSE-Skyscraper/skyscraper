@@ -18,7 +18,7 @@ build:
 test: test_unit test_integration
 
 test_unit:
-	go test -v ./cmd/... ./internal/...
+	go test -v ./cmd/... ./internal/... -coverprofile=coverage.out -covermode=atomic
 
 test_integration:
 	go test -v ./test/...
