@@ -1,7 +1,7 @@
 # See http://help.github.com/ignore-files/ for more about ignoring files.
 
 /config.yaml
-/cover.out
+/coverage.out
 /coverage.html
 
 # Compiled output
