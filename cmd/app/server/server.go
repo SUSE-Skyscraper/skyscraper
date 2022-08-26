@@ -2,6 +2,7 @@ package server
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
@@ -249,7 +250,13 @@ func NewCmd(app *application.App) *cobra.Command {
 				})
 			})
 
-			err := http.ListenAndServe(":8080", r)
+			s := &http.Server{
+				Addr:         ":8080",
+				Handler:      r,
+				ReadTimeout:  2 * time.Second,
+				WriteTimeout: 2 * time.Second,
+			}
+			err := s.ListenAndServe()
 			if err != nil {
 				return err
 			}
