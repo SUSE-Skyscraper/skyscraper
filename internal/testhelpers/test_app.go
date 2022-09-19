@@ -498,6 +498,42 @@ type TestJS struct {
 	mock.Mock
 }
 
+func (t *TestJS) Streams(opts ...nats.JSOpt) <-chan *nats.StreamInfo {
+	args := t.Called(opts)
+
+	return args.Get(0).(<-chan *nats.StreamInfo)
+}
+
+func (t *TestJS) GetLastMsg(name, subject string, opts ...nats.JSOpt) (*nats.RawStreamMsg, error) {
+	args := t.Called(name, subject, opts)
+
+	return args.Get(0).(*nats.RawStreamMsg), args.Error(1)
+}
+
+func (t *TestJS) SecureDeleteMsg(name string, seq uint64, opts ...nats.JSOpt) error {
+	args := t.Called(name, seq, opts)
+
+	return args.Error(0)
+}
+
+func (t *TestJS) Consumers(stream string, opts ...nats.JSOpt) <-chan *nats.ConsumerInfo {
+	args := t.Called(stream, opts)
+
+	return args.Get(0).(<-chan *nats.ConsumerInfo)
+}
+
+func (t *TestJS) ObjectStoreNames(opts ...nats.ObjectOpt) <-chan string {
+	args := t.Called(opts)
+
+	return args.Get(0).(<-chan string)
+}
+
+func (t *TestJS) ObjectStores(opts ...nats.ObjectOpt) <-chan nats.ObjectStore {
+	args := t.Called(opts)
+
+	return args.Get(0).(<-chan nats.ObjectStore)
+}
+
 func (t *TestJS) Publish(subj string, data []byte, opts ...nats.PubOpt) (*nats.PubAck, error) {
 	args := t.Called(subj, data, opts)
 

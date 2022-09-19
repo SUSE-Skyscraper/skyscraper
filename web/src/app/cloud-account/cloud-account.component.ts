@@ -55,9 +55,8 @@ export class CloudAccountComponent implements OnInit {
       if (response.data !== undefined && response.data !== null) {
         response.data.forEach((tag) => {
           this.specifiedTags.set(tag.attributes.key, tag);
-
-          this.refreshPage();
         });
+        this.refreshPage();
       }
     });
   }
