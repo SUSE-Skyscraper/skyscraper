@@ -66,13 +66,13 @@ func (c *Client) Check(ctx context.Context, callerID uuid.UUID, relation Relatio
 }
 
 func (c *Client) SetTypeDefinitions(ctx context.Context, typeDefinitionsContent string) (string, error) {
-	var typeDefinitions openfga.TypeDefinitions
+	var typeDefinitions openfga.WriteAuthorizationModelRequest
 	err := json.Unmarshal([]byte(typeDefinitionsContent), &typeDefinitions)
 	if err != nil {
 		return "", err
 	}
 
-	resp, _, err := c.fgaAPI.OpenFgaApi.WriteAuthorizationModel(ctx).TypeDefinitions(typeDefinitions).Execute()
+	resp, _, err := c.fgaAPI.OpenFgaApi.WriteAuthorizationModel(ctx).Body(typeDefinitions).Execute()
 	if err != nil {
 		return "", err
 	}
