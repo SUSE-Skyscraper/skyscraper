@@ -498,6 +498,24 @@ type TestJS struct {
 	mock.Mock
 }
 
+func (t *TestJS) KeyValueStoreNames() <-chan string {
+	args := t.Called()
+
+	return args.Get(0).(<-chan string)
+}
+
+func (t *TestJS) KeyValueStores() <-chan nats.KeyValueStatus {
+	args := t.Called()
+
+	return args.Get(0).(<-chan nats.KeyValueStatus)
+}
+
+func (t *TestJS) ObjectStores(opts ...nats.ObjectOpt) <-chan nats.ObjectStoreStatus {
+	args := t.Called(opts)
+
+	return args.Get(0).(<-chan nats.ObjectStoreStatus)
+}
+
 func (t *TestJS) Streams(opts ...nats.JSOpt) <-chan *nats.StreamInfo {
 	args := t.Called(opts)
 
@@ -526,12 +544,6 @@ func (t *TestJS) ObjectStoreNames(opts ...nats.ObjectOpt) <-chan string {
 	args := t.Called(opts)
 
 	return args.Get(0).(<-chan string)
-}
-
-func (t *TestJS) ObjectStores(opts ...nats.ObjectOpt) <-chan nats.ObjectStore {
-	args := t.Called(opts)
-
-	return args.Get(0).(<-chan nats.ObjectStore)
 }
 
 func (t *TestJS) Publish(subj string, data []byte, opts ...nats.PubOpt) (*nats.PubAck, error) {
