@@ -1,4 +1,6 @@
 .ONESHELL:
+.SHELLFLAGS := -ec
+SHELL := /bin/bash
 .PHONY: lint fmt build dev_cert test test_unit test_integration
 
 lint:
