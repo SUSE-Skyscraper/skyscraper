@@ -20,7 +20,7 @@
     "@angular/forms": "^14.2.4",
     "@angular/material": "^14.2.4",
     "@angular/platform-browser": "^14.2.4",
-    "@angular/platform-browser-dynamic": "^14.2.4",
+    "@angular/platform-browser-dynamic": "^14.2.10",
     "@angular/router": "^14.2.4",
     "@okta/okta-angular": "~6.0.0",
     "@okta/okta-auth-js": "^7.0.1",
