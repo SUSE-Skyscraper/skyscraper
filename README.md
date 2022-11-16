@@ -68,30 +68,30 @@ sqlc generate
    ```bash
    docker run -p 4222:4222 --name nats nats:latest -js
    ```
-4. Copy `config.yaml.example` to `config.yaml` and fill in the values.
-5. Copy `web/src/environments/environment.ts` to `web/src/environments/environment.local.ts` and fill in its values.
-6. Build the golang backend:
+3. Copy `config.yaml.example` to `config.yaml` and fill in the values.
+4. Copy `web/src/environments/environment.ts` to `web/src/environments/environment.local.ts` and fill in its values.
+5. Build the golang backend:
    ```bash
    go build ./cmd/main.go
    ```
-7. Run database migrations:
+6. Run database migrations:
    ```bash
    go run ./cmd/main.go migrate up
    ```
-8. Run the sync job:
+7. Run the sync job:
    ```bash
    go run ./cmd/main.go cloud-sync
    ```
-9. Run the server:
+8. Run the server:
    ```bash
    go run ./cmd/main.go server
    ```
-10. While the server is running, start the web frontend:
-    ```bash
-    cd web
-    npm start
-    ```
-11. The frontend should be live at [http://localhost:4200](http://localhost:4200).
+9. While the server is running, start the web frontend:
+   ```bash
+   cd web
+   npm start
+   ```
+10. The frontend should be live at [http://localhost:4200](http://localhost:4200).
 
 ### Deployment on Minikube
 
@@ -101,7 +101,7 @@ sqlc generate
     ```
 2. Add helm repos:
     ```
-    helmelm repo add nats https://nats-io.github.io/k8s/helm/charts/`
+    helm repo add nats https://nats-io.github.io/k8s/helm/charts/
     helm repo add skyscraper https://suse-skyscraper.github.io/skyscraper-helm-charts
     helm repo add bitnami https://charts.bitnami.com/bitnami
     helm repo update
