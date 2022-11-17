@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.17.1
-	github.com/aws/aws-sdk-go-v2/config v1.18.0
+	github.com/aws/aws-sdk-go-v2/config v1.18.1
 	github.com/aws/aws-sdk-go-v2/credentials v1.13.1
 	github.com/aws/aws-sdk-go-v2/service/organizations v1.16.15
 	github.com/getkin/kin-openapi v0.108.0
