@@ -14,6 +14,7 @@ body {
 mat-toolbar#navbar mat-toolbar-row {
   max-width: 72rem;
   margin: 0 auto;
+  color: #ffffff;
 }
 
 #mainContent {
@@ -25,4 +26,8 @@ mat-toolbar#navbar mat-toolbar-row {
 article {
   padding: 2em 16px;
   width: 100%;
+}
+
+.mat-mdc-button-base {
+  --mdc-text-button-label-text-color: inherit;
 }
