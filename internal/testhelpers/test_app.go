@@ -498,6 +498,12 @@ type TestJS struct {
 	mock.Mock
 }
 
+func (t *TestJS) StreamNameBySubject(s string, opt ...nats.JSOpt) (string, error) {
+	args := t.Called(s, opt)
+
+	return args.String(0), args.Error(1)
+}
+
 func (t *TestJS) KeyValueStoreNames() <-chan string {
 	args := t.Called()
 
