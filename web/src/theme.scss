@@ -98,5 +98,7 @@ $toolbar-theme: mat.define-light-theme((
 
 @include mat.core-theme($general-theme);
 @include mat.button-theme($general-theme);
+@include mat.fab-theme($general-theme);
+@include mat.icon-button-theme($general-theme);
 @include mat.form-field-theme($general-theme);
 @include mat.toolbar-theme($toolbar-theme);
