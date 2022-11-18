@@ -5,7 +5,7 @@ go 1.18
 require (
 	github.com/aws/aws-sdk-go-v2 v1.17.1
 	github.com/aws/aws-sdk-go-v2/config v1.18.1
-	github.com/aws/aws-sdk-go-v2/credentials v1.13.1
+	github.com/aws/aws-sdk-go-v2/credentials v1.13.2
 	github.com/aws/aws-sdk-go-v2/service/organizations v1.16.15
 	github.com/getkin/kin-openapi v0.108.0
 	github.com/go-chi/chi/v5 v5.0.7
@@ -39,7 +39,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.9.19 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sso v1.11.25 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.13.8 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sts v1.17.3 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sts v1.17.4 // indirect
 	github.com/aws/smithy-go v1.13.4 // indirect
 	github.com/cenkalti/backoff/v4 v4.1.3 // indirect
 	github.com/containerd/continuity v0.3.0 // indirect
