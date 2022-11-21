@@ -8,10 +8,11 @@ import (
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	"github.com/spf13/cobra"
+	"github.com/suse-skyscraper/openfga-scim-bridge/v2/bridge"
+	"github.com/suse-skyscraper/openfga-scim-bridge/v2/router"
 	"github.com/suse-skyscraper/skyscraper/internal/application"
 	"github.com/suse-skyscraper/skyscraper/internal/fga"
-	"github.com/suse-skyscraper/skyscraper/internal/scim"
-	scimmiddleware "github.com/suse-skyscraper/skyscraper/internal/scim/middleware"
+	"github.com/suse-skyscraper/skyscraper/internal/scimbridgedb"
 	"github.com/suse-skyscraper/skyscraper/internal/server"
 	apimiddleware "github.com/suse-skyscraper/skyscraper/internal/server/middleware"
 )
@@ -219,36 +220,10 @@ func NewCmd(app *application.App) *cobra.Command {
 				})
 			})
 
-			r.Route("/scim/v2", func(r chi.Router) {
-				scimAuthorizer := scimmiddleware.BearerAuthorizationHandler(app)
-
-				r.Use(scimAuthorizer)
-
-				r.Get("/Users", scim.V2ListUsers(app))
-				r.Post("/Users", scim.V2CreateUser(app))
-				r.Route("/Users/{id}", func(r chi.Router) {
-					scimUserCtx := scimmiddleware.UserCtx(app)
-
-					r.Use(scimUserCtx)
-
-					r.Get("/", scim.V2GetUser(app))
-					r.Put("/", scim.V2UpdateUser(app))
-					r.Patch("/", scim.V2PatchUser(app))
-					r.Delete("/", scim.V2DeleteUser(app))
-				})
-
-				r.Get("/Groups", scim.V2ListGroups(app))
-				r.Post("/Groups", scim.V2CreateGroup(app))
-				r.Route("/Groups/{id}", func(r chi.Router) {
-					scimGroupCtx := scimmiddleware.GroupCtx(app)
-
-					r.Use(scimGroupCtx)
-
-					r.Get("/", scim.V2GetGroup(app))
-					r.Patch("/", scim.V2PatchGroup(app))
-					r.Delete("/", scim.V2DeleteGroup(app))
-				})
-			})
+			scimAuthorizer := apimiddleware.BearerAuthorizationHandler(app)
+			db := scimbridgedb.New(app)
+			b := bridge.New(&db, app.Config.ServerConfig.BaseURL)
+			router.Hook(r, &b, scimAuthorizer)
 
 			s := &http.Server{
 				Addr:         ":8080",
