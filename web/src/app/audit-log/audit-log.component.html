@@ -29,7 +29,7 @@
         {{
           element.message.length < 80
             ? element.message
-            : (element.message | slice: 0:80) + '...'
+            : (element.message | slice : 0 : 80) + '...'
         }}
       </td>
     </ng-container>
@@ -37,7 +37,7 @@
     <ng-container matColumnDef="created_at">
       <th mat-header-cell *matHeaderCellDef>Time</th>
       <td mat-cell *matCellDef="let element" class="p-2">
-        {{ element.created_at | date: 'medium' }}
+        {{ element.created_at | date : 'medium' }}
       </td>
     </ng-container>
 
