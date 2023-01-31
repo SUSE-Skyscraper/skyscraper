@@ -32,7 +32,7 @@ func TestOpenFGAAssertions(t *testing.T) {
 func fixtureOpenFGAAssertions() []openfga.Assertion {
 	return []openfga.Assertion{
 		{
-			TupleKey: &openfga.TupleKey{
+			TupleKey: openfga.TupleKey{
 				User:     openfga.PtrString("org-test-editor"),
 				Relation: openfga.PtrString("editor"),
 				Object:   openfga.PtrString("organization:default"),
@@ -40,7 +40,7 @@ func fixtureOpenFGAAssertions() []openfga.Assertion {
 			Expectation: true,
 		},
 		{
-			TupleKey: &openfga.TupleKey{
+			TupleKey: openfga.TupleKey{
 				User:     openfga.PtrString("org-test-editor"),
 				Relation: openfga.PtrString("viewer"),
 				Object:   openfga.PtrString("organization:default"),
@@ -48,7 +48,7 @@ func fixtureOpenFGAAssertions() []openfga.Assertion {
 			Expectation: true,
 		},
 		{
-			TupleKey: &openfga.TupleKey{
+			TupleKey: openfga.TupleKey{
 				User:     openfga.PtrString("org-test-viewer"),
 				Relation: openfga.PtrString("viewer"),
 				Object:   openfga.PtrString("organization:default"),
@@ -56,7 +56,7 @@ func fixtureOpenFGAAssertions() []openfga.Assertion {
 			Expectation: true,
 		},
 		{
-			TupleKey: &openfga.TupleKey{
+			TupleKey: openfga.TupleKey{
 				User:     openfga.PtrString("org-test-viewer"),
 				Relation: openfga.PtrString("editor"),
 				Object:   openfga.PtrString("organization:default"),
@@ -64,7 +64,7 @@ func fixtureOpenFGAAssertions() []openfga.Assertion {
 			Expectation: false,
 		},
 		{
-			TupleKey: &openfga.TupleKey{
+			TupleKey: openfga.TupleKey{
 				User:     openfga.PtrString("test-admin-user"),
 				Relation: openfga.PtrString("editor"),
 				Object:   openfga.PtrString("organization:default"),
@@ -72,7 +72,7 @@ func fixtureOpenFGAAssertions() []openfga.Assertion {
 			Expectation: true,
 		},
 		{
-			TupleKey: &openfga.TupleKey{
+			TupleKey: openfga.TupleKey{
 				User:     openfga.PtrString("test-admin-user"),
 				Relation: openfga.PtrString("viewer"),
 				Object:   openfga.PtrString("organization:default"),
@@ -80,7 +80,7 @@ func fixtureOpenFGAAssertions() []openfga.Assertion {
 			Expectation: true,
 		},
 		{
-			TupleKey: &openfga.TupleKey{
+			TupleKey: openfga.TupleKey{
 				User:     openfga.PtrString("test-viewer-user"),
 				Relation: openfga.PtrString("editor"),
 				Object:   openfga.PtrString("organization:default"),
@@ -88,7 +88,7 @@ func fixtureOpenFGAAssertions() []openfga.Assertion {
 			Expectation: false,
 		},
 		{
-			TupleKey: &openfga.TupleKey{
+			TupleKey: openfga.TupleKey{
 				User:     openfga.PtrString("test-viewer-user"),
 				Relation: openfga.PtrString("viewer"),
 				Object:   openfga.PtrString("organization:default"),
@@ -96,7 +96,7 @@ func fixtureOpenFGAAssertions() []openfga.Assertion {
 			Expectation: true,
 		},
 		{
-			TupleKey: &openfga.TupleKey{
+			TupleKey: openfga.TupleKey{
 				User:     openfga.PtrString("test-ou-1-viewer-user"),
 				Relation: openfga.PtrString("viewer"),
 				Object:   openfga.PtrString("organization:default"),
@@ -104,7 +104,7 @@ func fixtureOpenFGAAssertions() []openfga.Assertion {
 			Expectation: false,
 		},
 		{
-			TupleKey: &openfga.TupleKey{
+			TupleKey: openfga.TupleKey{
 				User:     openfga.PtrString("test-ou-1-viewer-user"),
 				Relation: openfga.PtrString("editor"),
 				Object:   openfga.PtrString("organization:default"),
@@ -112,7 +112,7 @@ func fixtureOpenFGAAssertions() []openfga.Assertion {
 			Expectation: false,
 		},
 		{
-			TupleKey: &openfga.TupleKey{
+			TupleKey: openfga.TupleKey{
 				User:     openfga.PtrString("test-ou-1-editor-user"),
 				Relation: openfga.PtrString("viewer"),
 				Object:   openfga.PtrString("organization:default"),
@@ -120,7 +120,7 @@ func fixtureOpenFGAAssertions() []openfga.Assertion {
 			Expectation: false,
 		},
 		{
-			TupleKey: &openfga.TupleKey{
+			TupleKey: openfga.TupleKey{
 				User:     openfga.PtrString("test-ou-1-editor-user"),
 				Relation: openfga.PtrString("editor"),
 				Object:   openfga.PtrString("organization:default"),
@@ -128,7 +128,7 @@ func fixtureOpenFGAAssertions() []openfga.Assertion {
 			Expectation: false,
 		},
 		{
-			TupleKey: &openfga.TupleKey{
+			TupleKey: openfga.TupleKey{
 				User:     openfga.PtrString("test-ou-1-editor-user"),
 				Relation: openfga.PtrString("viewer"),
 				Object:   openfga.PtrString("organizational_unit:ou-1"),
@@ -136,7 +136,7 @@ func fixtureOpenFGAAssertions() []openfga.Assertion {
 			Expectation: true,
 		},
 		{
-			TupleKey: &openfga.TupleKey{
+			TupleKey: openfga.TupleKey{
 				User:     openfga.PtrString("test-ou-1-editor-user"),
 				Relation: openfga.PtrString("editor"),
 				Object:   openfga.PtrString("organizational_unit:ou-1"),
@@ -144,7 +144,7 @@ func fixtureOpenFGAAssertions() []openfga.Assertion {
 			Expectation: true,
 		},
 		{
-			TupleKey: &openfga.TupleKey{
+			TupleKey: openfga.TupleKey{
 				User:     openfga.PtrString("test-ou-1-viewer-user"),
 				Relation: openfga.PtrString("viewer"),
 				Object:   openfga.PtrString("organizational_unit:ou-1"),
@@ -152,7 +152,7 @@ func fixtureOpenFGAAssertions() []openfga.Assertion {
 			Expectation: true,
 		},
 		{
-			TupleKey: &openfga.TupleKey{
+			TupleKey: openfga.TupleKey{
 				User:     openfga.PtrString("test-ou-1-viewer-user"),
 				Relation: openfga.PtrString("editor"),
 				Object:   openfga.PtrString("organizational_unit:ou-1"),
@@ -160,7 +160,7 @@ func fixtureOpenFGAAssertions() []openfga.Assertion {
 			Expectation: false,
 		},
 		{
-			TupleKey: &openfga.TupleKey{
+			TupleKey: openfga.TupleKey{
 				User:     openfga.PtrString("test-ou-1-viewer-user"),
 				Relation: openfga.PtrString("viewer"),
 				Object:   openfga.PtrString("account:account-1"),
@@ -168,7 +168,7 @@ func fixtureOpenFGAAssertions() []openfga.Assertion {
 			Expectation: true,
 		},
 		{
-			TupleKey: &openfga.TupleKey{
+			TupleKey: openfga.TupleKey{
 				User:     openfga.PtrString("test-ou-1-viewer-user"),
 				Relation: openfga.PtrString("editor"),
 				Object:   openfga.PtrString("account:account-1"),
@@ -176,7 +176,7 @@ func fixtureOpenFGAAssertions() []openfga.Assertion {
 			Expectation: false,
 		},
 		{
-			TupleKey: &openfga.TupleKey{
+			TupleKey: openfga.TupleKey{
 				User:     openfga.PtrString("test-ou-1-editor-user"),
 				Relation: openfga.PtrString("editor"),
 				Object:   openfga.PtrString("account:account-1"),
@@ -184,7 +184,7 @@ func fixtureOpenFGAAssertions() []openfga.Assertion {
 			Expectation: true,
 		},
 		{
-			TupleKey: &openfga.TupleKey{
+			TupleKey: openfga.TupleKey{
 				User:     openfga.PtrString("test-ou-1-editor-user"),
 				Relation: openfga.PtrString("viewer"),
 				Object:   openfga.PtrString("account:account-1"),
@@ -192,7 +192,7 @@ func fixtureOpenFGAAssertions() []openfga.Assertion {
 			Expectation: true,
 		},
 		{
-			TupleKey: &openfga.TupleKey{
+			TupleKey: openfga.TupleKey{
 				User:     openfga.PtrString("test-ou-1-viewer-user"),
 				Relation: openfga.PtrString("viewer"),
 				Object:   openfga.PtrString("account:account-2"),
@@ -200,7 +200,7 @@ func fixtureOpenFGAAssertions() []openfga.Assertion {
 			Expectation: false,
 		},
 		{
-			TupleKey: &openfga.TupleKey{
+			TupleKey: openfga.TupleKey{
 				User:     openfga.PtrString("test-ou-1-viewer-user"),
 				Relation: openfga.PtrString("editor"),
 				Object:   openfga.PtrString("account:account-2"),
@@ -208,7 +208,7 @@ func fixtureOpenFGAAssertions() []openfga.Assertion {
 			Expectation: false,
 		},
 		{
-			TupleKey: &openfga.TupleKey{
+			TupleKey: openfga.TupleKey{
 				User:     openfga.PtrString("test-ou-1-editor-user"),
 				Relation: openfga.PtrString("editor"),
 				Object:   openfga.PtrString("account:account-2"),
@@ -216,7 +216,7 @@ func fixtureOpenFGAAssertions() []openfga.Assertion {
 			Expectation: false,
 		},
 		{
-			TupleKey: &openfga.TupleKey{
+			TupleKey: openfga.TupleKey{
 				User:     openfga.PtrString("test-ou-1-editor-user"),
 				Relation: openfga.PtrString("viewer"),
 				Object:   openfga.PtrString("account:account-2"),
