@@ -9,7 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
-	"github.com/suse-skyscraper/skyscraper/internal/scim/filters"
+	"github.com/suse-skyscraper/openfga-scim-bridge/v2/filters"
 )
 
 var ErrConflict = errors.New("duplicate key value violates unique constraint")

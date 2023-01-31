@@ -1,7 +1,7 @@
 package db
 
 import (
-	"github.com/suse-skyscraper/skyscraper/internal/scim/filters"
+	"github.com/suse-skyscraper/openfga-scim-bridge/v2/filters"
 )
 
 type FindCloudAccountInput struct {
