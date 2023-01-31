@@ -50,7 +50,7 @@ func NewClient(fgaAPI *openfga.APIClient) Authorizer {
 
 func (c *Client) Check(ctx context.Context, callerID uuid.UUID, relation Relation, document Document, objectID string) (bool, error) {
 	body := openfga.CheckRequest{
-		TupleKey: &openfga.TupleKey{
+		TupleKey: openfga.TupleKey{
 			User:     openfga.PtrString(callerID.String()),
 			Relation: openfga.PtrString(string(relation)),
 			Object:   openfga.PtrString(fmt.Sprintf("%s:%s", document, objectID)),

@@ -109,7 +109,7 @@ func setupOpenFGA(_ context.Context, pool *dockertest.Pool) (*dockertest.Resourc
 		apiClient := openfga.NewAPIClient(configuration)
 
 		resp, _, err := apiClient.OpenFgaApi.CreateStore(context.Background()).Body(openfga.CreateStoreRequest{
-			Name: openfga.PtrString("Integration Test"),
+			Name: "Integration Test",
 		}).Execute()
 		if err != nil {
 			return err
