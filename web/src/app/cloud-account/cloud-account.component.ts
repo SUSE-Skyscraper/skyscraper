@@ -91,6 +91,7 @@ export class CloudAccountComponent implements OnInit {
   public onSubmit() {
     let update: UpdateCloudAccountRequest = {
       data: {
+        name: this.cloudAccount?.attributes?.name || '',
         tags_desired: {},
       },
     };
@@ -102,7 +103,12 @@ export class CloudAccountComponent implements OnInit {
     });
 
     this.backendService
-      .updateCloudAccount(this.id, update)
+      .updateCloudAccount(
+        'AWS',
+        this.cloudAccount?.attributes?.tenant_id || '',
+        this.cloudAccount?.attributes?.account_id || '',
+        update,
+      )
       .subscribe((response: CloudAccountResponse) => {
         if (response.data !== null) {
           this.cloudAccount = response.data;

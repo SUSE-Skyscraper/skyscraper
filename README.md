@@ -35,7 +35,7 @@ The api specification is located at [api/skyscraper.yaml](api/skyscraper.yaml)
 
 ### Database Migrations
 
-The database migration files are at [cmd/app/migrate/migrations](cmd/app/migrate/migrations). They're embedded into the binary, and we read them in the `migrate` command.
+The database migration files are at [cmd/app/migrate/migrations](cli/cmd/app/migrate/migrations). They're embedded into the binary, and we read them in the `migrate` command.
 
 **Migrate Up:**
 ```bash

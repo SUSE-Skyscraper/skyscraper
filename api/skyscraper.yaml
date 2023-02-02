@@ -146,6 +146,7 @@ paths:
           $ref: '#/components/responses/UnauthorizedError'
         '500':
           $ref: '#/components/responses/InternalError'
+
   /api/v1/cloud_accounts/{id}:
     put:
       description: Updates an account for a cloud tenant
@@ -228,6 +229,56 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/CloudTenantsResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    put:
+      description: Creates or inserts a cloud tenant
+      tags:
+        - Cloud Tenants
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          $ref: '#/components/responses/CloudTenantsResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/v1/resources/groups/{group}/tenants/{tenant_id}/resources/{id}:
+    put:
+      description: Creates or inserts a resource for a tenant
+      tags:
+        - Resource
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: group
+          in: path
+          description: The resource's group name
+          required: true
+          schema:
+            type: string
+        - name: tenant_id
+          in: path
+          description: The resource's tenant ID
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          description: The resource's ID
+          required: true
+          schema:
+            type: string
+      requestBody:
+        $ref: '#/components/requestBodies/CreateOrUpdateResourceRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/CloudAccountResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '500':
@@ -400,6 +451,25 @@ paths:
           $ref: '#/components/responses/InternalError'
 components:
   requestBodies:
+    CreateOrUpdateResourceRequest:
+      description: Request body for creating or updating a resource
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+                properties:
+                  account_name:
+                    type: string
+                  tags_current:
+                    type: object
+                  tags_desired:
+                    type: object
+                  active:
+                    type: boolean
+
     CreateAPIKeyRequest:
       description: Request body for creating an API key
       content:

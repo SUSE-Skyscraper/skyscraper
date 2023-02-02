@@ -10,17 +10,17 @@ lint:
 
 fmt:
 	go mod tidy
-	go fmt ./cmd/... ./internal/...
+	go fmt ./cli/cmd/... ./api/... ./plugins/... ./test/...
 	cd web
 	ng lint --fix
 
 build:
-	go build -v ./cmd/main.go
+	go build -v ./cli/cmd/main.go
 
 test: test_unit test_integration
 
 test_unit:
-	go test -v ./cmd/... ./internal/... -coverprofile=coverage.out -covermode=atomic
+	go test -v ./cli/... ./plugins/... -coverprofile=coverage.out -covermode=atomic
 
 test_integration:
 	go test -v ./test/...

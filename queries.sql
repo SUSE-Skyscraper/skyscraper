@@ -2,11 +2,12 @@
 -- Cloud Tenants
 --------------------------------------------------------------------------------------------------------------------
 
--- name: CreateCloudTenant :exec
+-- name: CreateOrUpdateCloudTenant :one
 insert into cloud_tenants (cloud, tenant_id, name)
 values ($1, $2, $3)
-on conflict (cloud, tenant_id) do update set name       = $3,
-                                             updated_at = now();
+on conflict (cloud, tenant_id) do update set name       = COALESCE(nullif($3, ''), cloud_tenants.name),
+                                             updated_at = now()
+returning *;
 
 -- name: GetCloudTenants :many
 select *
@@ -20,7 +21,7 @@ where cloud = $1
   and tenant_id = $2;
 
 --------------------------------------------------------------------------------------------------------------------
--- Cloud Account Metadata
+-- Cloud Accounts
 --------------------------------------------------------------------------------------------------------------------
 
 -- name: SearchTag :many
@@ -30,12 +31,13 @@ where cloud = $1
   and tenant_id = $2
   and tags_current ->> sqlc.arg(tag_key) = sqcl.arg(tag_value);
 
--- name: CreateOrInsertCloudAccount :one
-insert into cloud_accounts (cloud, tenant_id, account_id, name, tags_current, tags_desired)
-VALUES ($1, $2, $3, $4, $5, $6)
+-- name: CreateOrUpdateCloudAccount :one
+insert into cloud_accounts (cloud, tenant_id, account_id, name, tags_current, tags_desired, created_at, updated_at)
+VALUES ($1, $2, $3, $4, $5, COALESCE(nullif(@tags_desired::jsonb, '{}'::jsonb), $5), now(), now())
 ON CONFLICT (cloud, tenant_id, account_id)
-    DO UPDATE SET name         = $4,
-                  tags_current = $5,
+    DO UPDATE SET name         = COALESCE(nullif($4, ''), cloud_accounts.name),
+                  tags_current = COALESCE(nullif($5::jsonb, '{}'::jsonb), cloud_accounts.tags_current),
+                  tags_desired = COALESCE(nullif(@tags_desired::jsonb, '{}'::jsonb), cloud_accounts.tags_desired),
                   updated_at   = now()
 returning *;
 

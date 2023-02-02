@@ -11,7 +11,7 @@ import (
 
 func TestOpenFGAAssertions(t *testing.T) {
 	ctx := context.Background()
-	typeDefinitions, err := os.ReadFile("../cmd/app/fga/type-definition.json")
+	typeDefinitions, err := os.ReadFile("../cli/cmd/app/fga/type-definition.json")
 	assert.Nil(t, err)
 
 	typeDefinitionID, err := app.FGAClient.SetTypeDefinitions(ctx, string(typeDefinitions))
