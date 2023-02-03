@@ -51,7 +51,7 @@ func (v *Verifier) Verify(ctx context.Context, authorizationHeader string) (auth
 	}
 
 	username := claims.Claims["sub"].(string)
-	user, err := v.app.Repository.FindUserByUsername(ctx, username)
+	user, err := v.app.Repo.FindUserByUsername(ctx, username)
 	if err != nil {
 		return auth.Caller{}, false, err
 	}

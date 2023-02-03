@@ -10,7 +10,6 @@ import (
 	"github.com/suse-skyscraper/skyscraper/cli/internal/auth"
 	"github.com/suse-skyscraper/skyscraper/cli/internal/db"
 	"github.com/suse-skyscraper/skyscraper/cli/internal/server/middleware"
-	responses2 "github.com/suse-skyscraper/skyscraper/cli/internal/server/responses"
 
 	"github.com/go-chi/render"
 	"github.com/google/uuid"
@@ -30,13 +29,13 @@ func V1CallerProfile(app *application.App) func(w http.ResponseWriter, r *http.R
 			return
 		}
 
-		user, err := app.Repository.FindUser(r.Context(), caller.ID.String())
+		user, err := app.Repo.GetUser(r.Context(), caller.ID)
 		if err != nil {
 			_ = render.Render(w, r, responses.ErrInternalServerError)
 			return
 		}
 
-		_ = render.Render(w, r, responses2.NewUserResponse(user))
+		_ = render.Render(w, r, NewUserResponse(user))
 	}
 }
 
@@ -59,21 +58,21 @@ func V1CallerCloudAccounts(app *application.App) func(w http.ResponseWriter, r *
 			ids = append(ids, ou.ID)
 		}
 
-		cloudAccounts, err := app.Repository.OrganizationalUnitsCloudAccounts(r.Context(), ids)
+		cloudAccounts, err := app.Repo.OrganizationalUnitsCloudAccounts(r.Context(), ids)
 		if err != nil {
 			_ = render.Render(w, r, responses.ErrInternalServerError)
 			return
 		}
 
-		_ = render.Render(w, r, responses2.NewCloudAccountListResponse(cloudAccounts))
+		_ = render.Render(w, r, NewCloudAccountListResponse(cloudAccounts))
 	}
 }
 
 func callerOrganizationalUnits(ctx context.Context, app *application.App, caller auth.Caller) ([]db.OrganizationalUnit, error) {
 	if caller.Type == auth.CallerUser {
-		return app.Repository.GetUserOrganizationalUnits(ctx, caller.ID)
+		return app.Repo.GetUserOrganizationalUnits(ctx, caller.ID)
 	} else if caller.Type == auth.CallerAPIKey {
-		return app.Repository.GetAPIKeysOrganizationalUnits(ctx, caller.ID)
+		return app.Repo.GetAPIKeysOrganizationalUnits(ctx, caller.ID)
 	}
 
 	return nil, fmt.Errorf("caller not recognized")

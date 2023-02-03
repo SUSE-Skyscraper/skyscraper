@@ -24,7 +24,7 @@ func TagCtx(app *application.App) func(next http.Handler) http.Handler {
 				return
 			}
 
-			tag, err := app.Repository.FindTag(r.Context(), id)
+			tag, err := app.Repo.FindTag(r.Context(), id)
 			if err != nil {
 				if err == pgx.ErrNoRows {
 					_ = render.Render(w, r, responses.ErrNotFound)

@@ -24,7 +24,7 @@ func APIKeyCtx(app *application.App) func(next http.Handler) http.Handler {
 				return
 			}
 
-			apiKey, err := app.Repository.FindAPIKey(r.Context(), id)
+			apiKey, err := app.Repo.FindAPIKey(r.Context(), id)
 			if err != nil {
 				if err == pgx.ErrNoRows {
 					_ = render.Render(w, r, responses.ErrNotFound)

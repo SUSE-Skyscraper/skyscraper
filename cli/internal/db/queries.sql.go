@@ -148,7 +148,7 @@ const createOrUpdateCloudTenant = `-- name: CreateOrUpdateCloudTenant :one
 
 insert into cloud_tenants (cloud, tenant_id, name)
 values ($1, $2, $3)
-on conflict (cloud, tenant_id) do update set name       = $3,
+on conflict (cloud, tenant_id) do update set name       = COALESCE(nullif($3, ''), cloud_tenants.name),
                                              updated_at = now()
 returning id, cloud, tenant_id, name, active, created_at, updated_at
 `
@@ -385,14 +385,14 @@ func (q *Queries) FindAPIKey(ctx context.Context, id uuid.UUID) (ApiKey, error) 
 	return i, err
 }
 
-const findAPIKeysById = `-- name: FindAPIKeysById :many
+const findAPIKeysByID = `-- name: FindAPIKeysByID :many
 select id, encodedhash, owner, description, system, created_at, updated_at
 from api_keys
 where id = ANY ($1::uuid[])
 `
 
-func (q *Queries) FindAPIKeysById(ctx context.Context, dollar_1 []uuid.UUID) ([]ApiKey, error) {
-	rows, err := q.db.Query(ctx, findAPIKeysById, dollar_1)
+func (q *Queries) FindAPIKeysByID(ctx context.Context, id []uuid.UUID) ([]ApiKey, error) {
+	rows, err := q.db.Query(ctx, findAPIKeysByID, id)
 	if err != nil {
 		return nil, err
 	}
@@ -417,30 +417,6 @@ func (q *Queries) FindAPIKeysById(ctx context.Context, dollar_1 []uuid.UUID) ([]
 		return nil, err
 	}
 	return items, nil
-}
-
-const findByUsername = `-- name: FindByUsername :one
-select id, username, external_id, name, display_name, locale, active, emails, created_at, updated_at
-from users
-where username = $1
-`
-
-func (q *Queries) FindByUsername(ctx context.Context, username string) (User, error) {
-	row := q.db.QueryRow(ctx, findByUsername, username)
-	var i User
-	err := row.Scan(
-		&i.ID,
-		&i.Username,
-		&i.ExternalID,
-		&i.Name,
-		&i.DisplayName,
-		&i.Locale,
-		&i.Active,
-		&i.Emails,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
 }
 
 const findCloudAccount = `-- name: FindCloudAccount :one
@@ -557,6 +533,30 @@ func (q *Queries) FindTag(ctx context.Context, id uuid.UUID) (StandardTag, error
 		&i.DisplayName,
 		&i.Description,
 		&i.Key,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const findUserByUsername = `-- name: FindUserByUsername :one
+select id, username, external_id, name, display_name, locale, active, emails, created_at, updated_at
+from users
+where username = $1
+`
+
+func (q *Queries) FindUserByUsername(ctx context.Context, username string) (User, error) {
+	row := q.db.QueryRow(ctx, findUserByUsername, username)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.ExternalID,
+		&i.Name,
+		&i.DisplayName,
+		&i.Locale,
+		&i.Active,
+		&i.Emails,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -917,13 +917,13 @@ const getOrganizationalUnitChildren = `-- name: GetOrganizationalUnitChildren :m
 
 select id, parent_id, display_name, created_at, updated_at
 from organizational_units
-where parent_id = $1
+where parent_id = $1::uuid
 `
 
 // ------------------------------------------------------------------------------------------------------------------
 // Organizational Units
 // ------------------------------------------------------------------------------------------------------------------
-func (q *Queries) GetOrganizationalUnitChildren(ctx context.Context, parentID uuid.NullUUID) ([]OrganizationalUnit, error) {
+func (q *Queries) GetOrganizationalUnitChildren(ctx context.Context, parentID uuid.UUID) ([]OrganizationalUnit, error) {
 	rows, err := q.db.Query(ctx, getOrganizationalUnitChildren, parentID)
 	if err != nil {
 		return nil, err
@@ -1179,15 +1179,15 @@ func (q *Queries) GetUsers(ctx context.Context, arg GetUsersParams) ([]User, err
 	return items, nil
 }
 
-const getUsersById = `-- name: GetUsersById :many
+const getUsersByID = `-- name: GetUsersByID :many
 select id, username, external_id, name, display_name, locale, active, emails, created_at, updated_at
 from users
 where id = ANY ($1::uuid[])
 order by display_name
 `
 
-func (q *Queries) GetUsersById(ctx context.Context, dollar_1 []uuid.UUID) ([]User, error) {
-	rows, err := q.db.Query(ctx, getUsersById, dollar_1)
+func (q *Queries) GetUsersByID(ctx context.Context, userIds []uuid.UUID) ([]User, error) {
+	rows, err := q.db.Query(ctx, getUsersByID, userIds)
 	if err != nil {
 		return nil, err
 	}
@@ -1292,8 +1292,8 @@ FROM organizational_unit_ids
          join cloud_accounts on organizational_units_cloud_accounts.cloud_account_id = cloud_accounts.id
 `
 
-func (q *Queries) OrganizationalUnitsCloudAccounts(ctx context.Context, dollar_1 []uuid.UUID) ([]CloudAccount, error) {
-	rows, err := q.db.Query(ctx, organizationalUnitsCloudAccounts, dollar_1)
+func (q *Queries) OrganizationalUnitsCloudAccounts(ctx context.Context, id []uuid.UUID) ([]CloudAccount, error) {
+	rows, err := q.db.Query(ctx, organizationalUnitsCloudAccounts, id)
 	if err != nil {
 		return nil, err
 	}
@@ -1462,13 +1462,14 @@ func (q *Queries) UpdateCloudAccountTagsDriftDetected(ctx context.Context, arg U
 	return err
 }
 
-const updateTag = `-- name: UpdateTag :exec
+const updateTag = `-- name: UpdateTag :one
 update standard_tags
 set display_name = $2,
     key          = $3,
     description  = $4,
     updated_at   = now()
 where id = $1
+returning id, display_name, description, key, created_at, updated_at
 `
 
 type UpdateTagParams struct {
@@ -1478,17 +1479,26 @@ type UpdateTagParams struct {
 	Description string
 }
 
-func (q *Queries) UpdateTag(ctx context.Context, arg UpdateTagParams) error {
-	_, err := q.db.Exec(ctx, updateTag,
+func (q *Queries) UpdateTag(ctx context.Context, arg UpdateTagParams) (StandardTag, error) {
+	row := q.db.QueryRow(ctx, updateTag,
 		arg.ID,
 		arg.DisplayName,
 		arg.Key,
 		arg.Description,
 	)
-	return err
+	var i StandardTag
+	err := row.Scan(
+		&i.ID,
+		&i.DisplayName,
+		&i.Description,
+		&i.Key,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }
 
-const updateUser = `-- name: UpdateUser :exec
+const updateUser = `-- name: UpdateUser :one
 update users
 set username     =$2,
     name         = $3,
@@ -1499,6 +1509,7 @@ set username     =$2,
     locale       = $8,
     updated_at   = now()
 where id = $1
+returning id, username, external_id, name, display_name, locale, active, emails, created_at, updated_at
 `
 
 type UpdateUserParams struct {
@@ -1512,8 +1523,8 @@ type UpdateUserParams struct {
 	Locale      sql.NullString
 }
 
-func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) error {
-	_, err := q.db.Exec(ctx, updateUser,
+func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error) {
+	row := q.db.QueryRow(ctx, updateUser,
 		arg.ID,
 		arg.Username,
 		arg.Name,
@@ -1523,5 +1534,18 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) error {
 		arg.ExternalID,
 		arg.Locale,
 	)
-	return err
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.ExternalID,
+		&i.Name,
+		&i.DisplayName,
+		&i.Locale,
+		&i.Active,
+		&i.Emails,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }

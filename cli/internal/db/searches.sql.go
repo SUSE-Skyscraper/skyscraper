@@ -17,7 +17,7 @@ type SearchCloudAccountsInput struct {
 	Filters map[string]interface{}
 }
 
-func (s *Searches) SearchCloudAccounts(ctx context.Context, input SearchCloudAccountsInput) ([]CloudAccount, error) {
+func (s *DefaultSearcher) SearchCloudAccounts(ctx context.Context, input SearchCloudAccountsInput) ([]CloudAccount, error) {
 	b := strings.Builder{}
 	var accounts []CloudAccount
 

@@ -19,7 +19,7 @@ func TenantCtx(app *application.App) func(next http.Handler) http.Handler {
 			group := chi.URLParam(r, "group")
 			tenantID := chi.URLParam(r, "tenant_id")
 
-			tenant, err := app.Repository.GetCloudTenant(r.Context(), db.GetCloudTenantParams{
+			tenant, err := app.Repo.GetCloudTenant(r.Context(), db.GetCloudTenantParams{
 				Cloud:    group,
 				TenantID: tenantID,
 			})

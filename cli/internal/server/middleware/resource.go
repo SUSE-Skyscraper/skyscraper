@@ -20,7 +20,7 @@ func ResourceCtx(app *application.App) func(next http.Handler) http.Handler {
 			group := chi.URLParam(r, "group")
 			resourceID := chi.URLParam(r, "resource_id")
 
-			cloudAccount, err := app.Repository.FindCloudAccount(r.Context(), db.FindCloudAccountInput{
+			cloudAccount, err := app.Repo.FindCloudAccountByCloudAndTenant(r.Context(), db.FindCloudAccountByCloudAndTenantParams{
 				Cloud:     group,
 				TenantID:  tenantID,
 				AccountID: resourceID,

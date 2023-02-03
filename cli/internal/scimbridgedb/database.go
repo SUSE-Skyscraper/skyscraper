@@ -5,8 +5,12 @@ import (
 	"database/sql"
 	"errors"
 
+	"github.com/suse-skyscraper/openfga-scim-bridge/v2/filters"
+
+	"github.com/jackc/pgx/v4"
+
 	"github.com/suse-skyscraper/skyscraper/cli/application"
-	db2 "github.com/suse-skyscraper/skyscraper/cli/internal/db"
+	"github.com/suse-skyscraper/skyscraper/cli/internal/db"
 
 	"github.com/google/uuid"
 	"github.com/suse-skyscraper/openfga-scim-bridge/v2/database"
@@ -26,29 +30,31 @@ func New(app *application.App) DB {
 }
 
 func (d *DB) PatchGroup(ctx context.Context, groupID uuid.UUID, operations []payloads.GroupPatchOperation) error {
-	tx, err := d.app.Repository.Begin(ctx)
+	tx, err := d.app.PostgresPool.Begin(ctx)
 	if err != nil {
 		return errors.New("failed to begin transaction")
 	}
 
-	defer func(tx db2.RepositoryQueries, ctx context.Context) {
+	defer func(tx pgx.Tx, ctx context.Context) {
 		_ = tx.Rollback(ctx)
 	}(tx, ctx)
+
+	repo := d.app.Repo.WithTx(tx)
 
 	for _, op := range operations {
 		switch op.Op {
 		case "add":
-			err = d.patchAdd(ctx, tx, groupID, op)
+			err = d.patchAdd(ctx, repo, groupID, op)
 			if err != nil {
 				return err
 			}
 		case "remove":
-			err = d.patchRemove(ctx, tx, groupID, op)
+			err = d.patchRemove(ctx, repo, groupID, op)
 			if err != nil {
 				return err
 			}
 		case "replace":
-			err = d.patchReplace(ctx, tx, groupID, op)
+			err = d.patchReplace(ctx, repo, groupID, op)
 			if err != nil {
 				return err
 			}
@@ -60,7 +66,7 @@ func (d *DB) PatchGroup(ctx context.Context, groupID uuid.UUID, operations []pay
 	return tx.Commit(ctx)
 }
 
-func (d *DB) patchAdd(ctx context.Context, tx db2.RepositoryQueries, groupID uuid.UUID, op payloads.GroupPatchOperation) error {
+func (d *DB) patchAdd(ctx context.Context, repo db.Repository, groupID uuid.UUID, op payloads.GroupPatchOperation) error {
 	newMembers, err := op.GetAddMembersPatch()
 	if err != nil {
 		return errors.New("failed to get add members patch")
@@ -71,15 +77,20 @@ func (d *DB) patchAdd(ctx context.Context, tx db2.RepositoryQueries, groupID uui
 		return errors.New("failed to add members to FGA group")
 	}
 
-	err = tx.AddUsersToGroup(ctx, groupID, newMembers)
-	if err != nil {
-		return errors.New("failed to add members")
+	for _, member := range newMembers {
+		err := repo.CreateMembershipForUserAndGroup(ctx, db.CreateMembershipForUserAndGroupParams{
+			UserID:  member,
+			GroupID: groupID,
+		})
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
 }
 
-func (d *DB) patchRemove(ctx context.Context, tx db2.RepositoryQueries, groupID uuid.UUID, op payloads.GroupPatchOperation) error {
+func (d *DB) patchRemove(ctx context.Context, repo db.Repository, groupID uuid.UUID, op payloads.GroupPatchOperation) error {
 	id, err := op.ParseIDFromPath()
 	if err != nil {
 		return errors.New("failed to parse id from path")
@@ -89,11 +100,18 @@ func (d *DB) patchRemove(ctx context.Context, tx db2.RepositoryQueries, groupID 
 	if err != nil {
 		return err
 	}
+	err = repo.DropMembershipForUserAndGroup(ctx, db.DropMembershipForUserAndGroupParams{
+		UserID:  id,
+		GroupID: groupID,
+	})
+	if err != nil {
+		return err
+	}
 
-	return tx.RemoveUserFromGroup(ctx, id, groupID)
+	return nil
 }
 
-func (d *DB) patchReplace(ctx context.Context, tx db2.RepositoryQueries, groupID uuid.UUID, op payloads.GroupPatchOperation) error {
+func (d *DB) patchReplace(ctx context.Context, repo db.Repository, groupID uuid.UUID, op payloads.GroupPatchOperation) error {
 	switch op.Path {
 	case "members":
 		newMembers, err := op.GetAddMembersPatch()
@@ -106,7 +124,20 @@ func (d *DB) patchReplace(ctx context.Context, tx db2.RepositoryQueries, groupID
 			return errors.New("failed to replace members in FGA")
 		}
 
-		err = tx.ReplaceUsersInGroup(ctx, groupID, newMembers)
+		err = repo.DropMembershipForGroup(ctx, groupID)
+		if err != nil {
+			return err
+		}
+
+		for _, member := range newMembers {
+			err = repo.CreateMembershipForUserAndGroup(ctx, db.CreateMembershipForUserAndGroupParams{
+				UserID:  member,
+				GroupID: groupID,
+			})
+			if err != nil {
+				return err
+			}
+		}
 		if err != nil {
 			return errors.New("failed to replace members")
 		}
@@ -116,12 +147,12 @@ func (d *DB) patchReplace(ctx context.Context, tx db2.RepositoryQueries, groupID
 			return errors.New("failed to get patch")
 		}
 
-		_, err = tx.UpdateGroup(ctx, db2.PatchGroupDisplayNameParams{
+		err = repo.PatchGroupDisplayName(ctx, db.PatchGroupDisplayNameParams{
 			ID:          groupID,
 			DisplayName: patch.DisplayName,
 		})
 		if err != nil {
-			return errors.New("failed to patch display name")
+			return err
 		}
 	}
 
@@ -134,7 +165,7 @@ func (d *DB) DeleteGroup(ctx context.Context, groupID uuid.UUID) error {
 		return err
 	}
 
-	err = d.app.Repository.DeleteGroup(ctx, groupID.String())
+	err = d.app.Repo.DeleteGroup(ctx, groupID)
 	if err != nil {
 		return err
 	}
@@ -143,7 +174,7 @@ func (d *DB) DeleteGroup(ctx context.Context, groupID uuid.UUID) error {
 }
 
 func (d *DB) CreateGroup(ctx context.Context, displayName string) (database.Group, error) {
-	group, err := d.app.Repository.CreateGroup(ctx, displayName)
+	group, err := d.app.Repo.CreateGroup(ctx, displayName)
 	if err != nil {
 		return database.Group{}, err
 	}
@@ -153,7 +184,7 @@ func (d *DB) CreateGroup(ctx context.Context, displayName string) (database.Grou
 }
 
 func (d *DB) GetGroupMembership(ctx context.Context, groupID uuid.UUID) ([]database.GroupMembership, error) {
-	members, err := d.app.Repository.GetGroupMembership(ctx, groupID.String())
+	members, err := d.app.Repo.GetGroupMembership(ctx, groupID)
 	if err != nil {
 		return nil, err
 	}
@@ -170,8 +201,8 @@ func (d *DB) GetGroupMembership(ctx context.Context, groupID uuid.UUID) ([]datab
 	return groupMembers, nil
 }
 
-func (d *DB) FindGroup(ctx context.Context, userID uuid.UUID) (database.Group, error) {
-	group, err := d.app.Repository.FindGroup(ctx, userID.String())
+func (d *DB) FindGroup(ctx context.Context, groupID uuid.UUID) (database.Group, error) {
+	group, err := d.app.Repo.GetGroup(ctx, groupID)
 	if err != nil {
 		return database.Group{}, err
 	}
@@ -181,7 +212,12 @@ func (d *DB) FindGroup(ctx context.Context, userID uuid.UUID) (database.Group, e
 }
 
 func (d *DB) GetGroups(ctx context.Context, limit int32, offset int32) (int64, []database.Group, error) {
-	totalCount, groups, err := d.app.Repository.GetGroups(ctx, db2.GetGroupsParams{
+	totalCount, err := d.app.Repo.GetGroupCount(ctx)
+	if err != nil {
+		return 0, nil, err
+	}
+
+	groups, err := d.app.Repo.GetGroups(ctx, db.GetGroupsParams{
 		Offset: offset,
 		Limit:  limit,
 	})
@@ -198,7 +234,7 @@ func (d *DB) GetGroups(ctx context.Context, limit int32, offset int32) (int64, [
 }
 
 func (d *DB) FindUser(ctx context.Context, userID uuid.UUID) (database.User, error) {
-	user, err := d.app.Repository.FindUser(ctx, userID.String())
+	user, err := d.app.Repo.GetUser(ctx, userID)
 	if err != nil {
 		return database.User{}, err
 	}
@@ -211,7 +247,7 @@ func (d *DB) FindUser(ctx context.Context, userID uuid.UUID) (database.User, err
 }
 
 func (d *DB) SetUserActive(ctx context.Context, userID uuid.UUID, active bool) error {
-	err := d.app.Repository.ScimPatchUser(ctx, db2.PatchUserParams{
+	err := d.app.Repo.PatchUser(ctx, db.PatchUserParams{
 		ID:     userID,
 		Active: active,
 	})
@@ -233,7 +269,7 @@ func (d *DB) UpdateUser(ctx context.Context, userID uuid.UUID, arg database.User
 		return database.User{}, err
 	}
 
-	user, err := d.app.Repository.UpdateUser(ctx, userID, db2.UpdateUserParams{
+	user, err := d.app.Repo.UpdateUser(ctx, db.UpdateUserParams{
 		ID:       userID,
 		Username: arg.Username,
 		Name:     name,
@@ -265,16 +301,18 @@ func (d *DB) UpdateUser(ctx context.Context, userID uuid.UUID, arg database.User
 }
 
 func (d *DB) DeleteUser(ctx context.Context, userID uuid.UUID) error {
-	tx, err := d.app.Repository.Begin(ctx)
+	tx, err := d.app.PostgresPool.Begin(ctx)
 	if err != nil {
 		return err
 	}
 
-	defer func(tx db2.RepositoryQueries, ctx context.Context) {
+	defer func(tx pgx.Tx, ctx context.Context) {
 		_ = tx.Rollback(ctx)
 	}(tx, ctx)
 
-	err = tx.DeleteUser(ctx, userID)
+	repo := d.app.Repo.WithTx(tx)
+
+	err = repo.DeleteUser(ctx, userID)
 	if err != nil {
 		return err
 	}
@@ -293,14 +331,16 @@ func (d *DB) DeleteUser(ctx context.Context, userID uuid.UUID) error {
 }
 
 func (d *DB) CreateUser(ctx context.Context, arg database.UserParams) (database.User, error) {
-	tx, err := d.app.Repository.Begin(ctx)
+	tx, err := d.app.PostgresPool.Begin(ctx)
 	if err != nil {
 		return database.User{}, err
 	}
 
-	defer func(tx db2.RepositoryQueries, ctx context.Context) {
+	defer func(tx pgx.Tx, ctx context.Context) {
 		_ = tx.Rollback(ctx)
 	}(tx, ctx)
+
+	repo := d.app.Repo.WithTx(tx)
 
 	name, err := parseJSONB(arg.Name)
 	if err != nil {
@@ -312,7 +352,7 @@ func (d *DB) CreateUser(ctx context.Context, arg database.UserParams) (database.
 		return database.User{}, err
 	}
 
-	user, err := tx.CreateUser(ctx, db2.CreateUserParams{
+	user, err := repo.CreateUser(ctx, db.CreateUserParams{
 		Username: arg.Username,
 		Name:     name,
 		Active:   arg.Active,
@@ -349,11 +389,7 @@ func (d *DB) CreateUser(ctx context.Context, arg database.UserParams) (database.
 }
 
 func (d *DB) GetUsers(ctx context.Context, input database.GetUsersParams) (int64, []database.User, error) {
-	count, users, err := d.app.Repository.GetScimUsers(ctx, db2.GetScimUsersInput{
-		Filters: input.Filters,
-		Offset:  input.Offset,
-		Limit:   input.Limit,
-	})
+	count, users, err := d.getUsers(ctx, input)
 	if err != nil {
 		return 0, nil, err
 	}
@@ -369,4 +405,40 @@ func (d *DB) GetUsers(ctx context.Context, input database.GetUsersParams) (int64
 	}
 
 	return count, scimUsers, nil
+}
+
+func (d *DB) getUsers(ctx context.Context, input database.GetUsersParams) (int64, []db.User, error) {
+	if len(input.Filters) == 0 {
+		totalCount, err := d.app.Repo.GetUserCount(ctx)
+		if err != nil {
+			return 0, nil, err
+		}
+
+		users, err := d.app.Repo.GetUsers(ctx, db.GetUsersParams{
+			Offset: input.Offset,
+			Limit:  input.Limit,
+		})
+		if err != nil {
+			return 0, nil, err
+		}
+
+		return totalCount, users, nil
+	}
+
+	// we only support the userName filter for now
+	// Okta uses this to see if a userName already exists
+	filter := input.Filters[0]
+	if filter.FilterField == filters.Username && filter.FilterOperator == filters.Eq {
+		user, err := d.app.Repo.FindUserByUsername(ctx, filter.FilterValue)
+		switch err {
+		case nil:
+			return 1, []db.User{user}, nil
+		case pgx.ErrNoRows:
+			return 0, []db.User{}, nil
+		default:
+			return 0, nil, err
+		}
+	} else {
+		return 0, nil, errors.New("unsupported filter")
+	}
 }

@@ -32,13 +32,13 @@ type Querier interface {
 	DropMembershipForGroup(ctx context.Context, groupID uuid.UUID) error
 	DropMembershipForUserAndGroup(ctx context.Context, arg DropMembershipForUserAndGroupParams) error
 	FindAPIKey(ctx context.Context, id uuid.UUID) (ApiKey, error)
-	FindAPIKeysById(ctx context.Context, dollar_1 []uuid.UUID) ([]ApiKey, error)
-	FindByUsername(ctx context.Context, username string) (User, error)
+	FindAPIKeysByID(ctx context.Context, id []uuid.UUID) ([]ApiKey, error)
 	FindCloudAccount(ctx context.Context, id uuid.UUID) (CloudAccount, error)
 	FindCloudAccountByCloudAndTenant(ctx context.Context, arg FindCloudAccountByCloudAndTenantParams) (CloudAccount, error)
 	FindOrganizationalUnit(ctx context.Context, id uuid.UUID) (OrganizationalUnit, error)
 	FindScimAPIKey(ctx context.Context) (ApiKey, error)
 	FindTag(ctx context.Context, id uuid.UUID) (StandardTag, error)
+	FindUserByUsername(ctx context.Context, username string) (User, error)
 	GetAPIKeys(ctx context.Context) ([]ApiKey, error)
 	GetAPIKeysOrganizationalUnits(ctx context.Context, apiKeyID uuid.UUID) ([]OrganizationalUnit, error)
 	//------------------------------------------------------------------------------------------------------------------
@@ -62,7 +62,7 @@ type Querier interface {
 	//------------------------------------------------------------------------------------------------------------------
 	// Organizational Units
 	//------------------------------------------------------------------------------------------------------------------
-	GetOrganizationalUnitChildren(ctx context.Context, parentID uuid.NullUUID) ([]OrganizationalUnit, error)
+	GetOrganizationalUnitChildren(ctx context.Context, parentID uuid.UUID) ([]OrganizationalUnit, error)
 	GetOrganizationalUnitCloudAccounts(ctx context.Context, organizationalUnitID uuid.UUID) ([]CloudAccount, error)
 	GetOrganizationalUnits(ctx context.Context) ([]OrganizationalUnit, error)
 	//------------------------------------------------------------------------------------------------------------------
@@ -76,13 +76,13 @@ type Querier interface {
 	// Users
 	//------------------------------------------------------------------------------------------------------------------
 	GetUsers(ctx context.Context, arg GetUsersParams) ([]User, error)
-	GetUsersById(ctx context.Context, dollar_1 []uuid.UUID) ([]User, error)
+	GetUsersByID(ctx context.Context, userIds []uuid.UUID) ([]User, error)
 	//------------------------------------------------------------------------------------------------------------------
 	// SCIM API Key
 	//------------------------------------------------------------------------------------------------------------------
 	InsertAPIKey(ctx context.Context, arg InsertAPIKeyParams) (ApiKey, error)
 	InsertScimAPIKey(ctx context.Context, apiKeyID uuid.UUID) (ScimApiKey, error)
-	OrganizationalUnitsCloudAccounts(ctx context.Context, dollar_1 []uuid.UUID) ([]CloudAccount, error)
+	OrganizationalUnitsCloudAccounts(ctx context.Context, id []uuid.UUID) ([]CloudAccount, error)
 	PatchGroupDisplayName(ctx context.Context, arg PatchGroupDisplayNameParams) error
 	PatchUser(ctx context.Context, arg PatchUserParams) error
 	//------------------------------------------------------------------------------------------------------------------
@@ -92,8 +92,8 @@ type Querier interface {
 	UnAssignAccountFromOUs(ctx context.Context, cloudAccountID uuid.UUID) error
 	UpdateCloudAccount(ctx context.Context, arg UpdateCloudAccountParams) error
 	UpdateCloudAccountTagsDriftDetected(ctx context.Context, arg UpdateCloudAccountTagsDriftDetectedParams) error
-	UpdateTag(ctx context.Context, arg UpdateTagParams) error
-	UpdateUser(ctx context.Context, arg UpdateUserParams) error
+	UpdateTag(ctx context.Context, arg UpdateTagParams) (StandardTag, error)
+	UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error)
 }
 
 var _ Querier = (*Queries)(nil)

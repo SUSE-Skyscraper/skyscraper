@@ -6,12 +6,12 @@ import (
 	"github.com/jackc/pgx/v4/pgxpool"
 )
 
-type Searches struct {
+type DefaultSearcher struct {
 	pool *pgxpool.Pool
 }
 
-func newSearch(pool *pgxpool.Pool) *Searches {
-	return &Searches{pool: pool}
+func NewSearcher(pool *pgxpool.Pool) *DefaultSearcher {
+	return &DefaultSearcher{pool: pool}
 }
 
 type Searcher interface {

@@ -4,10 +4,12 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/jackc/pgx/v4"
+
 	"github.com/suse-skyscraper/skyscraper/api/payloads"
-	responses2 "github.com/suse-skyscraper/skyscraper/api/responses"
+	resp "github.com/suse-skyscraper/skyscraper/api/responses"
 	"github.com/suse-skyscraper/skyscraper/cli/application"
-	db2 "github.com/suse-skyscraper/skyscraper/cli/internal/db"
+	"github.com/suse-skyscraper/skyscraper/cli/internal/db"
 	"github.com/suse-skyscraper/skyscraper/cli/internal/server/middleware"
 
 	"github.com/go-chi/render"
@@ -16,9 +18,9 @@ import (
 func V1AssignCloudAccountToOU(app *application.App) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Get the cloud account that we're changing
-		cloudAccount, ok := r.Context().Value(middleware.ContextCloudAccount).(db2.CloudAccount)
+		cloudAccount, ok := r.Context().Value(middleware.ContextCloudAccount).(db.CloudAccount)
 		if !ok {
-			_ = render.Render(w, r, responses2.ErrInternalServerError)
+			_ = render.Render(w, r, resp.ErrInternalServerError)
 			return
 		}
 
@@ -26,38 +28,42 @@ func V1AssignCloudAccountToOU(app *application.App) func(w http.ResponseWriter, 
 		var payload payloads.AssignCloudAccountToOUPayload
 		err := render.Bind(r, &payload)
 		if err != nil {
-			_ = render.Render(w, r, responses2.ErrInvalidRequest(err))
+			_ = render.Render(w, r, resp.ErrInvalidRequest(err))
 			return
 		}
 
 		// Begin a database transaction
-		repo, err := app.Repository.Begin(r.Context())
+		tx, err := app.PostgresPool.Begin(r.Context())
 		if err != nil {
-			_ = render.Render(w, r, responses2.ErrInternalServerError)
+			_ = render.Render(w, r, resp.ErrInternalServerError)
 			return
 		}
+		repo := app.Repo.WithTx(tx)
 
 		// If any error occurs, rollback the transaction
-		defer func(repo db2.RepositoryQueries, ctx context.Context) {
-			_ = repo.Rollback(ctx)
-		}(repo, r.Context())
+		defer func(tx pgx.Tx, ctx context.Context) {
+			_ = tx.Rollback(ctx)
+		}(tx, r.Context())
 
-		err = repo.UnAssignCloudAccountFromOrganizationalUnits(r.Context(), cloudAccount.ID)
+		err = repo.UnAssignAccountFromOUs(r.Context(), cloudAccount.ID)
 		if err != nil {
-			_ = render.Render(w, r, responses2.ErrInternalServerError)
+			_ = render.Render(w, r, resp.ErrInternalServerError)
 			return
 		}
 
-		err = repo.AssignCloudAccountToOrganizationalUnit(r.Context(), cloudAccount.ID, payload.Data.GetOrganizationalUnitID())
+		err = repo.AssignAccountToOU(r.Context(), db.AssignAccountToOUParams{
+			CloudAccountID:       cloudAccount.ID,
+			OrganizationalUnitID: payload.Data.GetOrganizationalUnitID(),
+		})
 		if err != nil {
-			_ = render.Render(w, r, responses2.ErrInternalServerError)
+			_ = render.Render(w, r, resp.ErrInternalServerError)
 			return
 		}
 
 		// Commit the transaction
-		err = repo.Commit(r.Context())
+		err = tx.Commit(r.Context())
 		if err != nil {
-			_ = render.Render(w, r, responses2.ErrInternalServerError)
+			_ = render.Render(w, r, resp.ErrInternalServerError)
 			return
 		}
 

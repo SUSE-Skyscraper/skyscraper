@@ -33,7 +33,7 @@ func (v *Verifier) Verify(ctx context.Context, keyID, keySecret string) (auth.Ca
 		return auth.Caller{}, false, nil
 	}
 
-	apiKey, err := v.App.Repository.FindAPIKey(ctx, id)
+	apiKey, err := v.App.Repo.FindAPIKey(ctx, id)
 	if err != nil {
 		return auth.Caller{}, false, err
 	}
@@ -58,7 +58,7 @@ func (v *Verifier) VerifyScim(ctx context.Context, authorizationHeader string) (
 	}
 	token := bearer[1]
 
-	apiKey, err := v.App.Repository.FindScimAPIKey(ctx)
+	apiKey, err := v.App.Repo.FindScimAPIKey(ctx)
 	if err != nil && err == pgx.ErrNoRows {
 		return false, nil
 	} else if err != nil {

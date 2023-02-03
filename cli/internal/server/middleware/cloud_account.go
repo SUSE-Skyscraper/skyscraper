@@ -18,14 +18,12 @@ func CloudAccountCtx(app *application.App) func(next http.Handler) http.Handler 
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			tenantID := chi.URLParam(r, "tenant_id")
 			cloudProvider := chi.URLParam(r, "cloud")
-			id := chi.URLParam(r, "id")
 			accountID := chi.URLParam(r, "account_id")
 
-			cloudAccount, err := app.Repository.FindCloudAccount(r.Context(), db.FindCloudAccountInput{
+			cloudAccount, err := app.Repo.FindCloudAccountByCloudAndTenant(r.Context(), db.FindCloudAccountByCloudAndTenantParams{
 				Cloud:     cloudProvider,
 				TenantID:  tenantID,
 				AccountID: accountID,
-				ID:        id,
 			})
 			if err != nil {
 				if err == pgx.ErrNoRows {

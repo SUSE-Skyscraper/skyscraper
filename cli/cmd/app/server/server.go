@@ -230,12 +230,6 @@ func NewCmd(app *application.App) *cobra.Command {
 							r.Get("/", server2.V1GetCloudAccount(app))
 						})
 
-						// write actions
-						r.Group(func(r chi.Router) {
-							r.Use(editorEnforcer)
-							r.Put("/", server2.V1UpdateCloudAccount(app))
-						})
-
 						r.Route("/organizational_unit", func(r chi.Router) {
 							// write actions
 							r.Group(func(r chi.Router) {

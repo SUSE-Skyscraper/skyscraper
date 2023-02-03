@@ -10,7 +10,7 @@ import (
 
 	"github.com/suse-skyscraper/skyscraper/cli/internal/auth"
 	"github.com/suse-skyscraper/skyscraper/cli/internal/server/middleware"
-	testhelpers2 "github.com/suse-skyscraper/skyscraper/cli/internal/testhelpers"
+	"github.com/suse-skyscraper/skyscraper/cli/internal/testhelpers"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -18,7 +18,7 @@ import (
 )
 
 func TestV1AssignCloudAccountToOU(t *testing.T) {
-	cloudAccount := testhelpers2.FactoryCloudAccount()
+	cloudAccount := testhelpers.FactoryCloudAccount()
 
 	tests := []struct {
 		payload       []byte
@@ -74,7 +74,10 @@ func TestV1AssignCloudAccountToOU(t *testing.T) {
 		req, _ := http.NewRequest("POST", "/api/v1/cloud_accounts/12345/organizational_unit", bytes.NewReader(tc.payload))
 		req.Header.Add("Content-Type", "application/json")
 		w := httptest.NewRecorder()
-		testApp := testhelpers2.NewTestApp()
+		testApp, err := testhelpers.NewTestApp()
+		if err != nil {
+			t.Fatal(err)
+		}
 
 		ctx := req.Context()
 		ctx = context.WithValue(ctx, middleware.ContextCloudAccount, tc.context)
@@ -84,18 +87,23 @@ func TestV1AssignCloudAccountToOU(t *testing.T) {
 		})
 		req = req.WithContext(ctx)
 
-		testApp.Repository.On("Begin", mock.Anything).Return(testApp.Repository, tc.beginError)
-		testApp.Repository.On("Commit", mock.Anything).Return(tc.commitError)
-		testApp.Repository.On("UnAssignCloudAccountFromOrganizationalUnits", mock.Anything, mock.Anything).Return(tc.unAssignError)
-		testApp.Repository.On("AssignCloudAccountToOrganizationalUnit", mock.Anything, mock.Anything, mock.Anything).Return(tc.assignError)
-		testApp.Repository.On("Rollback", mock.Anything).Return(nil)
+		testApp.PostgresPool.ExpectBegin().WillReturnError(tc.beginError)
+		testApp.Repo.On("WithTx", mock.Anything).Return(testApp.Repo)
+		if tc.assignError == nil && tc.unAssignError == nil {
+			testApp.PostgresPool.ExpectCommit().WillReturnError(tc.commitError)
+		}
+		testApp.Repo.On("UnAssignAccountFromOUs", mock.Anything, mock.Anything).Return(tc.unAssignError)
+		testApp.Repo.On("AssignAccountToOU", mock.Anything, mock.Anything, mock.Anything).Return(tc.assignError)
+		testApp.PostgresPool.ExpectRollback()
 
 		V1AssignCloudAccountToOU(testApp.App)(w, req)
 
-		_ = testhelpers2.AssertOpenAPI(t, w, req)
+		_ = testhelpers.AssertOpenAPI(t, w, req)
 
 		result := w.Result()
 		assert.Equal(t, tc.statusCode, result.StatusCode)
 		_ = result.Body.Close()
+
+		testApp.Close() // Close the test app, we cannot defer in a loop
 	}
 }

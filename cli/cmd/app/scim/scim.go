@@ -2,13 +2,15 @@ package scim
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 
-	"github.com/suse-skyscraper/skyscraper/cli/application"
-	"github.com/suse-skyscraper/skyscraper/cli/internal/auth/apikeys"
+	"github.com/jackc/pgx/v4"
 	"github.com/suse-skyscraper/skyscraper/cli/internal/db"
 
 	"github.com/spf13/cobra"
+	"github.com/suse-skyscraper/skyscraper/cli/application"
+	"github.com/suse-skyscraper/skyscraper/cli/internal/auth/apikeys"
 )
 
 func NewCmd(app *application.App) *cobra.Command {
@@ -27,26 +29,38 @@ func NewCmd(app *application.App) *cobra.Command {
 
 			ctx := context.Background()
 
-			repo, err := app.Repository.Begin(ctx)
+			tx, err := app.PostgresPool.Begin(ctx)
 			if err != nil {
 				return err
 			}
 
-			defer func(repo db.RepositoryQueries, ctx context.Context) {
-				_ = repo.Rollback(ctx)
-			}(repo, ctx)
+			defer func(tx pgx.Tx, ctx context.Context) {
+				_ = tx.Rollback(ctx)
+			}(tx, ctx)
+
+			repo := app.Repo.WithTx(tx)
 
 			err = repo.DeleteScimAPIKey(ctx)
 			if err != nil {
 				return err
 			}
 
-			_, err = repo.InsertScimAPIKey(context.Background(), hash)
+			apiKey, err := repo.InsertAPIKey(ctx, db.InsertAPIKeyParams{
+				Encodedhash: hash,
+				System:      true,
+				Owner:       "SCIM",
+				Description: sql.NullString{String: "SCIM API key", Valid: true},
+			})
 			if err != nil {
 				return err
 			}
 
-			err = repo.Commit(ctx)
+			_, err = repo.InsertScimAPIKey(ctx, apiKey.ID)
+			if err != nil {
+				return err
+			}
+
+			err = tx.Commit(ctx)
 			if err != nil {
 				return err
 			}

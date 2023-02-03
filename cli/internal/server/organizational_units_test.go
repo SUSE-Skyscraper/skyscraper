@@ -11,7 +11,7 @@ import (
 	"github.com/suse-skyscraper/skyscraper/cli/internal/auth"
 	"github.com/suse-skyscraper/skyscraper/cli/internal/db"
 	"github.com/suse-skyscraper/skyscraper/cli/internal/server/middleware"
-	testhelpers2 "github.com/suse-skyscraper/skyscraper/cli/internal/testhelpers"
+	"github.com/suse-skyscraper/skyscraper/cli/internal/testhelpers"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -19,7 +19,7 @@ import (
 )
 
 func TestV1ListOrganizationalUnits(t *testing.T) {
-	organizationalUnit := testhelpers2.FactoryOrganizationalUnit()
+	organizationalUnit := testhelpers.FactoryOrganizationalUnit()
 
 	tests := []struct {
 		getError   error
@@ -38,24 +38,29 @@ func TestV1ListOrganizationalUnits(t *testing.T) {
 	for _, tc := range tests {
 		req, _ := http.NewRequest("GET", "/api/v1/organizational_units?cloud=AWS", nil)
 		w := httptest.NewRecorder()
-		testApp := testhelpers2.NewTestApp()
+		testApp, err := testhelpers.NewTestApp()
+		if err != nil {
+			t.Fatal(err)
+		}
 
-		testApp.Repository.
+		testApp.Repo.
 			On("GetOrganizationalUnits", mock.Anything).
 			Return([]db.OrganizationalUnit{organizationalUnit}, tc.getError)
 
 		V1ListOrganizationalUnits(testApp.App)(w, req)
 
-		_ = testhelpers2.AssertOpenAPI(t, w, req)
+		_ = testhelpers.AssertOpenAPI(t, w, req)
 
 		result := w.Result()
 		assert.Equal(t, tc.statusCode, result.StatusCode)
 		_ = result.Body.Close()
+
+		testApp.Close() // Close the test app, we cannot defer in a loop
 	}
 }
 
 func TestV1GetOrganizationalUnit(t *testing.T) {
-	organizationalUnit := testhelpers2.FactoryOrganizationalUnit()
+	organizationalUnit := testhelpers.FactoryOrganizationalUnit()
 
 	tests := []struct {
 		context    interface{}
@@ -74,7 +79,10 @@ func TestV1GetOrganizationalUnit(t *testing.T) {
 	for _, test := range tests {
 		req, _ := http.NewRequest("GET", "/api/v1/organizational_units/123456", nil)
 		w := httptest.NewRecorder()
-		testApp := testhelpers2.NewTestApp()
+		testApp, err := testhelpers.NewTestApp()
+		if err != nil {
+			t.Fatal(err)
+		}
 
 		ctx := req.Context()
 		ctx = context.WithValue(ctx, middleware.ContextOrganizationalUnit, test.context)
@@ -82,16 +90,18 @@ func TestV1GetOrganizationalUnit(t *testing.T) {
 
 		V1GetOrganizationalUnit(testApp.App)(w, req)
 
-		_ = testhelpers2.AssertOpenAPI(t, w, req)
+		_ = testhelpers.AssertOpenAPI(t, w, req)
 
 		result := w.Result()
 		assert.Equal(t, result.StatusCode, test.statusCode)
 		_ = result.Body.Close()
+
+		testApp.Close() // Close the test app, we cannot defer in a loop
 	}
 }
 
 func TestV1CreateOrganizationalUnit(t *testing.T) {
-	organizationalUnit := testhelpers2.FactoryOrganizationalUnit()
+	organizationalUnit := testhelpers.FactoryOrganizationalUnit()
 
 	tests := []struct {
 		payload             []byte
@@ -141,7 +151,10 @@ func TestV1CreateOrganizationalUnit(t *testing.T) {
 		req, _ := http.NewRequest("POST", "/api/v1/organizational_units", bytes.NewReader(tc.payload))
 		req.Header.Add("Content-Type", "application/json")
 		w := httptest.NewRecorder()
-		testApp := testhelpers2.NewTestApp()
+		testApp, err := testhelpers.NewTestApp()
+		if err != nil {
+			t.Fatal(err)
+		}
 
 		ctx := req.Context()
 		ctx = context.WithValue(ctx, middleware.ContextOrganizationalUnit, organizationalUnit)
@@ -153,15 +166,18 @@ func TestV1CreateOrganizationalUnit(t *testing.T) {
 
 		testApp.FGAClient.On("AddOrganizationalUnit", mock.Anything, mock.Anything, mock.Anything).Return(tc.fgaError)
 
-		testApp.Repository.On("Begin", mock.Anything).Return(testApp.Repository, tc.beginError)
-		testApp.Repository.On("Commit", mock.Anything).Return(tc.commitError)
-		testApp.Repository.On("CreateOrganizationalUnit", mock.Anything, mock.Anything).Return(organizationalUnit, tc.createError)
-		testApp.Repository.On("CreateAuditLog", mock.Anything, mock.Anything).Return(db.AuditLog{}, tc.createAuditLogError)
-		testApp.Repository.On("Rollback", mock.Anything).Return(nil)
+		testApp.PostgresPool.ExpectBegin().WillReturnError(tc.beginError)
+		if tc.beginError == nil && tc.createAuditLogError == nil && tc.createError == nil {
+			testApp.PostgresPool.ExpectCommit().WillReturnError(tc.commitError)
+		}
+		testApp.Repo.On("WithTx", mock.Anything).Return(testApp.Repo)
+		testApp.Repo.On("CreateOrganizationalUnit", mock.Anything, mock.Anything).Return(organizationalUnit, tc.createError)
+		testApp.Repo.On("CreateAuditLog", mock.Anything, mock.Anything).Return(db.AuditLog{}, tc.createAuditLogError)
+		testApp.PostgresPool.ExpectRollback()
 
 		V1CreateOrganizationalUnit(testApp.App)(w, req)
 
-		_ = testhelpers2.AssertOpenAPI(t, w, req)
+		_ = testhelpers.AssertOpenAPI(t, w, req)
 
 		result := w.Result()
 		assert.Equal(t, tc.statusCode, result.StatusCode)
@@ -170,8 +186,8 @@ func TestV1CreateOrganizationalUnit(t *testing.T) {
 }
 
 func TestV1DeleteOrganizationalUnit(t *testing.T) {
-	organizationalUnit := testhelpers2.FactoryOrganizationalUnit()
-	cloudAccount := testhelpers2.FactoryCloudAccount()
+	organizationalUnit := testhelpers.FactoryOrganizationalUnit()
+	cloudAccount := testhelpers.FactoryCloudAccount()
 
 	tests := []struct {
 		statusCode            int
@@ -245,7 +261,10 @@ func TestV1DeleteOrganizationalUnit(t *testing.T) {
 		req, _ := http.NewRequest("DELETE", "/api/v1/organizational_units/123456", nil)
 		req.Header.Add("Content-Type", "application/json")
 		w := httptest.NewRecorder()
-		testApp := testhelpers2.NewTestApp()
+		testApp, err := testhelpers.NewTestApp()
+		if err != nil {
+			t.Fatal(err)
+		}
 
 		ctx := req.Context()
 		ctx = context.WithValue(ctx, middleware.ContextOrganizationalUnit, tc.context)
@@ -257,17 +276,21 @@ func TestV1DeleteOrganizationalUnit(t *testing.T) {
 
 		testApp.FGAClient.On("RemoveOrganizationalUnitRelationships", mock.Anything, mock.Anything, mock.Anything).Return(tc.fgaError)
 
-		testApp.Repository.On("Begin", mock.Anything).Return(testApp.Repository, tc.beginError)
-		testApp.Repository.On("Commit", mock.Anything).Return(tc.commitError)
-		testApp.Repository.On("GetOrganizationalUnitChildren", mock.Anything, mock.Anything).Return(tc.children, tc.getChildrenError)
-		testApp.Repository.On("GetOrganizationalUnitCloudAccounts", mock.Anything, mock.Anything).Return(tc.accounts, tc.getCloudAccountsError)
-		testApp.Repository.On("DeleteOrganizationalUnit", mock.Anything, mock.Anything).Return(tc.deleteError)
-		testApp.Repository.On("CreateAuditLog", mock.Anything, mock.Anything).Return(db.AuditLog{}, tc.createAuditLogError)
-		testApp.Repository.On("Rollback", mock.Anything).Return(nil)
+		testApp.PostgresPool.ExpectBegin().WillReturnError(tc.beginError)
+		if tc.beginError == nil && tc.createAuditLogError == nil && tc.deleteError == nil && tc.getChildrenError == nil && tc.getCloudAccountsError == nil {
+			testApp.PostgresPool.ExpectCommit().WillReturnError(tc.commitError)
+		}
+		testApp.Repo.On("WithTx", mock.Anything).Return(testApp.Repo)
+
+		testApp.Repo.On("GetOrganizationalUnitChildren", mock.Anything, mock.Anything).Return(tc.children, tc.getChildrenError)
+		testApp.Repo.On("GetOrganizationalUnitCloudAccounts", mock.Anything, mock.Anything).Return(tc.accounts, tc.getCloudAccountsError)
+		testApp.Repo.On("DeleteOrganizationalUnit", mock.Anything, mock.Anything).Return(tc.deleteError)
+		testApp.Repo.On("CreateAuditLog", mock.Anything, mock.Anything).Return(db.AuditLog{}, tc.createAuditLogError)
+		testApp.PostgresPool.ExpectRollback()
 
 		V1DeleteOrganizationalUnit(testApp.App)(w, req)
 
-		_ = testhelpers2.AssertOpenAPI(t, w, req)
+		_ = testhelpers.AssertOpenAPI(t, w, req)
 
 		result := w.Result()
 		assert.Equal(t, tc.statusCode, result.StatusCode)

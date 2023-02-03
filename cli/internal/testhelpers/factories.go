@@ -36,3 +36,15 @@ func FactoryCloudAccount() db.CloudAccount {
 		UpdatedAt:         time.Now(),
 	}
 }
+
+func FactoryTenant() db.CloudTenant {
+	return db.CloudTenant{
+		ID:        uuid.New(),
+		TenantID:  "1234",
+		Name:      "test",
+		Cloud:     "AWS",
+		Active:    true,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+}

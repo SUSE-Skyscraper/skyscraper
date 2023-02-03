@@ -24,7 +24,7 @@ func OrganizationalUnitCtx(app *application.App) func(next http.Handler) http.Ha
 				return
 			}
 
-			organizationalUnit, err := app.Repository.FindOrganizationalUnit(r.Context(), id)
+			organizationalUnit, err := app.Repo.FindOrganizationalUnit(r.Context(), id)
 			if err != nil {
 				if err == pgx.ErrNoRows {
 					_ = render.Render(w, r, responses.ErrNotFound)

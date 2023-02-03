@@ -15,9 +15,10 @@ import (
 type App struct {
 	Config       Config
 	JS           nats.JetStreamContext
-	Repository   db.RepositoryQueries
+	Repo         db.Repository
 	natsConn     *nats.Conn
-	postgresPool *pgxpool.Pool
+	PostgresPool db.PgxIface
+	Searcher     db.Searcher
 	FGAClient    fga.Authorizer
 }
 
@@ -33,12 +34,14 @@ func NewApp(configDir string) (*App, error) {
 }
 
 func (a *App) Start(ctx context.Context) error {
-	database, pool, err := setupDatabase(ctx, a.Config)
+	_, pool, err := setupDatabase(ctx, a.Config)
 	if err != nil {
 		return err
 	}
-	a.Repository = db.NewRepository(pool, database)
-	a.postgresPool = pool
+
+	a.Repo = db.NewRepo(pool)
+	a.Searcher = db.NewSearcher(pool)
+	a.PostgresPool = pool
 
 	js, nc, err := setupNats(ctx, a.Config)
 	if err != nil {
@@ -57,8 +60,8 @@ func (a *App) Start(ctx context.Context) error {
 }
 
 func (a *App) Shutdown(_ context.Context) {
-	if a.postgresPool != nil {
-		a.postgresPool.Close()
+	if a.PostgresPool != nil {
+		a.PostgresPool.Close()
 	}
 
 	if a.natsConn != nil {

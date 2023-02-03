@@ -4,60 +4,62 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/jackc/pgx/v4"
+
 	"github.com/suse-skyscraper/skyscraper/api/payloads"
 	"github.com/suse-skyscraper/skyscraper/api/responses"
 	"github.com/suse-skyscraper/skyscraper/cli/application"
-	db2 "github.com/suse-skyscraper/skyscraper/cli/internal/db"
+	"github.com/suse-skyscraper/skyscraper/cli/internal/db"
 	"github.com/suse-skyscraper/skyscraper/cli/internal/server/auditors"
 	"github.com/suse-skyscraper/skyscraper/cli/internal/server/middleware"
-	responses2 "github.com/suse-skyscraper/skyscraper/cli/internal/server/responses"
 
 	"github.com/go-chi/render"
 )
 
 func V1ListOrganizationalUnits(app *application.App) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		organizationalUnits, err := app.Repository.GetOrganizationalUnits(r.Context())
+		organizationalUnits, err := app.Repo.GetOrganizationalUnits(r.Context())
 		if err != nil {
 			_ = render.Render(w, r, responses.ErrInternalServerError)
 			return
 		}
 
-		_ = render.Render(w, r, responses2.NewOrganizationalUnitsResponse(organizationalUnits))
+		_ = render.Render(w, r, NewOrganizationalUnitsResponse(organizationalUnits))
 	}
 }
 
 func V1GetOrganizationalUnit(_ *application.App) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		organizationalUnit, ok := r.Context().Value(middleware.ContextOrganizationalUnit).(db2.OrganizationalUnit)
+		organizationalUnit, ok := r.Context().Value(middleware.ContextOrganizationalUnit).(db.OrganizationalUnit)
 		if !ok {
 			_ = render.Render(w, r, responses.ErrInternalServerError)
 			return
 		}
 
-		_ = render.Render(w, r, responses2.NewOrganizationalUnitResponse(organizationalUnit))
+		_ = render.Render(w, r, NewOrganizationalUnitResponse(organizationalUnit))
 	}
 }
 
 func V1DeleteOrganizationalUnit(app *application.App) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		organizationalUnit, ok := r.Context().Value(middleware.ContextOrganizationalUnit).(db2.OrganizationalUnit)
+		organizationalUnit, ok := r.Context().Value(middleware.ContextOrganizationalUnit).(db.OrganizationalUnit)
 		if !ok {
 			_ = render.Render(w, r, responses.ErrInternalServerError)
 			return
 		}
 
 		// Begin a database transaction
-		repo, err := app.Repository.Begin(r.Context())
+		tx, err := app.PostgresPool.Begin(r.Context())
 		if err != nil {
 			_ = render.Render(w, r, responses.ErrInternalServerError)
 			return
 		}
+		repo := app.Repo.WithTx(tx)
 
 		// If any error occurs, rollback the transaction
-		defer func(repo db2.RepositoryQueries, ctx context.Context) {
+		defer func(repo pgx.Tx, ctx context.Context) {
 			_ = repo.Rollback(ctx)
-		}(repo, r.Context())
+		}(tx, r.Context())
 
 		// create an auditor within our transaction
 		auditor := auditors.NewAuditor(repo)
@@ -87,7 +89,7 @@ func V1DeleteOrganizationalUnit(app *application.App) func(w http.ResponseWriter
 		}
 
 		// audit the change
-		err = auditor.AuditDelete(r.Context(), db2.AuditResourceTypeOrganizationalUnit, organizationalUnit.ID)
+		err = auditor.AuditDelete(r.Context(), db.AuditResourceTypeOrganizationalUnit, organizationalUnit.ID)
 		if err != nil {
 			_ = render.Render(w, r, responses.ErrInternalServerError)
 			return
@@ -100,7 +102,7 @@ func V1DeleteOrganizationalUnit(app *application.App) func(w http.ResponseWriter
 		}
 
 		// Commit the transaction
-		err = repo.Commit(r.Context())
+		err = tx.Commit(r.Context())
 		if err != nil {
 			_ = render.Render(w, r, responses.ErrInternalServerError)
 			return
@@ -121,21 +123,22 @@ func V1CreateOrganizationalUnit(app *application.App) func(w http.ResponseWriter
 		}
 
 		// Begin a database transaction
-		repo, err := app.Repository.Begin(r.Context())
+		tx, err := app.PostgresPool.Begin(r.Context())
 		if err != nil {
 			_ = render.Render(w, r, responses.ErrInternalServerError)
 			return
 		}
+		repo := app.Repo.WithTx(tx)
 
 		// If any error occurs, rollback the transaction
-		defer func(repo db2.RepositoryQueries, ctx context.Context) {
-			_ = repo.Rollback(ctx)
-		}(repo, r.Context())
+		defer func(tx pgx.Tx, ctx context.Context) {
+			_ = tx.Rollback(ctx)
+		}(tx, r.Context())
 
 		// create an auditor within our transaction
 		auditor := auditors.NewAuditor(repo)
 
-		organizationalUnit, err := repo.CreateOrganizationalUnit(r.Context(), db2.CreateOrganizationalUnitParams{
+		organizationalUnit, err := repo.CreateOrganizationalUnit(r.Context(), db.CreateOrganizationalUnitParams{
 			DisplayName: payload.Data.DisplayName,
 			ParentID:    payload.Data.GetParentID(),
 		})
@@ -151,20 +154,53 @@ func V1CreateOrganizationalUnit(app *application.App) func(w http.ResponseWriter
 		}
 
 		// audit the change
-		err = auditor.AuditCreate(r.Context(), db2.AuditResourceTypeOrganizationalUnit, organizationalUnit.ID, payload)
+		err = auditor.AuditCreate(r.Context(), db.AuditResourceTypeOrganizationalUnit, organizationalUnit.ID, payload)
 		if err != nil {
 			_ = render.Render(w, r, responses.ErrInternalServerError)
 			return
 		}
 
 		// Commit the transaction
-		err = repo.Commit(r.Context())
+		err = tx.Commit(r.Context())
 		if err != nil {
 			_ = render.Render(w, r, responses.ErrInternalServerError)
 			return
 		}
 
 		render.Status(r, http.StatusCreated)
-		_ = render.Render(w, r, responses2.NewOrganizationalUnitResponse(organizationalUnit))
+		_ = render.Render(w, r, NewOrganizationalUnitResponse(organizationalUnit))
+	}
+}
+
+func newOrganizationalUnitItem(organizationalUnit db.OrganizationalUnit) responses.OrganizationalUnitItem {
+	parentID := ""
+	if organizationalUnit.ParentID.Valid {
+		parentID = organizationalUnit.ParentID.UUID.String()
+	}
+
+	return responses.OrganizationalUnitItem{
+		ID:   organizationalUnit.ID.String(),
+		Type: responses.ObjectResponseTypeOrganizationalUnit,
+		Attributes: responses.OrganizationalUnitAttributes{
+			ParentID:    parentID,
+			DisplayName: organizationalUnit.DisplayName,
+		},
+	}
+}
+
+func NewOrganizationalUnitResponse(organizationalUnit db.OrganizationalUnit) *responses.OrganizationalUnitResponse {
+	return &responses.OrganizationalUnitResponse{
+		Data: newOrganizationalUnitItem(organizationalUnit),
+	}
+}
+
+func NewOrganizationalUnitsResponse(organizationalUnits []db.OrganizationalUnit) *responses.OrganizationalUnitsResponse {
+	list := make([]responses.OrganizationalUnitItem, len(organizationalUnits))
+	for i, ou := range organizationalUnits {
+		list[i] = newOrganizationalUnitItem(ou)
+	}
+
+	return &responses.OrganizationalUnitsResponse{
+		Data: list,
 	}
 }

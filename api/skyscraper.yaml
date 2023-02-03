@@ -246,7 +246,7 @@ paths:
           $ref: '#/components/responses/UnauthorizedError'
         '500':
           $ref: '#/components/responses/InternalError'
-  /api/v1/resources/groups/{group}/tenants/{tenant_id}/resources/{id}:
+  /api/v1/groups/{group}/tenants/{tenant_id}/resources/{id}:
     put:
       description: Creates or inserts a resource for a tenant
       tags:

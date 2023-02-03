@@ -4,10 +4,10 @@ go 1.19
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.17.3
-	github.com/aws/aws-sdk-go-v2/config v1.18.10
-	github.com/aws/aws-sdk-go-v2/credentials v1.13.10
+	github.com/aws/aws-sdk-go-v2/config v1.18.11
+	github.com/aws/aws-sdk-go-v2/credentials v1.13.11
 	github.com/aws/aws-sdk-go-v2/service/organizations v1.18.0
-	github.com/getkin/kin-openapi v0.113.0
+	github.com/getkin/kin-openapi v0.114.0
 	github.com/go-chi/chi/v5 v5.0.8
 	github.com/go-chi/cors v1.2.1
 	github.com/go-chi/render v1.0.2
@@ -19,6 +19,7 @@ require (
 	github.com/okta/okta-jwt-verifier-golang v1.3.1
 	github.com/openfga/go-sdk v0.2.1
 	github.com/ory/dockertest/v3 v3.9.1
+	github.com/pashagolub/pgxmock v1.8.0
 	github.com/pkg/errors v0.9.1
 	github.com/pressly/goose/v3 v3.9.0
 	github.com/spf13/cobra v1.6.1
@@ -74,6 +75,7 @@ require (
 	github.com/lestrrat-go/iter v1.0.2 // indirect
 	github.com/lestrrat-go/jwx v1.2.25 // indirect
 	github.com/lestrrat-go/option v1.0.1 // indirect
+	github.com/lib/pq v1.10.7 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect

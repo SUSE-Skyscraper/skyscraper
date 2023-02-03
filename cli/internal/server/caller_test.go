@@ -11,7 +11,7 @@ import (
 	"github.com/suse-skyscraper/skyscraper/cli/internal/auth"
 	"github.com/suse-skyscraper/skyscraper/cli/internal/db"
 	"github.com/suse-skyscraper/skyscraper/cli/internal/server/middleware"
-	testhelpers2 "github.com/suse-skyscraper/skyscraper/cli/internal/testhelpers"
+	"github.com/suse-skyscraper/skyscraper/cli/internal/testhelpers"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -62,22 +62,27 @@ func TestV1Profile(t *testing.T) {
 
 		ctx = context.WithValue(ctx, middleware.ContextCaller, tc.caller)
 		req = req.WithContext(ctx)
-		testApp := testhelpers2.NewTestApp()
+		testApp, err := testhelpers.NewTestApp()
+		if err != nil {
+			t.Fatal(err)
+		}
 
-		testApp.Repository.On("FindUser", mock.Anything, mock.Anything).Return(user, tc.findError)
+		testApp.Repo.On("GetUser", mock.Anything, mock.Anything).Return(user, tc.findError)
 
 		w := httptest.NewRecorder()
 		V1CallerProfile(testApp.App)(w, req)
-		_ = testhelpers2.AssertOpenAPI(t, w, req)
+		_ = testhelpers.AssertOpenAPI(t, w, req)
 
 		result := w.Result()
 		assert.Equal(t, tc.status, result.StatusCode)
 		_ = result.Body.Close()
+
+		testApp.Close() // Close the test app, we cannot defer in a loop
 	}
 }
 
 func TestV1CallerCloudAccounts(t *testing.T) {
-	cloudAccount := testhelpers2.FactoryCloudAccount()
+	cloudAccount := testhelpers.FactoryCloudAccount()
 	user := auth.Caller{
 		Type: auth.CallerUser,
 		ID:   uuid.New(),
@@ -86,7 +91,7 @@ func TestV1CallerCloudAccounts(t *testing.T) {
 		Type: auth.CallerAPIKey,
 		ID:   uuid.New(),
 	}
-	ou := testhelpers2.FactoryOrganizationalUnit()
+	ou := testhelpers.FactoryOrganizationalUnit()
 
 	tests := []struct {
 		context          interface{}
@@ -133,24 +138,30 @@ func TestV1CallerCloudAccounts(t *testing.T) {
 		ctx = context.WithValue(ctx, middleware.ContextCaller, tc.context)
 		req = req.WithContext(ctx)
 
-		testApp := testhelpers2.NewTestApp()
+		testApp, err := testhelpers.NewTestApp()
+		if err != nil {
+			t.Fatal(err)
+		}
 
-		testApp.Repository.
+		testApp.Repo.
 			On("GetUserOrganizationalUnits", mock.Anything, mock.Anything).
 			Return([]db.OrganizationalUnit{ou}, tc.getOUError)
-		testApp.Repository.
+		testApp.Repo.
 			On("GetAPIKeysOrganizationalUnits", mock.Anything, mock.Anything).
 			Return([]db.OrganizationalUnit{ou}, tc.getOUError)
-		testApp.Repository.
+		testApp.Repo.
 			On("OrganizationalUnitsCloudAccounts", mock.Anything, mock.Anything).
 			Return([]db.CloudAccount{cloudAccount}, tc.getAccountsError)
 
 		V1CallerCloudAccounts(testApp.App)(w, req)
 
-		_ = testhelpers2.AssertOpenAPI(t, w, req)
+		_ = testhelpers.AssertOpenAPI(t, w, req)
 
 		result := w.Result()
 		assert.Equal(t, tc.statusCode, result.StatusCode)
 		_ = result.Body.Close()
+
+		// Close the test app, we cannot defer in a loop
+		testApp.Close()
 	}
 }
