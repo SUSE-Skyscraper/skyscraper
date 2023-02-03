@@ -9,15 +9,16 @@ import (
 	"testing"
 	"time"
 
+	application2 "github.com/suse-skyscraper/skyscraper/cli/application"
+
 	"github.com/jackc/pgx/v4"
 	"github.com/nats-io/nats.go"
 	openfga "github.com/openfga/go-sdk"
 	"github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
-	"github.com/suse-skyscraper/skyscraper/internal/application"
 )
 
-var app *application.App
+var app *application2.App
 
 func TestMain(m *testing.M) {
 	ctx := context.Background()
@@ -42,8 +43,8 @@ func TestMain(m *testing.M) {
 		log.Fatalf("could not start openfga resource: %s", err)
 	}
 
-	app = &application.App{
-		Config: application.Config{
+	app = &application2.App{
+		Config: application2.Config{
 			DB:        dbConfig,
 			Nats:      natsConfig,
 			FGAConfig: fgaConfig,
@@ -73,7 +74,7 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-func setupOpenFGA(_ context.Context, pool *dockertest.Pool) (*dockertest.Resource, application.FGAConfig, error) {
+func setupOpenFGA(_ context.Context, pool *dockertest.Pool) (*dockertest.Resource, application2.FGAConfig, error) {
 	resource, err := pool.RunWithOptions(&dockertest.RunOptions{
 		Repository:   "openfga/openfga",
 		Tag:          "latest",
@@ -84,14 +85,14 @@ func setupOpenFGA(_ context.Context, pool *dockertest.Pool) (*dockertest.Resourc
 		config.RestartPolicy = docker.RestartPolicy{Name: "no"}
 	})
 	if err != nil {
-		return nil, application.FGAConfig{}, err
+		return nil, application2.FGAConfig{}, err
 	}
 
 	url := resource.GetHostPort("8080/tcp")
 
 	err = resource.Expire(120)
 	if err != nil {
-		return nil, application.FGAConfig{}, err
+		return nil, application2.FGAConfig{}, err
 	}
 
 	var storeID string
@@ -120,10 +121,10 @@ func setupOpenFGA(_ context.Context, pool *dockertest.Pool) (*dockertest.Resourc
 		return nil
 	})
 	if err != nil {
-		return nil, application.FGAConfig{}, err
+		return nil, application2.FGAConfig{}, err
 	}
 
-	config := application.FGAConfig{
+	config := application2.FGAConfig{
 		APIScheme: "http",
 		APIHost:   url,
 		StoreID:   storeID,
@@ -132,7 +133,7 @@ func setupOpenFGA(_ context.Context, pool *dockertest.Pool) (*dockertest.Resourc
 	return resource, config, nil
 }
 
-func setupNats(_ context.Context, pool *dockertest.Pool) (*dockertest.Resource, application.NatsConfig, error) {
+func setupNats(_ context.Context, pool *dockertest.Pool) (*dockertest.Resource, application2.NatsConfig, error) {
 	resource, err := pool.RunWithOptions(&dockertest.RunOptions{
 		Repository: "nats",
 		Tag:        "latest",
@@ -143,14 +144,14 @@ func setupNats(_ context.Context, pool *dockertest.Pool) (*dockertest.Resource, 
 		config.RestartPolicy = docker.RestartPolicy{Name: "no"}
 	})
 	if err != nil {
-		return nil, application.NatsConfig{}, err
+		return nil, application2.NatsConfig{}, err
 	}
 
 	url := resource.GetHostPort("4222/tcp")
 
 	err = resource.Expire(120)
 	if err != nil {
-		return nil, application.NatsConfig{}, err
+		return nil, application2.NatsConfig{}, err
 	}
 
 	pool.MaxWait = 120 * time.Second
@@ -163,17 +164,17 @@ func setupNats(_ context.Context, pool *dockertest.Pool) (*dockertest.Resource, 
 		return nil
 	})
 	if err != nil {
-		return nil, application.NatsConfig{}, err
+		return nil, application2.NatsConfig{}, err
 	}
 
-	config := application.NatsConfig{
+	config := application2.NatsConfig{
 		URL: url,
 	}
 
 	return resource, config, nil
 }
 
-func setupPostgres(ctx context.Context, pool *dockertest.Pool) (*dockertest.Resource, application.DBConfig, error) {
+func setupPostgres(ctx context.Context, pool *dockertest.Pool) (*dockertest.Resource, application2.DBConfig, error) {
 	resource, err := pool.RunWithOptions(&dockertest.RunOptions{
 		Repository: "postgres",
 		Tag:        "12",
@@ -189,7 +190,7 @@ func setupPostgres(ctx context.Context, pool *dockertest.Pool) (*dockertest.Reso
 		config.RestartPolicy = docker.RestartPolicy{Name: "no"}
 	})
 	if err != nil {
-		return nil, application.DBConfig{}, err
+		return nil, application2.DBConfig{}, err
 	}
 
 	host := resource.GetBoundIP("5432/tcp")
@@ -198,7 +199,7 @@ func setupPostgres(ctx context.Context, pool *dockertest.Pool) (*dockertest.Reso
 
 	err = resource.Expire(120)
 	if err != nil {
-		return nil, application.DBConfig{}, err
+		return nil, application2.DBConfig{}, err
 	}
 
 	pool.MaxWait = 120 * time.Second
@@ -216,15 +217,15 @@ func setupPostgres(ctx context.Context, pool *dockertest.Pool) (*dockertest.Reso
 		return conn.Close(ctx)
 	})
 	if err != nil {
-		return nil, application.DBConfig{}, err
+		return nil, application2.DBConfig{}, err
 	}
 
 	portParsed, err := strconv.Atoi(port)
 	if err != nil {
-		return nil, application.DBConfig{}, err
+		return nil, application2.DBConfig{}, err
 	}
 
-	config := application.DBConfig{
+	config := application2.DBConfig{
 		User:     "skyscraper",
 		Password: "secret",
 		Database: "skyscraper",

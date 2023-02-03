@@ -1,0 +1,224 @@
+{
+  "type_definitions": [
+    {
+      "type": "group",
+      "relations": {
+        "member": {
+          "this": {}
+        }
+      }
+    },
+    {
+      "type": "organization",
+      "relations": {
+        "member": {
+          "this": {}
+        },
+        "viewer": {
+          "union": {
+            "child": [
+              {
+                "this": {}
+              },
+              {
+                "computedUserset": {
+                  "relation": "editor"
+                }
+              }
+            ]
+          }
+        },
+        "editor": {
+          "this": {}
+        },
+        "api_keys_viewer": {
+          "computedUserset": {
+            "relation": "viewer"
+          }
+        },
+        "api_keys_editor": {
+          "computedUserset": {
+            "relation": "editor"
+          }
+        },
+        "standard_tags_viewer": {
+          "computedUserset": {
+            "relation": "member"
+          }
+        },
+        "standard_tags_editor": {
+          "computedUserset": {
+            "relation": "editor"
+          }
+        },
+        "users_viewer": {
+          "computedUserset": {
+            "relation": "viewer"
+          }
+        },
+        "audit_logs_viewer": {
+          "computedUserset": {
+            "relation": "viewer"
+          }
+        },
+        "cloud_accounts_viewer": {
+          "computedUserset": {
+            "relation": "viewer"
+          }
+        },
+        "organizational_units_viewer": {
+          "computedUserset": {
+            "relation": "viewer"
+          }
+        },
+        "organizational_units_editor": {
+          "computedUserset": {
+            "relation": "editor"
+          }
+        },
+        "cloud_tenants_viewer": {
+          "computedUserset": {
+            "relation": "viewer"
+          }
+        },
+        "cloud_tenants_editor": {
+          "computedUserset": {
+            "relation": "editor"
+          }
+        }
+      }
+    },
+    {
+      "type": "organizational_unit",
+      "relations": {
+        "parent": {
+          "this": {}
+        },
+        "parent_editor": {
+          "tupleToUserset": {
+            "tupleset": {
+              "relation": "parent"
+            },
+            "computedUserset": {
+              "relation": "editor"
+            }
+          }
+        },
+        "parent_viewer": {
+          "tupleToUserset": {
+            "tupleset": {
+              "relation": "parent"
+            },
+            "computedUserset": {
+              "relation": "editor"
+            }
+          }
+        },
+        "editor": {
+          "union": {
+            "child": [
+              {
+                "this": {}
+              },
+              {
+                "computedUserset": {
+                  "relation": "parent_editor"
+                }
+              }
+            ]
+          }
+        },
+        "viewer": {
+          "union": {
+            "child": [
+              {
+                "this": {}
+              },
+              {
+                "computedUserset": {
+                  "relation": "editor"
+                }
+              },
+              {
+                "computedUserset": {
+                  "relation": "parent_viewer"
+                }
+              },
+              {
+                "computedUserset": {
+                  "relation": "parent_editor"
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "type": "account",
+      "relations": {
+        "parent": {
+          "this": {}
+        },
+        "parent_editor": {
+          "tupleToUserset": {
+            "tupleset": {
+              "relation": "parent"
+            },
+            "computedUserset": {
+              "relation": "editor"
+            }
+          }
+        },
+        "parent_viewer": {
+          "tupleToUserset": {
+            "tupleset": {
+              "relation": "parent"
+            },
+            "computedUserset": {
+              "relation": "viewer"
+            }
+          }
+        },
+        "viewer": {
+          "union": {
+            "child": [
+              {
+                "this": {}
+              },
+              {
+                "computedUserset": {
+                  "relation": "parent_viewer"
+                }
+              },
+              {
+                "computedUserset": {
+                  "relation": "editor"
+                }
+              },
+              {
+                "computedUserset": {
+                  "relation": "parent_editor"
+                }
+              }
+            ]
+          }
+        },
+        "editor": {
+          "union": {
+            "child": [
+              {
+                "this": {}
+              },
+              {
+                "computedUserset": {
+                  "relation": "parent_editor"
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

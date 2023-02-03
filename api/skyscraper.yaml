@@ -103,6 +103,7 @@ paths:
           $ref: '#/components/responses/InternalError'
 
   # Audit Logs
+
   /api/v1/audit_logs:
     get:
       description: Returns the audit logs
@@ -131,22 +132,38 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
-  # Cloud Accounts
-  /api/v1/cloud_accounts:
+  # Resources
+  /api/v1/groups/{group}/tenants/{tenant_id}/resources:
     get:
       description: Returns the list of cloud accounts
       tags:
         - Cloud Accounts
       security:
         - bearerAuth: []
+      parameters:
+        - name: group
+          in: path
+          description: The group id
+          required: true
+          schema:
+            type: string
+        - name: tenant_id
+          in: path
+          description: The tenant id
+          required: true
+          schema:
+            type: string
       responses:
         '200':
           $ref: '#/components/responses/CloudAccountsResponse'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
         '500':
           $ref: '#/components/responses/InternalError'
-  /api/v1/cloud_accounts/{id}:
+
+  /api/v1/groups/{group}/tenants/{tenant_id}/resources/{id}:
     put:
       description: Updates an account for a cloud tenant
       tags:
@@ -160,8 +177,20 @@ paths:
           required: true
           schema:
             type: string
+        - name: group
+          in: path
+          description: The group id
+          required: true
+          schema:
+            type: string
+        - name: tenant_id
+          in: path
+          description: The tenant id
+          required: true
+          schema:
+              type: string
       requestBody:
-        $ref: '#/components/requestBodies/UpdateAccountRequest'
+        $ref: '#/components/requestBodies/CreateOrUpdateResourceRequest'
       responses:
         '200':
           $ref: '#/components/responses/CloudAccountResponse'
@@ -184,6 +213,18 @@ paths:
           required: true
           schema:
             type: string
+        - name: group
+          in: path
+          description: The group id
+          required: true
+          schema:
+            type: string
+        - name: tenant_id
+          in: path
+          description: The tenant id
+          required: true
+          schema:
+              type: string
       responses:
         '200':
           $ref: '#/components/responses/CloudAccountResponse'
@@ -191,7 +232,7 @@ paths:
           $ref: '#/components/responses/UnauthorizedError'
         '500':
           $ref: '#/components/responses/InternalError'
-  /api/v1/cloud_accounts/{id}/organizational_unit:
+  /api/v1/groups/{group}/tenants/{tenant_id}/resources/{id}/organizational_unit:
     post:
       description: Assigns a cloud account to an Organizational Unit
       tags:
@@ -205,6 +246,18 @@ paths:
           required: true
           schema:
             type: string
+        - name: group
+          in: path
+          description: The group id
+          required: true
+          schema:
+            type: string
+        - name: tenant_id
+          in: path
+          description: The tenant id
+          required: true
+          schema:
+              type: string
       requestBody:
         $ref: '#/components/requestBodies/AccountOrganizationalUnitRequest'
       responses:
@@ -218,6 +271,7 @@ paths:
           $ref: '#/components/responses/InternalError'
 
   # Cloud Tenants
+
   /api/v1/cloud_tenants:
     get:
       description: Returns the cloud tenants
@@ -232,8 +286,22 @@ paths:
           $ref: '#/components/responses/UnauthorizedError'
         '500':
           $ref: '#/components/responses/InternalError'
+    put:
+      description: Creates or inserts a cloud tenant
+      tags:
+        - Cloud Tenants
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          $ref: '#/components/responses/CloudTenantsResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalError'
 
   # Organizational Units
+
   /api/v1/organizational_units:
     get:
       description: Returns the list of organizational units
@@ -309,6 +377,8 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
+  # Standard Tags
+
   /api/v1/standard_tags:
     post:
       description: Creates a standard tag
@@ -363,6 +433,7 @@ paths:
           $ref: '#/components/responses/InternalError'
 
   # Users
+
   /api/v1/users:
     get:
       description: Returns the list of users
@@ -400,6 +471,25 @@ paths:
           $ref: '#/components/responses/InternalError'
 components:
   requestBodies:
+    CreateOrUpdateResourceRequest:
+      description: Request body for creating or updating a resource
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+                properties:
+                  account_name:
+                    type: string
+                  tags_current:
+                    type: object
+                  tags_desired:
+                    type: object
+                  active:
+                    type: boolean
+
     CreateAPIKeyRequest:
       description: Request body for creating an API key
       content:
@@ -489,6 +579,8 @@ components:
                   tags_desired:
                     type: object
   responses:
+    NotFoundError:
+      description: Resource not found
     BadRequestError:
       description: Bad request
     UnauthorizedError:

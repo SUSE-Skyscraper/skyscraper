@@ -70,23 +70,40 @@ export class BackendService {
     return this.http.get<CloudTenantsResponse>(url.href);
   }
 
-  getCloudAccount(id: string): Observable<CloudAccountResponse> {
-    const url = new URL(`/api/v1/cloud_accounts/${id}`, this.host);
+  getCloudAccount(
+    group: string,
+    tenant_id: string,
+    id: string,
+  ): Observable<CloudAccountResponse> {
+    const url = new URL(
+      `/api/v1/groups/${group}/tenants/${tenant_id}/resources/${id}`,
+      this.host,
+    );
     return this.http.get<CloudAccountResponse>(url.href);
   }
 
   updateCloudAccount(
+    group: string,
+    tenant_id: string,
     id: string,
     update: UpdateCloudAccountRequest,
   ): Observable<CloudAccountResponse> {
-    const url = new URL(`/api/v1/cloud_accounts/${id}`, this.host);
+    const url = new URL(
+      `/api/v1/groups/${group}/tenants/${tenant_id}/resources/${id}`,
+      this.host,
+    );
     return this.http.put<CloudAccountResponse>(url.href, update);
   }
 
   getCloudAccounts(
+    group: string,
+    tenant_id: string,
     filter: Map<string, string>,
   ): Observable<CloudAccountsResponse> {
-    const url = new URL(`/api/v1/cloud_accounts`, this.host);
+    const url = new URL(
+      `/api/v1/groups/${group}/tenants/${tenant_id}/resources`,
+      this.host,
+    );
     if (filter !== undefined) {
       filter.forEach((value, key) => {
         url.searchParams.append(key, value);
@@ -159,6 +176,7 @@ export interface CloudAccountAttributes {
 
 export interface UpdateCloudAccountRequestData {
   tags_desired: { [key: string]: string };
+  name: string;
 }
 
 export interface UpdateCloudAccountRequest {

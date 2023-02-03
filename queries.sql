@@ -2,11 +2,12 @@
 -- Cloud Tenants
 --------------------------------------------------------------------------------------------------------------------
 
--- name: CreateCloudTenant :exec
+-- name: CreateOrUpdateCloudTenant :one
 insert into cloud_tenants (cloud, tenant_id, name)
 values ($1, $2, $3)
-on conflict (cloud, tenant_id) do update set name       = $3,
-                                             updated_at = now();
+on conflict (cloud, tenant_id) do update set name       = COALESCE(nullif($3, ''), cloud_tenants.name),
+                                             updated_at = now()
+returning *;
 
 -- name: GetCloudTenants :many
 select *
@@ -20,7 +21,7 @@ where cloud = $1
   and tenant_id = $2;
 
 --------------------------------------------------------------------------------------------------------------------
--- Cloud Account Metadata
+-- Cloud Accounts
 --------------------------------------------------------------------------------------------------------------------
 
 -- name: SearchTag :many
@@ -30,12 +31,13 @@ where cloud = $1
   and tenant_id = $2
   and tags_current ->> sqlc.arg(tag_key) = sqcl.arg(tag_value);
 
--- name: CreateOrInsertCloudAccount :one
-insert into cloud_accounts (cloud, tenant_id, account_id, name, tags_current, tags_desired)
-VALUES ($1, $2, $3, $4, $5, $6)
+-- name: CreateOrUpdateCloudAccount :one
+insert into cloud_accounts (cloud, tenant_id, account_id, name, tags_current, tags_desired, created_at, updated_at)
+VALUES ($1, $2, $3, $4, $5, COALESCE(nullif(@tags_desired::jsonb, '{}'::jsonb), $5), now(), now())
 ON CONFLICT (cloud, tenant_id, account_id)
-    DO UPDATE SET name         = $4,
-                  tags_current = $5,
+    DO UPDATE SET name         = COALESCE(nullif($4, ''), cloud_accounts.name),
+                  tags_current = COALESCE(nullif($5::jsonb, '{}'::jsonb), cloud_accounts.tags_current),
+                  tags_desired = COALESCE(nullif(@tags_desired::jsonb, '{}'::jsonb), cloud_accounts.tags_desired),
                   updated_at   = now()
 returning *;
 
@@ -75,10 +77,10 @@ from users
 order by created_at
 LIMIT $1 OFFSET $2;
 
--- name: GetUsersById :many
+-- name: GetUsersByID :many
 select *
 from users
-where id = ANY ($1::uuid[])
+where id = ANY (@user_ids::uuid[])
 order by display_name;
 
 -- name: GetUser :one
@@ -86,7 +88,7 @@ select *
 from users
 where id = $1;
 
--- name: FindByUsername :one
+-- name: FindUserByUsername :one
 select *
 from users
 where username = $1;
@@ -96,7 +98,7 @@ insert into users (username, name, display_name, emails, active, locale, externa
 values ($1, $2, $3, $4, $5, $6, $7, now(), now())
 returning *;
 
--- name: UpdateUser :exec
+-- name: UpdateUser :one
 update users
 set username     =$2,
     name         = $3,
@@ -106,7 +108,8 @@ set username     =$2,
     external_id  = $7,
     locale       = $8,
     updated_at   = now()
-where id = $1;
+where id = $1
+returning *;
 
 -- name: PatchUser :exec
 update users
@@ -221,10 +224,10 @@ from api_keys
 where id = $1
   and system = false;
 
--- name: FindAPIKeysById :many
+-- name: FindAPIKeysByID :many
 select *
 from api_keys
-where id = ANY ($1::uuid[]);
+where id = ANY (@id::uuid[]);
 
 -- name: FindScimAPIKey :one
 select api_keys.*
@@ -257,13 +260,14 @@ select *
 from standard_tags
 where id = $1;
 
--- name: UpdateTag :exec
+-- name: UpdateTag :one
 update standard_tags
 set display_name = $2,
     key          = $3,
     description  = $4,
     updated_at   = now()
-where id = $1;
+where id = $1
+returning *;
 
 -- name: DeleteTag :exec
 delete
@@ -298,7 +302,7 @@ returning *;
 -- name: GetOrganizationalUnitChildren :many
 select *
 from organizational_units
-where parent_id = $1;
+where parent_id = @parent_id::uuid;
 
 -- name: GetOrganizationalUnitCloudAccounts :many
 select cloud_accounts.*
@@ -365,7 +369,7 @@ WITH RECURSIVE organizational_unit_ids(id, parent_id, display_name) AS (SELECT i
                                                                                parent_id,
                                                                                display_name
                                                                         FROM organizational_units
-                                                                        WHERE id = ANY ($1::uuid[])
+                                                                        WHERE id = ANY (@id::uuid[])
                                                                         UNION ALL
                                                                         SELECT o2.id,
                                                                                o2.parent_id,
