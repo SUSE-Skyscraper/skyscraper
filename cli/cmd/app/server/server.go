@@ -174,7 +174,7 @@ func NewCmd(app *application.App) *cobra.Command {
 
 				r.Route("/groups/{group}/tenants", func(r chi.Router) {
 					r.Route("/{tenant_id}", func(r chi.Router) {
-						organizationCloudTenantsViewerEnforcer := middleware.EnforcerHandler(app, fga.DocumentOrganization, fga.DocumentOrganizationRelationCloudTenantsViewer)
+						// organizationCloudTenantsViewerEnforcer := middleware.EnforcerHandler(app, fga.DocumentOrganization, fga.DocumentOrganizationRelationCloudTenantsViewer)
 						organizationCloudTenantsEditorEnforcer := middleware.EnforcerHandler(app, fga.DocumentOrganization, fga.DocumentOrganizationRelationCloudTenantsEditor)
 						tenantCtx := middleware.TenantCtx(app)
 
@@ -188,53 +188,43 @@ func NewCmd(app *application.App) *cobra.Command {
 						r.Group(func(r chi.Router) {
 							r.Use(tenantCtx)
 
-							r.Route("/resources/{resource_id}", func(r chi.Router) {
-								resourceCtx := middleware.ResourceCtx(app)
-
-								// write actions
-								r.Group(func(r chi.Router) {
-									r.Use(organizationCloudTenantsEditorEnforcer)
-									r.Put("/", server2.V1CreateOrUpdateResource(app))
-								})
+							r.Route("/resources", func(r chi.Router) {
+								viewerEnforcer := middleware.EnforcerHandler(app, fga.DocumentOrganization, fga.DocumentOrganizationRelationCloudAccountsViewer)
 
 								// read actions
 								r.Group(func(r chi.Router) {
-									r.Use(resourceCtx)
-									r.Use(organizationCloudTenantsViewerEnforcer)
-									r.Get("/", server2.V1GetCloudAccount(app))
+									r.Use(viewerEnforcer)
+									r.Get("/", server2.V1ListResources(app))
 								})
-							})
-						})
-					})
-				})
 
-				r.Route("/resources", func(r chi.Router) {
-					viewerEnforcer := middleware.EnforcerHandler(app, fga.DocumentOrganization, fga.DocumentOrganizationRelationCloudAccountsViewer)
+								r.Route("/{resource_id}", func(r chi.Router) {
+									viewerEnforcer := middleware.EnforcerHandler(app, fga.DocumentAccount, fga.DocumentAccountRelationViewer)
+									editorEnforcer := middleware.EnforcerHandler(app, fga.DocumentAccount, fga.DocumentAccountRelationEditor)
+									resourceCtx := middleware.ResourceCtx(app)
 
-					// read actions
-					r.Group(func(r chi.Router) {
-						r.Use(viewerEnforcer)
-						r.Get("/", server2.V1ListCloudAccounts(app))
-					})
+									// write actions
+									r.Group(func(r chi.Router) {
+										r.Use(editorEnforcer)
+										r.Put("/", server2.V1CreateOrUpdateResource(app))
+									})
 
-					r.Route("/{id}", func(r chi.Router) {
-						viewerEnforcer := middleware.EnforcerHandler(app, fga.DocumentAccount, fga.DocumentAccountRelationViewer)
-						editorEnforcer := middleware.EnforcerHandler(app, fga.DocumentAccount, fga.DocumentAccountRelationEditor)
-						cloudAccountCtx := middleware.CloudAccountCtx(app)
+									// read actions
+									r.Group(func(r chi.Router) {
+										r.Use(resourceCtx)
+										r.Use(viewerEnforcer)
+										r.Get("/", server2.V1GetResource(app))
+									})
 
-						r.Use(cloudAccountCtx)
+									r.Route("/organizational_unit", func(r chi.Router) {
+										r.Use(resourceCtx)
+										r.Use(editorEnforcer)
 
-						// read actions
-						r.Group(func(r chi.Router) {
-							r.Use(viewerEnforcer)
-							r.Get("/", server2.V1GetCloudAccount(app))
-						})
-
-						r.Route("/organizational_unit", func(r chi.Router) {
-							// write actions
-							r.Group(func(r chi.Router) {
-								r.Use(editorEnforcer)
-								r.Post("/", server2.V1AssignCloudAccountToOU(app))
+										// write actions
+										r.Group(func(r chi.Router) {
+											r.Post("/", server2.V1AssignCloudAccountToOU(app))
+										})
+									})
+								})
 							})
 						})
 					})

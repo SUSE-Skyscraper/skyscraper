@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/suse-skyscraper/skyscraper/cli/internal/db"
+
 	"github.com/suse-skyscraper/skyscraper/api/responses"
 	"github.com/suse-skyscraper/skyscraper/cli/application"
 	"github.com/suse-skyscraper/skyscraper/cli/internal/auth"
@@ -25,10 +27,21 @@ func EnforcerHandler(app *application.App, document fga.Document, relation fga.R
 			var objectID string
 			switch document {
 			case fga.DocumentAccount:
-				objectID = chi.URLParam(r, "id") // will deprecate soon
-				if objectID == "" {
-					objectID = chi.URLParam(r, "resource_id")
+				// we need to convert group,tenantID,resourceID to ID
+				group := chi.URLParam(r, "group")
+				tenantID := chi.URLParam(r, "tenant_id")
+				resourceID := chi.URLParam(r, "resource_id")
+				resource, err := app.Repo.FindCloudAccountByCloudAndTenant(r.Context(), db.FindCloudAccountByCloudAndTenantParams{
+					Cloud:     group,
+					TenantID:  tenantID,
+					AccountID: resourceID,
+				})
+				if err != nil {
+					_ = render.Render(w, r, responses.ErrInternalServerError)
+					return
 				}
+
+				objectID = resource.ID.String()
 			case fga.DocumentOrganization:
 				objectID = fga.DefaultOrganizationID
 			}

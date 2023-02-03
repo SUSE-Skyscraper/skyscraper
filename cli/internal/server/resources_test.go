@@ -182,3 +182,110 @@ func TestV1CreateOrUpdateResource(t *testing.T) {
 		testApp.Close() // Close the test app, we cannot defer in a loop
 	}
 }
+
+func TestV1ListResources(t *testing.T) {
+	cloudAccount := testhelpers.FactoryCloudAccount()
+	group := "AWS"
+	tenantID := "tenant1234"
+
+	tests := []struct {
+		getError   error
+		group      string
+		tenantID   string
+		statusCode int
+	}{
+		{
+			group:      group,
+			tenantID:   tenantID,
+			getError:   nil,
+			statusCode: http.StatusOK,
+		},
+		{
+			group:      group,
+			tenantID:   tenantID,
+			getError:   errors.New("test error"),
+			statusCode: http.StatusInternalServerError,
+		},
+		{
+			group:      "",
+			tenantID:   tenantID,
+			statusCode: http.StatusNotFound,
+		},
+		{
+			group:      group,
+			tenantID:   "",
+			statusCode: http.StatusNotFound,
+		},
+	}
+
+	for _, tc := range tests {
+		req, _ := http.NewRequest("GET", "/api/v1/groups/AWS/tenants/12345/resources", nil)
+		w := httptest.NewRecorder()
+		testApp, err := testhelpers.NewTestApp()
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		rctx := chi.NewRouteContext()
+		rctx.URLParams.Add("group", tc.group)
+		rctx.URLParams.Add("tenant_id", tc.tenantID)
+
+		ctx := req.Context()
+		req = req.WithContext(context.WithValue(ctx, chi.RouteCtxKey, rctx))
+
+		testApp.Searcher.
+			On("SearchCloudAccounts", mock.Anything, mock.Anything).
+			Return([]db.CloudAccount{cloudAccount}, tc.getError)
+
+		V1ListResources(testApp.App)(w, req)
+
+		_ = testhelpers.AssertOpenAPI(t, w, req)
+
+		result := w.Result()
+		assert.Equal(t, tc.statusCode, result.StatusCode)
+		_ = result.Body.Close()
+
+		testApp.Close() // Close the test app, we cannot defer in a loop
+	}
+}
+
+func TestV1GetResource(t *testing.T) {
+	cloudAccount := testhelpers.FactoryCloudAccount()
+
+	tests := []struct {
+		context interface{}
+		status  int
+	}{
+		{
+			context: cloudAccount,
+			status:  http.StatusOK,
+		},
+		{
+			context: interface{}(nil),
+			status:  http.StatusInternalServerError,
+		},
+	}
+
+	for _, tc := range tests {
+		req, _ := http.NewRequest("GET", "/api/v1/groups/AWS/tenants/12345/resources/123456", nil)
+		w := httptest.NewRecorder()
+		testApp, err := testhelpers.NewTestApp()
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		ctx := req.Context()
+		ctx = context.WithValue(ctx, middleware.ContextCloudAccount, tc.context)
+		req = req.WithContext(ctx)
+
+		V1GetResource(testApp.App)(w, req)
+
+		_ = testhelpers.AssertOpenAPI(t, w, req)
+
+		result := w.Result()
+		assert.Equal(t, tc.status, result.StatusCode)
+		_ = result.Body.Close()
+
+		testApp.Close() // Close the test app, we cannot defer in a loop
+	}
+}

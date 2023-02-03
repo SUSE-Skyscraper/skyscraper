@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { CloudAccountComponent } from './cloud-account.component';
+import { ResourceComponent } from './resource.component';
 import { MockProvider } from 'ng-mocks';
 import { BackendService } from '../backend.service';
 import { EMPTY } from 'rxjs';
@@ -9,13 +9,13 @@ import { FormBuilder } from '@angular/forms';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
 
 describe('CloudAccountComponent', () => {
-  let component: CloudAccountComponent;
-  let fixture: ComponentFixture<CloudAccountComponent>;
+  let component: ResourceComponent;
+  let fixture: ComponentFixture<ResourceComponent>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [MatSnackBarModule],
-      declarations: [CloudAccountComponent],
+      declarations: [ResourceComponent],
       providers: [
         MockProvider(BackendService, {
           getCloudAccount: () => EMPTY,
@@ -36,7 +36,7 @@ describe('CloudAccountComponent', () => {
       ],
     }).compileComponents();
 
-    fixture = TestBed.createComponent(CloudAccountComponent);
+    fixture = TestBed.createComponent(ResourceComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

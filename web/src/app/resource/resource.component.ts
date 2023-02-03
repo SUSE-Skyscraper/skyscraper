@@ -14,12 +14,14 @@ import { AuditLogComponent } from '../audit-log/audit-log.component';
 
 @Component({
   selector: 'app-cloud-account',
-  templateUrl: './cloud-account.component.html',
-  styleUrls: ['./cloud-account.component.scss'],
+  templateUrl: './resource.component.html',
+  styleUrls: ['./resource.component.scss'],
 })
-export class CloudAccountComponent implements OnInit {
+export class ResourceComponent implements OnInit {
   cloudAccount: CloudAccountItem | undefined;
   id: string = '';
+  group: string = '';
+  tenant_id: string = '';
   public specifiedTags: Map<string, TagItem> = new Map();
 
   @ViewChild(AuditLogComponent)
@@ -38,9 +40,11 @@ export class CloudAccountComponent implements OnInit {
 
   public ngOnInit(): void {
     this.id = String(this.router.snapshot.paramMap.get('id'));
+    this.group = String(this.router.snapshot.paramMap.get('group'));
+    this.tenant_id = String(this.router.snapshot.paramMap.get('tenant_id'));
 
     this.backendService
-      .getCloudAccount(this.id)
+      .getCloudAccount(this.group, this.tenant_id, this.id)
       .subscribe((response: CloudAccountResponse) => {
         if (response.data !== null) {
           this.cloudAccount = response.data;

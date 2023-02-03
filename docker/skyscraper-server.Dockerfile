@@ -14,7 +14,7 @@ RUN go mod download
 
 COPY . .
 
-RUN go build -o skyscraper-server ./cmd/main.go
+RUN go build -o skyscraper-server ./cli/cmd/main.go
 
 FROM registry.suse.com/bci/bci-base:latest
 

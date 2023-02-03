@@ -71,7 +71,7 @@ func TestV1AssignCloudAccountToOU(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		req, _ := http.NewRequest("POST", "/api/v1/cloud_accounts/12345/organizational_unit", bytes.NewReader(tc.payload))
+		req, _ := http.NewRequest("POST", "/api/v1/groups/AWS/tenants/12345/resources/12345/organizational_unit", bytes.NewReader(tc.payload))
 		req.Header.Add("Content-Type", "application/json")
 		w := httptest.NewRecorder()
 		testApp, err := testhelpers.NewTestApp()

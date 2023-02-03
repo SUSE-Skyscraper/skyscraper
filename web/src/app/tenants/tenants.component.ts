@@ -3,10 +3,10 @@ import { BackendService, CloudTenantItem } from '../backend.service';
 
 @Component({
   selector: 'app-cloud-tenants',
-  templateUrl: './cloud-tenants.component.html',
-  styleUrls: ['./cloud-tenants.component.scss'],
+  templateUrl: './tenants.component.html',
+  styleUrls: ['./tenants.component.scss'],
 })
-export class CloudTenantsComponent implements OnInit {
+export class TenantsComponent implements OnInit {
   public cloudTenants: CloudTenantItem[] = [];
   public displayedColumns: string[] = [
     'cloud_provider',

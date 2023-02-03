@@ -5,10 +5,10 @@ import { FormArray, FormBuilder, FormControl, FormGroup } from '@angular/forms';
 
 @Component({
   selector: 'app-cloud-accounts',
-  templateUrl: './cloud-accounts.component.html',
-  styleUrls: ['./cloud-accounts.component.scss'],
+  templateUrl: './resources.component.html',
+  styleUrls: ['./resources.component.scss'],
 })
-export class CloudAccountsComponent implements OnInit {
+export class ResourcesComponent implements OnInit {
   private cloud: string | null = null;
   private tenant_id: string | null = null;
 
@@ -32,7 +32,7 @@ export class CloudAccountsComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    let cloud = this.router.snapshot.paramMap.get('cloud');
+    let cloud = this.router.snapshot.paramMap.get('group');
     let tenant_id = this.router.snapshot.paramMap.get('tenant_id');
 
     if (cloud !== null && tenant_id !== null) {
@@ -45,7 +45,7 @@ export class CloudAccountsComponent implements OnInit {
   }
 
   private getTags() {
-    let filters: string[] = ['cloud', 'tenant_id'];
+    let filters: string[] = [];
     let tags: string[] = [];
 
     this.backendService.getTags().subscribe((response) => {
@@ -65,11 +65,6 @@ export class CloudAccountsComponent implements OnInit {
   private searchAccounts() {
     let filterMap: Map<string, string> = new Map();
 
-    if (this.cloud !== null && this.tenant_id !== null) {
-      filterMap.set('cloud', this.cloud);
-      filterMap.set('tenant_id', this.tenant_id);
-    }
-
     this.filterFormArray.controls.forEach((filter) => {
       const key = filter.value['key'];
       const value = filter.value['value'];
@@ -78,7 +73,7 @@ export class CloudAccountsComponent implements OnInit {
     });
 
     this.backendService
-      .getCloudAccounts(filterMap)
+      .getCloudAccounts(this.cloud || '', this.tenant_id || '', filterMap)
       .subscribe((response: CloudAccountsResponse) => {
         let accounts = [];
 

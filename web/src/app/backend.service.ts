@@ -70,8 +70,15 @@ export class BackendService {
     return this.http.get<CloudTenantsResponse>(url.href);
   }
 
-  getCloudAccount(id: string): Observable<CloudAccountResponse> {
-    const url = new URL(`/api/v1/cloud_accounts/${id}`, this.host);
+  getCloudAccount(
+    group: string,
+    tenant_id: string,
+    id: string,
+  ): Observable<CloudAccountResponse> {
+    const url = new URL(
+      `/api/v1/groups/${group}/tenants/${tenant_id}/resources/${id}`,
+      this.host,
+    );
     return this.http.get<CloudAccountResponse>(url.href);
   }
 
@@ -89,9 +96,14 @@ export class BackendService {
   }
 
   getCloudAccounts(
+    group: string,
+    tenant_id: string,
     filter: Map<string, string>,
   ): Observable<CloudAccountsResponse> {
-    const url = new URL(`/api/v1/resources`, this.host);
+    const url = new URL(
+      `/api/v1/groups/${group}/tenants/${tenant_id}/resources`,
+      this.host,
+    );
     if (filter !== undefined) {
       filter.forEach((value, key) => {
         url.searchParams.append(key, value);

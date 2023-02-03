@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { CloudAccountsComponent } from './cloud-accounts.component';
+import { ResourcesComponent } from './resources.component';
 import { ActivatedRoute, convertToParamMap } from '@angular/router';
 import { MockProvider } from 'ng-mocks';
 import { BackendService } from '../backend.service';
@@ -8,12 +8,12 @@ import { EMPTY } from 'rxjs';
 import { FormBuilder } from '@angular/forms';
 
 describe('CloudAccountsComponent', () => {
-  let component: CloudAccountsComponent;
-  let fixture: ComponentFixture<CloudAccountsComponent>;
+  let component: ResourcesComponent;
+  let fixture: ComponentFixture<ResourcesComponent>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [CloudAccountsComponent],
+      declarations: [ResourcesComponent],
       providers: [
         MockProvider(BackendService, {
           getCloudAccounts: () => EMPTY,
@@ -34,7 +34,7 @@ describe('CloudAccountsComponent', () => {
       ],
     }).compileComponents();
 
-    fixture = TestBed.createComponent(CloudAccountsComponent);
+    fixture = TestBed.createComponent(ResourcesComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });
