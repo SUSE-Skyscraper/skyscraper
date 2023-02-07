@@ -4,45 +4,8 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgtype"
 	"github.com/pkg/errors"
 )
-
-//----------------------------------------------------------------------------------------------------------------------
-// Update Cloud Accounts
-//----------------------------------------------------------------------------------------------------------------------
-
-// UpdateCloudAccountPayloadData is the data for the UpdateCloudAccountPayload.
-type UpdateCloudAccountPayloadData struct {
-	TagsDesired map[string]string `json:"tags_desired"`
-	json        pgtype.JSONB
-}
-
-// UpdateCloudAccountPayload is the payload for updating a cloud account.
-type UpdateCloudAccountPayload struct {
-	Data UpdateCloudAccountPayloadData `json:"data"`
-}
-
-// Bind binds extra data from the payload UpdateCloudAccountPayload.
-func (u *UpdateCloudAccountPayload) Bind(_ *http.Request) error {
-	if u.Data.TagsDesired == nil {
-		return errors.Errorf("tags_desired is required")
-	}
-
-	jsonTags := pgtype.JSONB{}
-	err := jsonTags.Set(u.Data.TagsDesired)
-	if err != nil {
-		return err
-	}
-	u.Data.json = jsonTags
-
-	return nil
-}
-
-// GetJSON returns the parsed JSONB for the tags.
-func (u *UpdateCloudAccountPayloadData) GetJSON() pgtype.JSONB {
-	return u.json
-}
 
 //----------------------------------------------------------------------------------------------------------------------
 // Assign Cloud Accounts to Organizational Units
