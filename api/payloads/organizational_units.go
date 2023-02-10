@@ -7,9 +7,8 @@ import (
 )
 
 type CreateOrganizationalUnitsPayloadData struct {
-	ParentID       string `json:"parent_id"`
-	DisplayName    string `json:"display_name"`
-	parentIDParsed uuid.NullUUID
+	ParentID    string `json:"parent_id"`
+	DisplayName string `json:"display_name"`
 }
 
 type CreateOrganizationalUnitsPayload struct {
@@ -17,19 +16,13 @@ type CreateOrganizationalUnitsPayload struct {
 }
 
 func (u *CreateOrganizationalUnitsPayload) Bind(_ *http.Request) error {
+	// we can allow an empty parent id, but when we have a value, it should be valid
 	if u.Data.ParentID != "" {
-		id, err := uuid.Parse(u.Data.ParentID)
+		_, err := uuid.Parse(u.Data.ParentID)
 		if err != nil {
 			return err
 		}
-		u.Data.parentIDParsed = uuid.NullUUID{UUID: id, Valid: true}
-	} else {
-		u.Data.parentIDParsed = uuid.NullUUID{Valid: false}
 	}
 
 	return nil
-}
-
-func (d *CreateOrganizationalUnitsPayloadData) GetParentID() uuid.NullUUID {
-	return d.parentIDParsed
 }

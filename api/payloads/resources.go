@@ -2,8 +2,6 @@ package payloads
 
 import (
 	"net/http"
-
-	"github.com/jackc/pgtype"
 )
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -16,8 +14,6 @@ type CreateOrUpdateResourcePayloadData struct {
 	Active      bool              `json:"active"`
 	TagsCurrent map[string]string `json:"tags_current"`
 	TagsDesired map[string]string `json:"tags_desired"`
-	tagsDesired pgtype.JSONB
-	tagsCurrent pgtype.JSONB
 }
 
 // CreateOrUpdateResourcePayload is the payload for creating a cloud account.
@@ -27,46 +23,15 @@ type CreateOrUpdateResourcePayload struct {
 
 // Bind binds extra data from the payload CreateOrUpdateResourcePayload.
 func (u *CreateOrUpdateResourcePayload) Bind(_ *http.Request) error {
-	// bind the tags current JSON to the payload
-	tagsCurrent := pgtype.JSONB{}
-	if u.Data.TagsCurrent != nil && len(u.Data.TagsCurrent) > 0 {
-		err := tagsCurrent.Set(u.Data.TagsCurrent)
-		if err != nil {
-			return err
-		}
-	} else {
-		err := tagsCurrent.Set("{}")
-		if err != nil {
-			return err
-		}
+	// if nil, initialize the map
+	if u.Data.TagsCurrent == nil {
+		u.Data.TagsCurrent = make(map[string]string)
 	}
 
-	u.Data.tagsCurrent = tagsCurrent
-
-	// bind the tags desired JSON to the payload
-	tagsDesired := pgtype.JSONB{}
-	if u.Data.TagsDesired != nil && len(u.Data.TagsDesired) > 0 {
-		err := tagsDesired.Set(u.Data.TagsDesired)
-		if err != nil {
-			return err
-		}
-	} else {
-		err := tagsDesired.Set("{}")
-		if err != nil {
-			return err
-		}
+	// if nil, initialize the map
+	if u.Data.TagsDesired == nil {
+		u.Data.TagsDesired = make(map[string]string)
 	}
-	u.Data.tagsDesired = tagsDesired
 
 	return nil
-}
-
-// GetTagsCurrent returns the parsed JSONB for the tags.
-func (u *CreateOrUpdateResourcePayloadData) GetTagsCurrent() pgtype.JSONB {
-	return u.tagsCurrent
-}
-
-// GetTagsDesired returns the parsed JSONB for the tags.
-func (u *CreateOrUpdateResourcePayloadData) GetTagsDesired() pgtype.JSONB {
-	return u.tagsDesired
 }

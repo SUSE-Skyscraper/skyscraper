@@ -24,7 +24,9 @@ type CreateOrUpdateTenantPayload struct {
 func (u *CreateOrUpdateTenantPayload) Bind(_ *http.Request) error {
 	if u.Data.Name == "" {
 		return fmt.Errorf("name is required")
-	} else if u.Data.Cloud == "" {
+	}
+
+	if u.Data.Cloud == "" {
 		return fmt.Errorf("cloud is required")
 	}
 

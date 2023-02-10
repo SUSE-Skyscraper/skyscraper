@@ -4,6 +4,8 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/google/uuid"
+
 	"github.com/jackc/pgx/v4"
 
 	"github.com/suse-skyscraper/skyscraper/api/payloads"
@@ -137,17 +139,28 @@ func V1CreateOrganizationalUnit(app *application.App) func(w http.ResponseWriter
 
 		// create an auditor within our transaction
 		auditor := auditors.NewAuditor(repo)
+		var parentID uuid.NullUUID
+		if payload.Data.ParentID != "" {
+			id, err := uuid.Parse(payload.Data.ParentID)
+			if err != nil {
+				_ = render.Render(w, r, responses.ErrInternalServerError)
+				return
+			}
+			parentID = uuid.NullUUID{UUID: id, Valid: true}
+		} else {
+			parentID = uuid.NullUUID{UUID: uuid.Nil, Valid: false}
+		}
 
 		organizationalUnit, err := repo.CreateOrganizationalUnit(r.Context(), db.CreateOrganizationalUnitParams{
 			DisplayName: payload.Data.DisplayName,
-			ParentID:    payload.Data.GetParentID(),
+			ParentID:    parentID,
 		})
 		if err != nil {
 			_ = render.Render(w, r, responses.ErrInternalServerError)
 			return
 		}
 
-		err = app.FGAClient.AddOrganizationalUnit(r.Context(), organizationalUnit.ID, payload.Data.GetParentID())
+		err = app.FGAClient.AddOrganizationalUnit(r.Context(), organizationalUnit.ID, parentID)
 		if err != nil {
 			_ = render.Render(w, r, responses.ErrInternalServerError)
 			return
