@@ -4,6 +4,8 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/google/uuid"
+
 	"github.com/jackc/pgx/v4"
 
 	"github.com/suse-skyscraper/skyscraper/api/payloads"
@@ -51,9 +53,15 @@ func V1AssignCloudAccountToOU(app *application.App) func(w http.ResponseWriter, 
 			return
 		}
 
+		ouID, err := uuid.Parse(payload.Data.OrganizationalUnitID)
+		if err != nil {
+			_ = render.Render(w, r, resp.ErrInternalServerError)
+			return
+		}
+
 		err = repo.AssignAccountToOU(r.Context(), db.AssignAccountToOUParams{
 			CloudAccountID:       cloudAccount.ID,
-			OrganizationalUnitID: payload.Data.GetOrganizationalUnitID(),
+			OrganizationalUnitID: ouID,
 		})
 		if err != nil {
 			_ = render.Render(w, r, resp.ErrInternalServerError)

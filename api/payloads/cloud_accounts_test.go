@@ -42,9 +42,6 @@ func TestAssignCloudAccountToOUPayload_Bind(t *testing.T) {
 			} else {
 				assert.Nil(t, err)
 			}
-			if err == nil && tt.ouID != "" {
-				assert.Equal(t, tt.ouID, payload.Data.GetOrganizationalUnitID().String())
-			}
 		})
 	}
 }

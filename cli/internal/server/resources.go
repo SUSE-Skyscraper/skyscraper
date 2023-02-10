@@ -111,13 +111,21 @@ func V1CreateOrUpdateResource(app *application.App) func(w http.ResponseWriter, 
 		// create an auditor within our transaction
 		auditor := auditors.NewAuditor(repo)
 
+		// Set the jsonb field. As we're certain of the type, we can be sure it will succeed.
+		tagsDesired := pgtype.JSONB{}
+		_ = tagsDesired.Set(payload.Data.TagsDesired)
+
+		// Set the jsonb field. As we're certain of the type, we can be sure it will succeed.
+		tagsCurrent := pgtype.JSONB{}
+		_ = tagsCurrent.Set(payload.Data.TagsCurrent)
+
 		account, err := repo.CreateOrUpdateCloudAccount(r.Context(), db.CreateOrUpdateCloudAccountParams{
 			TenantID:    tenant.TenantID,
 			Cloud:       tenant.Cloud,
 			AccountID:   resourceID,
 			Name:        payload.Data.AccountName,
-			TagsCurrent: payload.Data.GetTagsCurrent(),
-			TagsDesired: payload.Data.GetTagsDesired(),
+			TagsCurrent: tagsCurrent,
+			TagsDesired: tagsDesired,
 		})
 		if err != nil {
 			_ = render.Render(w, r, responses.ErrInternalServerError)
