@@ -9,21 +9,22 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/suse-skyscraper/skyscraper/test/helpers"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/jackc/pgtype"
 	"github.com/nats-io/nats.go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/suse-skyscraper/skyscraper/cli/db"
 	"github.com/suse-skyscraper/skyscraper/cli/internal/auth"
-	"github.com/suse-skyscraper/skyscraper/cli/internal/db"
 	"github.com/suse-skyscraper/skyscraper/cli/internal/server/middleware"
-	"github.com/suse-skyscraper/skyscraper/cli/internal/testhelpers"
 )
 
 func TestV1CreateOrUpdateResource(t *testing.T) {
-	cloudAccount := testhelpers.FactoryCloudAccount()
-	tenant := testhelpers.FactoryTenant()
+	cloudAccount := helpers.FactoryCloudAccount()
+	tenant := helpers.FactoryTenant()
 
 	type PubAckFuture struct {
 		nats.PubAckFuture
@@ -143,7 +144,7 @@ func TestV1CreateOrUpdateResource(t *testing.T) {
 			bytes.NewReader(tc.body))
 		req.Header.Add("Content-Type", "application/json")
 		w := httptest.NewRecorder()
-		testApp, err := testhelpers.NewTestApp()
+		testApp, err := helpers.NewTestApp()
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -173,7 +174,7 @@ func TestV1CreateOrUpdateResource(t *testing.T) {
 
 		V1CreateOrUpdateResource(testApp.App)(w, req)
 
-		_ = testhelpers.AssertOpenAPI(t, w, req)
+		_ = helpers.AssertOpenAPI(t, w, req)
 
 		result := w.Result()
 		assert.Equal(t, tc.statusCode, result.StatusCode, fmt.Sprintf("status should match for %s", tc.description))
@@ -184,7 +185,7 @@ func TestV1CreateOrUpdateResource(t *testing.T) {
 }
 
 func TestV1ListResources(t *testing.T) {
-	cloudAccount := testhelpers.FactoryCloudAccount()
+	cloudAccount := helpers.FactoryCloudAccount()
 	group := "AWS"
 	tenantID := "tenant1234"
 
@@ -221,7 +222,7 @@ func TestV1ListResources(t *testing.T) {
 	for _, tc := range tests {
 		req, _ := http.NewRequest("GET", "/api/v1/groups/AWS/tenants/12345/resources", nil)
 		w := httptest.NewRecorder()
-		testApp, err := testhelpers.NewTestApp()
+		testApp, err := helpers.NewTestApp()
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -239,7 +240,7 @@ func TestV1ListResources(t *testing.T) {
 
 		V1ListResources(testApp.App)(w, req)
 
-		_ = testhelpers.AssertOpenAPI(t, w, req)
+		_ = helpers.AssertOpenAPI(t, w, req)
 
 		result := w.Result()
 		assert.Equal(t, tc.statusCode, result.StatusCode)
@@ -250,7 +251,7 @@ func TestV1ListResources(t *testing.T) {
 }
 
 func TestV1GetResource(t *testing.T) {
-	cloudAccount := testhelpers.FactoryCloudAccount()
+	cloudAccount := helpers.FactoryCloudAccount()
 
 	tests := []struct {
 		context interface{}
@@ -269,7 +270,7 @@ func TestV1GetResource(t *testing.T) {
 	for _, tc := range tests {
 		req, _ := http.NewRequest("GET", "/api/v1/groups/AWS/tenants/12345/resources/123456", nil)
 		w := httptest.NewRecorder()
-		testApp, err := testhelpers.NewTestApp()
+		testApp, err := helpers.NewTestApp()
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -280,7 +281,7 @@ func TestV1GetResource(t *testing.T) {
 
 		V1GetResource(testApp.App)(w, req)
 
-		_ = testhelpers.AssertOpenAPI(t, w, req)
+		_ = helpers.AssertOpenAPI(t, w, req)
 
 		result := w.Result()
 		assert.Equal(t, tc.status, result.StatusCode)

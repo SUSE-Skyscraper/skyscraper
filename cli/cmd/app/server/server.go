@@ -4,8 +4,9 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/suse-skyscraper/skyscraper/cli/fga"
+
 	"github.com/suse-skyscraper/skyscraper/cli/application"
-	"github.com/suse-skyscraper/skyscraper/cli/internal/fga"
 	"github.com/suse-skyscraper/skyscraper/cli/internal/scimbridgedb"
 	server2 "github.com/suse-skyscraper/skyscraper/cli/internal/server"
 	"github.com/suse-skyscraper/skyscraper/cli/internal/server/middleware"

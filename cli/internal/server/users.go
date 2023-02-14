@@ -6,7 +6,7 @@ import (
 
 	"github.com/suse-skyscraper/skyscraper/api/responses"
 	"github.com/suse-skyscraper/skyscraper/cli/application"
-	"github.com/suse-skyscraper/skyscraper/cli/internal/db"
+	"github.com/suse-skyscraper/skyscraper/cli/db"
 	"github.com/suse-skyscraper/skyscraper/cli/internal/pagination"
 	"github.com/suse-skyscraper/skyscraper/cli/internal/server/middleware"
 

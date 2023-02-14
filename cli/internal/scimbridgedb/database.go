@@ -10,7 +10,7 @@ import (
 	"github.com/jackc/pgx/v4"
 
 	"github.com/suse-skyscraper/skyscraper/cli/application"
-	"github.com/suse-skyscraper/skyscraper/cli/internal/db"
+	"github.com/suse-skyscraper/skyscraper/cli/db"
 
 	"github.com/google/uuid"
 	"github.com/suse-skyscraper/openfga-scim-bridge/v2/database"

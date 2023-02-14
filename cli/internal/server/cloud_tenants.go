@@ -11,7 +11,7 @@ import (
 	"github.com/go-chi/render"
 	"github.com/suse-skyscraper/skyscraper/api/payloads"
 	"github.com/suse-skyscraper/skyscraper/cli/application"
-	"github.com/suse-skyscraper/skyscraper/cli/internal/db"
+	"github.com/suse-skyscraper/skyscraper/cli/db"
 )
 
 func V1ListCloudTenants(app *application.App) func(w http.ResponseWriter, r *http.Request) {

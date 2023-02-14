@@ -8,18 +8,18 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/suse-skyscraper/skyscraper/cli/internal/auth"
-	"github.com/suse-skyscraper/skyscraper/cli/internal/db"
-	"github.com/suse-skyscraper/skyscraper/cli/internal/server/middleware"
-	"github.com/suse-skyscraper/skyscraper/cli/internal/testhelpers"
+	"github.com/suse-skyscraper/skyscraper/test/helpers"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/suse-skyscraper/skyscraper/cli/db"
+	"github.com/suse-skyscraper/skyscraper/cli/internal/auth"
+	"github.com/suse-skyscraper/skyscraper/cli/internal/server/middleware"
 )
 
 func TestV1ListOrganizationalUnits(t *testing.T) {
-	organizationalUnit := testhelpers.FactoryOrganizationalUnit()
+	organizationalUnit := helpers.FactoryOrganizationalUnit()
 
 	tests := []struct {
 		getError   error
@@ -38,7 +38,7 @@ func TestV1ListOrganizationalUnits(t *testing.T) {
 	for _, tc := range tests {
 		req, _ := http.NewRequest("GET", "/api/v1/organizational_units?cloud=AWS", nil)
 		w := httptest.NewRecorder()
-		testApp, err := testhelpers.NewTestApp()
+		testApp, err := helpers.NewTestApp()
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -49,7 +49,7 @@ func TestV1ListOrganizationalUnits(t *testing.T) {
 
 		V1ListOrganizationalUnits(testApp.App)(w, req)
 
-		_ = testhelpers.AssertOpenAPI(t, w, req)
+		_ = helpers.AssertOpenAPI(t, w, req)
 
 		result := w.Result()
 		assert.Equal(t, tc.statusCode, result.StatusCode)
@@ -60,7 +60,7 @@ func TestV1ListOrganizationalUnits(t *testing.T) {
 }
 
 func TestV1GetOrganizationalUnit(t *testing.T) {
-	organizationalUnit := testhelpers.FactoryOrganizationalUnit()
+	organizationalUnit := helpers.FactoryOrganizationalUnit()
 
 	tests := []struct {
 		context    interface{}
@@ -79,7 +79,7 @@ func TestV1GetOrganizationalUnit(t *testing.T) {
 	for _, test := range tests {
 		req, _ := http.NewRequest("GET", "/api/v1/organizational_units/123456", nil)
 		w := httptest.NewRecorder()
-		testApp, err := testhelpers.NewTestApp()
+		testApp, err := helpers.NewTestApp()
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -90,7 +90,7 @@ func TestV1GetOrganizationalUnit(t *testing.T) {
 
 		V1GetOrganizationalUnit(testApp.App)(w, req)
 
-		_ = testhelpers.AssertOpenAPI(t, w, req)
+		_ = helpers.AssertOpenAPI(t, w, req)
 
 		result := w.Result()
 		assert.Equal(t, result.StatusCode, test.statusCode)
@@ -101,7 +101,7 @@ func TestV1GetOrganizationalUnit(t *testing.T) {
 }
 
 func TestV1CreateOrganizationalUnit(t *testing.T) {
-	organizationalUnit := testhelpers.FactoryOrganizationalUnit()
+	organizationalUnit := helpers.FactoryOrganizationalUnit()
 
 	tests := []struct {
 		payload             []byte
@@ -151,7 +151,7 @@ func TestV1CreateOrganizationalUnit(t *testing.T) {
 		req, _ := http.NewRequest("POST", "/api/v1/organizational_units", bytes.NewReader(tc.payload))
 		req.Header.Add("Content-Type", "application/json")
 		w := httptest.NewRecorder()
-		testApp, err := testhelpers.NewTestApp()
+		testApp, err := helpers.NewTestApp()
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -177,7 +177,7 @@ func TestV1CreateOrganizationalUnit(t *testing.T) {
 
 		V1CreateOrganizationalUnit(testApp.App)(w, req)
 
-		_ = testhelpers.AssertOpenAPI(t, w, req)
+		_ = helpers.AssertOpenAPI(t, w, req)
 
 		result := w.Result()
 		assert.Equal(t, tc.statusCode, result.StatusCode)
@@ -186,8 +186,8 @@ func TestV1CreateOrganizationalUnit(t *testing.T) {
 }
 
 func TestV1DeleteOrganizationalUnit(t *testing.T) {
-	organizationalUnit := testhelpers.FactoryOrganizationalUnit()
-	cloudAccount := testhelpers.FactoryCloudAccount()
+	organizationalUnit := helpers.FactoryOrganizationalUnit()
+	cloudAccount := helpers.FactoryCloudAccount()
 
 	tests := []struct {
 		statusCode            int
@@ -261,7 +261,7 @@ func TestV1DeleteOrganizationalUnit(t *testing.T) {
 		req, _ := http.NewRequest("DELETE", "/api/v1/organizational_units/123456", nil)
 		req.Header.Add("Content-Type", "application/json")
 		w := httptest.NewRecorder()
-		testApp, err := testhelpers.NewTestApp()
+		testApp, err := helpers.NewTestApp()
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -290,7 +290,7 @@ func TestV1DeleteOrganizationalUnit(t *testing.T) {
 
 		V1DeleteOrganizationalUnit(testApp.App)(w, req)
 
-		_ = testhelpers.AssertOpenAPI(t, w, req)
+		_ = helpers.AssertOpenAPI(t, w, req)
 
 		result := w.Result()
 		assert.Equal(t, tc.statusCode, result.StatusCode)

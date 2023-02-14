@@ -53,7 +53,7 @@ go run ./cmd/main.go migrate down
 
 * The queries are located in the `queries.sql` file.
 * The config file for `sqlc` is located at `sqlc.yaml`.
-* The database files are generated at `internal/db`.
+* The database files are generated at `cli/db`.
 
 Run the following command to generate the database files:
 

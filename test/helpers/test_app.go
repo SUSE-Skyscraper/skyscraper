@@ -1,4 +1,4 @@
-package testhelpers
+package helpers
 
 import (
 	"context"
@@ -7,8 +7,8 @@ import (
 	"github.com/pashagolub/pgxmock"
 
 	"github.com/suse-skyscraper/skyscraper/cli/application"
-	"github.com/suse-skyscraper/skyscraper/cli/internal/db"
-	"github.com/suse-skyscraper/skyscraper/cli/internal/fga"
+	"github.com/suse-skyscraper/skyscraper/cli/db"
+	"github.com/suse-skyscraper/skyscraper/cli/fga"
 
 	"github.com/google/uuid"
 	"github.com/nats-io/nats.go"
