@@ -11,7 +11,7 @@ import (
 	"github.com/suse-skyscraper/skyscraper/api/payloads"
 	"github.com/suse-skyscraper/skyscraper/api/responses"
 	"github.com/suse-skyscraper/skyscraper/cli/application"
-	"github.com/suse-skyscraper/skyscraper/cli/internal/db"
+	"github.com/suse-skyscraper/skyscraper/cli/db"
 	"github.com/suse-skyscraper/skyscraper/cli/internal/server/auditors"
 	"github.com/suse-skyscraper/skyscraper/cli/internal/server/middleware"
 )

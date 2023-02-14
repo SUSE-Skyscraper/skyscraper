@@ -4,12 +4,12 @@ import (
 	"context"
 	"time"
 
-	"github.com/suse-skyscraper/skyscraper/cli/internal/db"
-	"github.com/suse-skyscraper/skyscraper/cli/internal/fga"
+	"github.com/suse-skyscraper/skyscraper/cli/fga"
 
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/nats-io/nats.go"
 	openfga "github.com/openfga/go-sdk"
+	"github.com/suse-skyscraper/skyscraper/cli/db"
 )
 
 type App struct {

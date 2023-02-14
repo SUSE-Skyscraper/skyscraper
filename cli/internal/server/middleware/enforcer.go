@@ -4,15 +4,15 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/suse-skyscraper/skyscraper/cli/internal/db"
+	"github.com/suse-skyscraper/skyscraper/cli/fga"
 
-	"github.com/suse-skyscraper/skyscraper/api/responses"
-	"github.com/suse-skyscraper/skyscraper/cli/application"
-	"github.com/suse-skyscraper/skyscraper/cli/internal/auth"
-	"github.com/suse-skyscraper/skyscraper/cli/internal/fga"
+	"github.com/suse-skyscraper/skyscraper/cli/db"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
+	"github.com/suse-skyscraper/skyscraper/api/responses"
+	"github.com/suse-skyscraper/skyscraper/cli/application"
+	"github.com/suse-skyscraper/skyscraper/cli/internal/auth"
 )
 
 func EnforcerHandler(app *application.App, document fga.Document, relation fga.Relation) func(next http.Handler) http.Handler {

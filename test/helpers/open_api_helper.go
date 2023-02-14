@@ -1,9 +1,11 @@
-package testhelpers
+package helpers
 
 import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"path"
+	"runtime"
 	"testing"
 
 	"github.com/getkin/kin-openapi/routers/gorillamux"
@@ -21,10 +23,13 @@ func init() {
 	ctx := context.Background()
 	loader := &openapi3.Loader{Context: ctx, IsExternalRefsAllowed: true}
 
-	doc, err := loader.LoadFromFile("./../../../api/skyscraper.yaml")
+	_, filename, _, _ := runtime.Caller(0)
+	apiDefinitionPath := path.Join(filename, "..", "..", "..", "api", "skyscraper.yaml")
+	doc, err := loader.LoadFromFile(apiDefinitionPath)
 	if err != nil {
 		panic(err)
 	}
+
 	// Our test requests are relative, so the server URL doesn't get found.
 	doc.Servers = nil
 	err = doc.Validate(ctx)

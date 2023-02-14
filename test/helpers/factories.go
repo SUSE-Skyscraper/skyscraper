@@ -1,9 +1,9 @@
-package testhelpers
+package helpers
 
 import (
 	"time"
 
-	"github.com/suse-skyscraper/skyscraper/cli/internal/db"
+	"github.com/suse-skyscraper/skyscraper/cli/db"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgtype"

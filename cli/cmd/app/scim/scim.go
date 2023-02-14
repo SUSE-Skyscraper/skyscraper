@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/jackc/pgx/v4"
-	"github.com/suse-skyscraper/skyscraper/cli/internal/db"
+	"github.com/suse-skyscraper/skyscraper/cli/db"
 
 	"github.com/spf13/cobra"
 	"github.com/suse-skyscraper/skyscraper/cli/application"

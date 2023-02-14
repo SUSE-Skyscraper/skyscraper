@@ -34,7 +34,7 @@ func NewPluginWorker(app *application.App) PluginWorker {
 }
 
 func (w *DefaultPluginWorker) PublishMessage(cloud string, payload PluginPayload) error {
-	if payload.Cloud == "" {
+	if cloud == "" || payload.Cloud == "" {
 		return fmt.Errorf("cloud is required")
 	}
 

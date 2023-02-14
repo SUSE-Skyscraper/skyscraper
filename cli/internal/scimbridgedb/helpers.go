@@ -3,7 +3,7 @@ package scimbridgedb
 import (
 	"encoding/json"
 
-	"github.com/suse-skyscraper/skyscraper/cli/internal/db"
+	"github.com/suse-skyscraper/skyscraper/cli/db"
 
 	"github.com/jackc/pgtype"
 	"github.com/suse-skyscraper/openfga-scim-bridge/v2/database"

@@ -8,14 +8,14 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/suse-skyscraper/skyscraper/cli/internal/auth"
-	"github.com/suse-skyscraper/skyscraper/cli/internal/db"
-	"github.com/suse-skyscraper/skyscraper/cli/internal/server/middleware"
-	"github.com/suse-skyscraper/skyscraper/cli/internal/testhelpers"
+	"github.com/suse-skyscraper/skyscraper/test/helpers"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/suse-skyscraper/skyscraper/cli/db"
+	"github.com/suse-skyscraper/skyscraper/cli/internal/auth"
+	"github.com/suse-skyscraper/skyscraper/cli/internal/server/middleware"
 )
 
 func TestV1Profile(t *testing.T) {
@@ -62,7 +62,7 @@ func TestV1Profile(t *testing.T) {
 
 		ctx = context.WithValue(ctx, middleware.ContextCaller, tc.caller)
 		req = req.WithContext(ctx)
-		testApp, err := testhelpers.NewTestApp()
+		testApp, err := helpers.NewTestApp()
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -71,7 +71,7 @@ func TestV1Profile(t *testing.T) {
 
 		w := httptest.NewRecorder()
 		V1CallerProfile(testApp.App)(w, req)
-		_ = testhelpers.AssertOpenAPI(t, w, req)
+		_ = helpers.AssertOpenAPI(t, w, req)
 
 		result := w.Result()
 		assert.Equal(t, tc.status, result.StatusCode)
@@ -82,7 +82,7 @@ func TestV1Profile(t *testing.T) {
 }
 
 func TestV1CallerCloudAccounts(t *testing.T) {
-	cloudAccount := testhelpers.FactoryCloudAccount()
+	cloudAccount := helpers.FactoryCloudAccount()
 	user := auth.Caller{
 		Type: auth.CallerUser,
 		ID:   uuid.New(),
@@ -91,7 +91,7 @@ func TestV1CallerCloudAccounts(t *testing.T) {
 		Type: auth.CallerAPIKey,
 		ID:   uuid.New(),
 	}
-	ou := testhelpers.FactoryOrganizationalUnit()
+	ou := helpers.FactoryOrganizationalUnit()
 
 	tests := []struct {
 		context          interface{}
@@ -138,7 +138,7 @@ func TestV1CallerCloudAccounts(t *testing.T) {
 		ctx = context.WithValue(ctx, middleware.ContextCaller, tc.context)
 		req = req.WithContext(ctx)
 
-		testApp, err := testhelpers.NewTestApp()
+		testApp, err := helpers.NewTestApp()
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -155,7 +155,7 @@ func TestV1CallerCloudAccounts(t *testing.T) {
 
 		V1CallerCloudAccounts(testApp.App)(w, req)
 
-		_ = testhelpers.AssertOpenAPI(t, w, req)
+		_ = helpers.AssertOpenAPI(t, w, req)
 
 		result := w.Result()
 		assert.Equal(t, tc.statusCode, result.StatusCode)

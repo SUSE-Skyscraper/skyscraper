@@ -8,17 +8,17 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/suse-skyscraper/skyscraper/cli/internal/auth"
-	"github.com/suse-skyscraper/skyscraper/cli/internal/server/middleware"
-	"github.com/suse-skyscraper/skyscraper/cli/internal/testhelpers"
+	"github.com/suse-skyscraper/skyscraper/test/helpers"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/suse-skyscraper/skyscraper/cli/internal/auth"
+	"github.com/suse-skyscraper/skyscraper/cli/internal/server/middleware"
 )
 
 func TestV1AssignCloudAccountToOU(t *testing.T) {
-	cloudAccount := testhelpers.FactoryCloudAccount()
+	cloudAccount := helpers.FactoryCloudAccount()
 
 	tests := []struct {
 		payload       []byte
@@ -74,7 +74,7 @@ func TestV1AssignCloudAccountToOU(t *testing.T) {
 		req, _ := http.NewRequest("POST", "/api/v1/groups/AWS/tenants/12345/resources/12345/organizational_unit", bytes.NewReader(tc.payload))
 		req.Header.Add("Content-Type", "application/json")
 		w := httptest.NewRecorder()
-		testApp, err := testhelpers.NewTestApp()
+		testApp, err := helpers.NewTestApp()
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -98,7 +98,7 @@ func TestV1AssignCloudAccountToOU(t *testing.T) {
 
 		V1AssignCloudAccountToOU(testApp.App)(w, req)
 
-		_ = testhelpers.AssertOpenAPI(t, w, req)
+		_ = helpers.AssertOpenAPI(t, w, req)
 
 		result := w.Result()
 		assert.Equal(t, tc.statusCode, result.StatusCode)

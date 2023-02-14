@@ -3,7 +3,7 @@ package auth
 import (
 	"errors"
 
-	"github.com/suse-skyscraper/skyscraper/cli/internal/db"
+	"github.com/suse-skyscraper/skyscraper/cli/db"
 
 	"github.com/google/uuid"
 )
