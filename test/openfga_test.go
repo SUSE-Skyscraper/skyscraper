@@ -15,9 +15,13 @@ func TestOpenFGAAssertions(t *testing.T) {
 	ctx := context.Background()
 	containerizedApp, err := helpers.NewContainerizedApp(ctx)
 	if err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
 	app := containerizedApp.App
+	err = app.Start(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	defer app.Shutdown(ctx)
 	defer containerizedApp.Close()

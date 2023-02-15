@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/suse-skyscraper/skyscraper/test/mocks"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/suse-skyscraper/skyscraper/test/helpers"
@@ -155,7 +157,7 @@ func TestDefaultPluginWorker_PublishMessage(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		future := new(helpers.MockPubAckFuture)
+		future := new(mocks.MockPubAckFuture)
 		testApp.JS.On("PublishAsync", mock.Anything, mock.Anything, mock.Anything).Return(future, tc.publishError)
 
 		worker := NewPluginWorker(testApp.App)

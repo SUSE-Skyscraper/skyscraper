@@ -1,4 +1,4 @@
-package helpers
+package mocks
 
 import (
 	"github.com/nats-io/nats.go"

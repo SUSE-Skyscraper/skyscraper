@@ -4,6 +4,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/suse-skyscraper/skyscraper/cli/config"
+
 	"github.com/suse-skyscraper/skyscraper/cli/fga"
 
 	"github.com/jackc/pgx/v4/pgxpool"
@@ -13,7 +15,7 @@ import (
 )
 
 type App struct {
-	Config       Config
+	Config       config.Config
 	JS           nats.JetStreamContext
 	Repo         db.Repository
 	natsConn     *nats.Conn
@@ -23,13 +25,13 @@ type App struct {
 }
 
 func NewApp(configDir string) (*App, error) {
-	configurator := NewConfigurator(configDir)
-	config, err := configurator.Parse()
+	configurator := config.NewConfigurator(configDir)
+	conf, err := configurator.Parse()
 	if err != nil {
 		return &App{}, err
 	}
 	return &App{
-		Config: config,
+		Config: conf,
 	}, nil
 }
 
@@ -69,7 +71,7 @@ func (a *App) Shutdown(_ context.Context) {
 	}
 }
 
-func setupDatabase(ctx context.Context, config Config) (*db.Queries, *pgxpool.Pool, error) {
+func setupDatabase(ctx context.Context, config config.Config) (*db.Queries, *pgxpool.Pool, error) {
 	poolConfig, err := pgxpool.ParseConfig(config.DB.GetDSN())
 	if err != nil {
 		return nil, nil, err
@@ -84,7 +86,7 @@ func setupDatabase(ctx context.Context, config Config) (*db.Queries, *pgxpool.Po
 	return database, pool, nil
 }
 
-func setupFGA(_ context.Context, config Config) (*openfga.APIClient, error) {
+func setupFGA(_ context.Context, config config.Config) (*openfga.APIClient, error) {
 	configuration, err := openfga.NewConfiguration(openfga.Configuration{
 		ApiScheme: config.FGAConfig.APIScheme,
 		ApiHost:   config.FGAConfig.APIHost,
@@ -99,7 +101,7 @@ func setupFGA(_ context.Context, config Config) (*openfga.APIClient, error) {
 	return apiClient, nil
 }
 
-func setupNats(_ context.Context, conf Config) (nats.JetStreamContext, *nats.Conn, error) {
+func setupNats(_ context.Context, conf config.Config) (nats.JetStreamContext, *nats.Conn, error) {
 	nc, _ := nats.Connect(conf.Nats.URL)
 	js, _ := nc.JetStream(nats.PublishAsyncMaxPending(256))
 	_, err := js.AddStream(&nats.StreamConfig{
