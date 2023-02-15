@@ -150,7 +150,7 @@ func TestDefaultPluginWorker_PublishMessage(t *testing.T) {
 	}
 
 	for _, tc := range tt {
-		testApp, err := helpers.NewTestApp()
+		testApp, err := helpers.NewMockedApp()
 		if err != nil {
 			t.Fatal(err)
 		}

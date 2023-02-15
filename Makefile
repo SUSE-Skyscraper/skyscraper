@@ -20,7 +20,7 @@ build:
 test: test_unit test_integration
 
 test_unit:
-	go test -v ./cli/... ./plugins/... -coverprofile=coverage.out -covermode=atomic
+	go test -v ./api/... ./cli/... ./plugins/... -coverprofile=coverage.out -covermode=atomic
 
 test_integration:
 	go test -v ./test/...
