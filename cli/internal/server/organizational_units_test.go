@@ -38,7 +38,7 @@ func TestV1ListOrganizationalUnits(t *testing.T) {
 	for _, tc := range tests {
 		req, _ := http.NewRequest("GET", "/api/v1/organizational_units?cloud=AWS", nil)
 		w := httptest.NewRecorder()
-		testApp, err := helpers.NewTestApp()
+		testApp, err := helpers.NewMockedApp()
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -79,7 +79,7 @@ func TestV1GetOrganizationalUnit(t *testing.T) {
 	for _, test := range tests {
 		req, _ := http.NewRequest("GET", "/api/v1/organizational_units/123456", nil)
 		w := httptest.NewRecorder()
-		testApp, err := helpers.NewTestApp()
+		testApp, err := helpers.NewMockedApp()
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -151,7 +151,7 @@ func TestV1CreateOrganizationalUnit(t *testing.T) {
 		req, _ := http.NewRequest("POST", "/api/v1/organizational_units", bytes.NewReader(tc.payload))
 		req.Header.Add("Content-Type", "application/json")
 		w := httptest.NewRecorder()
-		testApp, err := helpers.NewTestApp()
+		testApp, err := helpers.NewMockedApp()
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -261,7 +261,7 @@ func TestV1DeleteOrganizationalUnit(t *testing.T) {
 		req, _ := http.NewRequest("DELETE", "/api/v1/organizational_units/123456", nil)
 		req.Header.Add("Content-Type", "application/json")
 		w := httptest.NewRecorder()
-		testApp, err := helpers.NewTestApp()
+		testApp, err := helpers.NewMockedApp()
 		if err != nil {
 			t.Fatal(err)
 		}

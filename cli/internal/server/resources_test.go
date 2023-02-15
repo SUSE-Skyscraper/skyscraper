@@ -144,7 +144,7 @@ func TestV1CreateOrUpdateResource(t *testing.T) {
 			bytes.NewReader(tc.body))
 		req.Header.Add("Content-Type", "application/json")
 		w := httptest.NewRecorder()
-		testApp, err := helpers.NewTestApp()
+		testApp, err := helpers.NewMockedApp()
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -222,7 +222,7 @@ func TestV1ListResources(t *testing.T) {
 	for _, tc := range tests {
 		req, _ := http.NewRequest("GET", "/api/v1/groups/AWS/tenants/12345/resources", nil)
 		w := httptest.NewRecorder()
-		testApp, err := helpers.NewTestApp()
+		testApp, err := helpers.NewMockedApp()
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -270,7 +270,7 @@ func TestV1GetResource(t *testing.T) {
 	for _, tc := range tests {
 		req, _ := http.NewRequest("GET", "/api/v1/groups/AWS/tenants/12345/resources/123456", nil)
 		w := httptest.NewRecorder()
-		testApp, err := helpers.NewTestApp()
+		testApp, err := helpers.NewMockedApp()
 		if err != nil {
 			t.Fatal(err)
 		}

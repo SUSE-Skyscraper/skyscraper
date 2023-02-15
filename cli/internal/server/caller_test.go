@@ -62,7 +62,7 @@ func TestV1Profile(t *testing.T) {
 
 		ctx = context.WithValue(ctx, middleware.ContextCaller, tc.caller)
 		req = req.WithContext(ctx)
-		testApp, err := helpers.NewTestApp()
+		testApp, err := helpers.NewMockedApp()
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -138,7 +138,7 @@ func TestV1CallerCloudAccounts(t *testing.T) {
 		ctx = context.WithValue(ctx, middleware.ContextCaller, tc.context)
 		req = req.WithContext(ctx)
 
-		testApp, err := helpers.NewTestApp()
+		testApp, err := helpers.NewMockedApp()
 		if err != nil {
 			t.Fatal(err)
 		}

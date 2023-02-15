@@ -74,7 +74,7 @@ func TestV1AssignCloudAccountToOU(t *testing.T) {
 		req, _ := http.NewRequest("POST", "/api/v1/groups/AWS/tenants/12345/resources/12345/organizational_unit", bytes.NewReader(tc.payload))
 		req.Header.Add("Content-Type", "application/json")
 		w := httptest.NewRecorder()
-		testApp, err := helpers.NewTestApp()
+		testApp, err := helpers.NewMockedApp()
 		if err != nil {
 			t.Fatal(err)
 		}

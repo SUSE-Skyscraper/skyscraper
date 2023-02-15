@@ -16,7 +16,7 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-type TestApp struct {
+type AppMocked struct {
 	App          *application.App
 	JS           *TestJS
 	Repo         *TestRepo
@@ -25,11 +25,11 @@ type TestApp struct {
 	PostgresPool pgxmock.PgxPoolIface
 }
 
-func (t *TestApp) Close() {
+func (t *AppMocked) Close() {
 	t.PostgresPool.Close()
 }
 
-func NewTestApp() (*TestApp, error) {
+func NewMockedApp() (*AppMocked, error) {
 	js := new(TestJS)
 	fgaClient := new(TestFGAAuthorizer)
 	repo := new(TestRepo)
@@ -48,7 +48,7 @@ func NewTestApp() (*TestApp, error) {
 		Searcher:     searcher,
 	}
 
-	return &TestApp{
+	return &AppMocked{
 		App:          app,
 		JS:           js,
 		FGAClient:    fgaClient,

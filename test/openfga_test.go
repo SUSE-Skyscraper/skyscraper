@@ -5,12 +5,23 @@ import (
 	"os"
 	"testing"
 
+	"github.com/suse-skyscraper/skyscraper/test/helpers"
+
 	openfga "github.com/openfga/go-sdk"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestOpenFGAAssertions(t *testing.T) {
 	ctx := context.Background()
+	containerizedApp, err := helpers.NewContainerizedApp(ctx)
+	if err != nil {
+		panic(err)
+	}
+	app := containerizedApp.App
+
+	defer app.Shutdown(ctx)
+	defer containerizedApp.Close()
+
 	typeDefinitions, err := os.ReadFile("../cli/cmd/app/fga/type-definition.json")
 	assert.Nil(t, err)
 
