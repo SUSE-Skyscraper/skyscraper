@@ -15,7 +15,7 @@ require (
 	github.com/jackc/pgconn v1.14.0
 	github.com/jackc/pgtype v1.14.0
 	github.com/jackc/pgx/v4 v4.18.0
-	github.com/nats-io/nats.go v1.23.0
+	github.com/nats-io/nats.go v1.24.0
 	github.com/okta/okta-jwt-verifier-golang v1.3.1
 	github.com/openfga/go-sdk v0.2.1
 	github.com/ory/dockertest/v3 v3.9.1
